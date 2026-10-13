@@ -1,0 +1,31 @@
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+secrets.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build / deps (uncomment as needed for the chosen stack)
+# node_modules/
+# target/
+# dist/
+# build/
+# __pycache__/
+# *.pyc
+
+# Claude Code local settings
+.claude/settings.local.json
