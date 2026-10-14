@@ -45,7 +45,8 @@ Two-phase agent: (1) adversarially review the Planner's draft plan before any co
 - Avoid broad refactors; preserve unrelated user changes; check the PR checklist for affected surfaces before calling a change complete.
 - Pure logic goes in `src/phylobench/` with pytest coverage on `tests/fixtures/tiny/`; Snakemake rules only orchestrate I/O.
 - Every tool invocation goes through `phylobench-measure` (T4). A rule that calls a tool directly is a review blocker.
-- Copy the T8 pplacer rule as the template for new wrappers; don't invent a new pattern per tool.
+- Copy the T8 pplacer rule as the template for new wrappers; don't invent a new pattern per tool. Wrappers add files only (`rules/<tool>.smk`, `config/arms/<arm>.yaml`, `envs/`, `docs/tools/`) — never edit shared config.
+- Agents run on macOS: run only `pytest` and linters locally; unit tests must not need tool binaries. The smoke test is CI-only.
 - Trees reach 200k leaves: no O(n²) Python loops over leaves; use treeswift/numpy.
 
 ## Output Contract

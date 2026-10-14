@@ -14,7 +14,7 @@ Run the post-implementation quality gates: correctness review, full test suite, 
 ## Scope
 
 - Run `/code-review` on the diff — correctness/bug-hunting, distinct from `/simplify`'s quality-only pass. Run this before the full suite so failures surface once.
-- Run the full test suite: `pytest`, then the smoke test `snakemake --use-conda --configfile config/smoke.yaml -c 2`.
+- Run the full test suite: `pytest` locally. The smoke test (`snakemake --use-conda --configfile config/smoke.yaml -c 2`) needs linux tool binaries — verify it via `gh pr checks`, never by running tools on macOS.
 - Flag any test tier that needs a live environment as "manual verification required" — never silently skip it, and never claim it passed without an actual run.
 - Run every linter and formatter the CI runs: `ruff check .`, `ruff format --check .`, `snakemake --lint`.
 - Fix linter issues even outside current ticket scope.
@@ -34,9 +34,9 @@ Run the post-implementation quality gates: correctness review, full test suite, 
 - Keep the local gate commands identical to what CI runs — a gate that passes locally but differs from CI is not a gate.
 - Any test requiring live infrastructure or credentials is manual-tier: report it as untested rather than as passing.
 - `/simplify` is a quality pass, not a correctness pass — it does not replace `/code-review`.
-- Check the Benchmark Invariants in `CLAUDE.md` on every diff: pinned env versions, harness-wrapped tool calls, no bundled BSCAMPP binaries, DNF rows instead of dropped runs, honest "concordance" vs "accuracy" labels.
+- Check every diff against the Benchmark Invariants in `CLAUDE.md`.
 - The smoke test runs on `ubuntu-latest` (x86_64). Full-scale HPC runs are manual-tier — never claim them as passing from CI.
-- For wrapper tickets (T9–T15), verify the Wrapper DoD in `TICKETS.md` item by item.
+- For wrapper tickets (T10, T12, T14, T15, T26), verify the Wrapper DoD in `TICKETS.md` item by item.
 
 ## Output Contract
 

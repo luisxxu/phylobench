@@ -1,234 +1,202 @@
 # phylobench — Design
 
-**Status:** Draft v0 (Planner). Open questions in §9 carry defaults so work can proceed; answers override defaults.
-**Goal:** Find a phylogenetic placement tool that is **at least as accurate as SEPP**, improves on **runtime and/or peak memory**, and is ideally **not GPL**. Report accuracy, runtime, and memory per tool across a **gradient of query-to-backbone similarity**.
+**Status:** v1 — Planner ⇄ SWE **reconciled** (2 rounds); all user decisions resolved (§9), 2026-10-14.
+**Goal:** Find a phylogenetic placement tool that is **at least as accurate as the lab's production SEPP** (q2-fragment-insertion + GG2), cheaper in **runtime and/or peak memory**, for eventual wide use across **Knight Lab infrastructure (Qiita / QIIME 2)**. Licenses are **reported, not used as a decision criterion**. Report accuracy, runtime, memory per tool across a **gradient of query-to-backbone similarity**.
 
-Verification markers: **[V]** = verified against upstream repo / GitHub API / bioconda / PyPI on 2026-10-13. **[UNVERIFIED]** = from memory or inference; must be confirmed in T2.
+Markers: **[V]** verified against upstream repo / GitHub API / bioconda / PyPI / GG2 or EMP FTP (2026-10-13/14). **[UNVERIFIED]** must be confirmed in T2 or T27. **⚑** deliberate deviation or open reconciliation point.
 
 ---
 
-## 0. TL;DR — opinions to push back on
+## 0. TL;DR
 
-1. **Strictly, none of the 7 tools is non-GPL except DIPPER.** The SCAMPP family is MIT, but executes (and bundles) pplacer (GPL-3) or EPA-ng (**AGPL-3**). APPLES-2 is GPL-3. We need to know *why* GPL matters (Q1) before license drives the decision.
-2. **DIPPER does not emit jplace.** It outputs a Newick tree with queries grafted in and places queries *jointly*. It needs its own adapter, and its accuracy must be scored carefully (§1.3).
-3. **"Truth" is circular for two candidate datasets.** EMP V4 ASVs in Greengenes2 were *placed by DEPP* [V]; the SARS-CoV-2 public MAT was *built by UShER placement*. Primary accuracy should come from **RNAsim (true tree)** + **leave-one-out on full-length 16S backbones**; real EMP ASVs are for runtime/memory and SEPP-concordance.
-4. **Runtime/memory barely depend on similarity** — they depend on backbone size and query count. Recommendation: plot **accuracy vs. similarity**, and **runtime/memory vs. backbone size and query count**. (A runtime-vs-similarity panel is still produced for completeness, but expect flat lines.)
-5. **`/usr/bin/time -v` under-reports memory for tools that fork workers** (pplacer `-j`, SEPP, BSCAMPP). Use cgroup v2 `memory.peak` as primary.
-6. **Add plain EPA-ng as an 8th "control" arm.** Nearly free, and the only way to separate "EPA-ng engine" from "SCAMPP/BSCAMPP framework" effects (Q7).
+1. **Licenses are flagged, not decided on.** DIPPER is the only end-to-end MIT option; SCAMPP family = MIT wrapper over GPL-3 (pplacer) or AGPL-3 (EPA-ng) engines; APPLES-2, pplacer, SEPP are GPL-3 (§1.4). The recommendation is made on accuracy, runtime, and memory only.
+2. **Baseline = production SEPP exactly:** `run-sepp.sh -A 1000 -P 5000` on the **GG2 2022.10 SEPP reference** (331,269 leaves) [V]. All other tools get the same backbone tree, alignment, and model numbers.
+3. **Two backbones:** **Bfull\*** (production reference minus held-out queries) and **B10k\*** (10k subsample). Query-count scaling comes from real EMP ASVs.
+4. **Truth = held-out clades + singletons in the GG2 tree** — one pruned backbone, one ref-prep. EMP ASVs have no truth (GG2 placed them with DEPP [V]) → labeled *concordance with SEPP*.
+5. **Fair alignment:** challengers get a single-HMM `hmmalign` alignment (BSD, deployable); oracle alignment is a B10k\* diagnostic; SEPP aligns itself.
+6. **DIPPER emits Newick with joint placement** → scored via an O(N) adapter (T25). jplace arms are converted to inserted trees with `guppy tog` (T25), as production does.
+7. **Memory:** cgroup v2 `memory.peak` if available, else psutil process-tree RSS sum; source recorded per row.
 
 ---
 
 ## 1. Tool matrix
 
-### 1.1 Summary
+### 1.1 Arms and pins
 
-| # | Tool | Upstream | Install (linux-64) | Pin | License | Engine it executes |
-|---|---|---|---|---|---|---|
-| 1 | pplacer | github.com/matsen/pplacer | bioconda `pplacer` | **1.1.alpha22** | GPL-3.0 [V] | itself |
-| 2 | SEPP | github.com/smirarab/sepp | bioconda `sepp` | **4.5.6** [V] | GPL-3.0 [V] | pplacer + HMMER (BSD) |
-| 3 | pplacer-SCAMPP | github.com/ewedell/BSCAMPP (`run_scampp.py --placement-method pplacer`) [V] | PyPI `bscampp` (not on bioconda [V]) | **1.0.8** [V] | MIT [V] | pplacer (GPL-3) |
-| 4 | EPA-ng-SCAMPP | same repo, `run_scampp.py` (EPA-ng default) [V] | PyPI `bscampp` | 1.0.8 | MIT [V] | **EPA-ng (AGPL-3)** |
-| 5 | BSCAMPP | same repo, `run_bscampp.py` [V] | PyPI `bscampp` | 1.0.8 | MIT [V] | EPA-ng (AGPL-3) default; pplacer optional |
-| 6 | APPLES-2 | github.com/balabanmetin/apples | PyPI `apples` (not on bioconda [V]) | **2.0.11** [V] | GPL-3.0 [V] | itself; runs **FastTree (GPL-2+)** for ME branch lengths [V] |
-| 7 | DIPPER | github.com/TurakhiaLab/DIPPER | bioconda `dipper` (CPU build only, issue #13 [V]); GPU via Docker `swalia14/dipper` → Apptainer | **0.1.5** [V] | MIT [V] | itself (Boost, TBB, CUDA runtime) |
-| (8) | EPA-ng (control) | github.com/pierrebarbera/epa-ng | bioconda `epa-ng` | **0.3.8** [V] (not 0.3.9-pre) | AGPL-3.0 [V] | itself |
+| Arm | Upstream | Install (linux-64) | Pin | Own license | Engine executed |
+|---|---|---|---|---|---|
+| `sepp-prod` | q2-fragment-insertion (BSD-3 [V]) → `run-sepp.sh` | Lab's QIIME 2 amplicon distribution env (version per U3), locked | as shipped | GPL-3 (SEPP) | SEPP → pplacer + HMMER; `guppy tog` inside run [V] |
+| `sepp-pinned` (conditional ⚑) | github.com/smirarab/sepp | bioconda `sepp` (uses conda pplacer/hmmer, not bundled [V]) | 4.5.6 [V] | GPL-3 | SEPP → shared pinned pplacer |
+| `pplacer` | github.com/matsen/pplacer | bioconda | **1.1.alpha22** (alpha20 has OCaml-5 `-j` deadlock [V]) | GPL-3 [V] | itself |
+| `pplacer-scampp` | github.com/ewedell/BSCAMPP `run_scampp.py --placement-method pplacer` [V] | PyPI `bscampp` | 1.0.8 [V] | MIT [V] | pplacer (GPL-3) |
+| `epa-ng-scampp` | same, `run_scampp.py` | PyPI `bscampp` | 1.0.8 | MIT | EPA-ng (AGPL-3) |
+| `bscampp` | same, `run_bscampp.py` (subtree 2000, votes 5 [V]) | PyPI `bscampp` | 1.0.8 | MIT | EPA-ng (AGPL-3) |
+| `epa-ng` (control, B10k\* only) | github.com/pierrebarbera/epa-ng | bioconda | 0.3.8 [V] | AGPL-3 [V] | itself |
+| `apples2` | github.com/balabanmetin/apples | PyPI `apples` | 2.0.11 [V] | GPL-3 [V] | itself (+ FastTree GPL-2+ for ME lengths) |
+| `dipper-m` (CPU + GPU) | github.com/TurakhiaLab/DIPPER `--add -i m` | CPU: bioconda `dipper` (`dipper_cpu` only, issue #13 [V]); GPU: `swalia14/dipper` → Apptainer, digest-pinned | 0.1.5 [V] | MIT [V] | itself |
+| `dipper-r` (B10k\* only) | same, `-i r` (MinHash k=15, sketch 1000 [V]) | same | 0.1.5 | MIT | itself |
 
-Notes:
-- `ewedell/SCAMPP` is the old evaluation-scripts repo with **no license file** [V]. SCAMPP now lives inside `ewedell/BSCAMPP` (originally from `chry04/PLUSplacer`, MIT [V]). Do not use the old repo.
-- **pplacer pin:** bioconda has alpha17/19/20/22/23 [V]. alpha20 moved to OCaml 5; alpha21 fixed a multiprocessing deadlock under OCaml 5 [V] → alpha20 unsafe with `-j`. alpha23 (2026-10-07) is too fresh. Pin **alpha22** and force SEPP + both pplacer-based SCAMPP variants to use **the same binary**. T2 decides whether alpha19 (used in published SCAMPP/SEPP results) is also needed for literature comparability.
-- **BSCAMPP ships bundled `epa-ng`/`pplacer` binaries** under `bscampp/tools/` [V] and writes `~/.bscampp/main.config` on first run [V]. Risks: silently using bundled (unpinned) binaries; concurrent jobs racing on shared `$HOME`. Wrapper must set an explicit per-job config and binary paths.
+- `sepp-pinned` runs only if T2 finds the QIIME 2 env's sepp/pplacer/hmmer versions differ from our pins (otherwise it duplicates `sepp-prod`). T2 records those versions and the binary paths SEPP resolves from `main.config` in `docs/audit.md` with the explicit rule "equal to pins → no sepp-pinned arm".
+- All pplacer-based arms except `sepp-prod` share one pplacer binary.
+- BSCAMPP/SCAMPP use external pinned `pplacer`/`epa-ng` and a per-job config — never `~/.bscampp` or bundled `bscampp/tools/*` [V].
+- `ewedell/SCAMPP` (old, no license file [V]) is not used.
 
-### 1.2 Inputs, hardware, outputs
+### 1.2 Inputs (all arms share Bfull\* or B10k\*)
 
-| Tool | Backbone aln | Backbone tree | Model/params file | Query input | Threads | GPU | Output |
-|---|---|---|---|---|---|---|---|
-| pplacer | yes | yes | FastTree log or RAxML-7/8 info / taxtastic refpkg; does not read raxml-ng bestModel [UNVERIFIED] | aligned, backbone width | `-j` (forks) | no | jplace |
-| SEPP | yes | yes | RAxML info (`-r`) [V]; FastTree log? [UNVERIFIED] | **unaligned** (internal HMM ensemble) [V] | `-x` | no | jplace + ext. alignment |
-| pplacer-SCAMPP | yes | yes | FastTree/RAxML log [V] | aligned (`-q`) [V] | `--threads` | no | jplace |
-| EPA-ng-SCAMPP | yes | yes | raxml-ng `.bestModel` [V] | aligned | `--threads` | no | jplace |
-| BSCAMPP | yes | yes | raxml-ng `.bestModel` [V] | aligned | `--threads`, `--cpus-per-job` (default 2) [V] | no | jplace |
-| APPLES-2 | yes | yes, **ME branch lengths** (FastTree `-nome -noml`, default) [V] | none (JC69) | aligned or distance matrix [V] | `-T` [UNVERIFIED] | no | jplace [V] |
-| DIPPER `--add` | one FASTA of backbone **+** queries, aligned (`-i m`) or raw (`-i r`, MinHash k=15, sketch 1000) [V] | yes (`-t`) [V] | none (`-d`, JC default) [V] | aligned or unaligned | **no documented thread flag** [V] → cap via cgroup/taskset | optional (CUDA/HIP); `dipper_cpu` [V] | **Newick only** [V] |
-| EPA-ng | yes | yes | raxml-ng model/bestModel [V] | aligned | `-T` / `OMP_NUM_THREADS` [V] | no | jplace |
-
-### 1.3 DIPPER challenges
-
-- **No jplace.** Adapter (T15): for each query, prune all *other* queries, find the backbone edge the query hangs from, emit a jplace-equivalent row.
-- **Joint placement.** Queries can attach to earlier-added queries rather than backbone edges. After pruning other queries the attachment edge is well-defined but reflects joint placement — document, don't "fix".
-- **Backbone preservation [UNVERIFIED].** Wrapper test must assert output-tree-restricted-to-backbone has RF = 0 with the input tree.
-- **Raw mode** (MinHash k=15) is unlikely to resolve 150 nt V4 fragments or SARS-CoV-2 genomes differing by a few SNPs. Primary DIPPER arm: `-i m` on the shared alignment; secondary: `-i r` as native end-to-end.
-- **Maturity:** v0.1.x — pin exact version / image digest; expect CLI churn.
-
-### 1.4 Transitive licensing
-
-"Non-GPL" only matters if the lab **distributes** the tool (pipeline, QIIME 2 plugin, container, commercial product) or — for **AGPL** — **runs it behind a network service**. Running GPL tools internally on lab data imposes essentially no obligations.
-
-| Candidate | Own license | Effective license of what executes |
+| Arm | Query input | Parameter file |
 |---|---|---|
-| pplacer, SEPP, APPLES-2 | GPL-3 | GPL-3 (APPLES also calls FastTree, GPL-2+) |
-| pplacer-SCAMPP | MIT | MIT wrapper + **GPL-3 engine** |
-| EPA-ng-SCAMPP, BSCAMPP (default) | MIT | MIT wrapper + **AGPL-3 engine** — *stricter* than GPL for services |
-| EPA-ng | AGPL-3 | AGPL-3 |
-| DIPPER | MIT | MIT (Boost BSL, TBB Apache-2 [UNVERIFIED], CUDA runtime) |
+| sepp-prod / sepp-pinned | unaligned | shipped `raxml-info.txt` (reused unchanged on pruned trees) |
+| pplacer, pplacer-scampp | aligned (hmmalign; oracle at B10k\*) | shipped `raxml-info.txt` (what production pplacer reads via SEPP) |
+| epa-ng, epa-ng-scampp, bscampp | aligned | `GTR{rates}+FU{freqs}+G4m{1.0}` converted from the info file (T6) ⚑ |
+| apples2 | aligned | tree with ME branch lengths (FastTree `-nome -noml`, once per backbone) — required by APPLES [V] |
+| dipper-m / dipper-r | aligned / raw | none (JC, `-d 2` default [V]) |
 
-Surrounding (non-placement) steps also carry licenses: RAxML-ng AGPL-3 [V], FastTree GPL-2+ [V], WITCH GPL-3 [V], HMMER BSD [V], MAFFT BSD [V]. **jplace → tree for UniFrac/Faith's PD** via `guppy tog` is GPL (pplacer); DIPPER emits a tree directly. For a fully non-copyleft *production path*, these steps matter as much as the placer.
+⚑ **Shipped model is GTRCAT with alpha=1.0 [V] — no fitted Γ.** Every likelihood arm gets the numbers production SEPP's pplacer gets. Deliberate deviation from per-family re-estimation; stated in the report. Alpha=1.0 handicaps *absolute* accuracy for all likelihood arms equally; the paired verdict vs. sepp-prod stays valid. **T6 must test** that the EPA-ng model string parses in raxml-ng/EPA-ng at the pinned versions and that the info-file rate order maps correctly to AC/AG/AT/CG/CT/GT — a silent permutation would corrupt every EPA-ng-family number.
+
+### 1.3 DIPPER adapter and jplace→tree conversion (T25)
+
+- **Adapter (Newick → placement), one O(N+Q) postorder pass:** assign each backbone leaf a random 64-bit hash; XOR-signature every backbone edge; in DIPPER's output (rooted at a fixed backbone leaf) compute backbone-only signatures per node; each query walks up to the first ancestor with non-empty signature → backbone edge. Fail-loud RF check that the backbone topology is unchanged [UNVERIFIED whether `--add` preserves it]. Joint-placement caveat reported; delta error computed at B10k\*.
+- **jplace → tree:** `guppy tog` from the pinned pplacer env, measured as phase `convert` for every jplace arm (`sepp-prod` runs it internally, as production does).
+
+### 1.4 Licenses (flagged only — no license analysis, no decisions)
+
+Per user decision, the report lists each arm's own license and the license of the engine it executes (table in §1.1, `LICENSES.md`) and flags copyleft (GPL/AGPL) as a note for later review. Licenses do not affect scope, ranking, or the recommendation.
 
 ---
 
-## 2. Fairness / protocol decisions
+## 2. Fairness and protocol
 
-| Decision | Recommendation | Challenge / why |
+| Decision | Choice |
+|---|---|
+| Backbone | **Bfull\*** = shipped GG2 2022.10 SEPP reference minus held-out queries (~3% smaller); **B10k\*** = uniform 10k subsample of Bfull\*. Tree and alignment pruned, never re-estimated; pruning suppresses degree-2 nodes and keeps branch lengths additive. The pruned reference's checksum is recorded in the dataset manifest so all arms provably share it. As-shipped reference used only for the q2-vs-direct SEPP equality check. ⚑ |
+| Model params | Shipped numbers for every likelihood arm (§1.2); ME branch lengths for APPLES-2 only. Ref-prep timed as a one-time cost. |
+| Alignment | **Primary:** `hmmalign` against one `hmmbuild` profile of the backbone alignment, masked to backbone columns (the realistic deployable path); shared by every aligned-input arm (phase `align`, timed). **Diagnostic (B10k\* only):** oracle (region's own GG2 alignment columns). SEPP aligns internally. A poor single-profile alignment lowers challengers vs. SEPP — reported as a property of the alignment arm, not the tools; the oracle-vs-hmmalign gap at B10k\* is the evidence. ⚑ |
+| End-to-end cost | `sepp-prod` total vs. `align + place + convert` for each challenger. |
+| Regions | full-length, **V4-150**, **V3–V4**, **V1–V2**, cut by primer matching on ungapped GG2 sequences (EMP 515F/806R; 341F/805R; 27F/338R [UNVERIFIED final primer set — T7]) and projected onto alignment columns. Sequences without primer hits excluded and counted. |
+| Threads | 16/job (SLURM + each tool's flag). DIPPER capped via cgroup/taskset (no native flag [V]). BSCAMPP `--threads 16 --cpus-per-job 2`. |
+| SEPP | `run-sepp.sh <q> <name> -x 16 -A 1000 -P 5000 -a -t -r` [V], one working dir and `-p`/`-d` temp dirs per job. q2-vs-direct equality check on the shipped reference. |
+| Placement scored | Top-LWR only. |
+
+---
+
+## 3. Truth and metrics
+
+| Data | Role | Truth label |
 |---|---|---|
-| **Query alignment** | **Two arms.** (A) *Placement-only*: every alignment-requiring tool and DIPPER `-i m` get **the same** query alignment, masked to backbone columns. (B) *End-to-end*: SEPP native, DIPPER `-i r`, and every other tool as `align_time + place_time` from A. | SEPP's runtime always includes alignment; comparing to pplacer-without-alignment flatters pplacer. The lab's real question ("replace SEPP") is end-to-end. |
-| **Arm-A aligner** | RNAsim: **true alignment** (oracle). 16S: **WITCH**. SARS-CoV-2: reference-based to Wuhan-Hu-1 (`mafft --addfragments --keeplength`). | Single `hmmalign` profile is poor on diverse 16S backbones. WITCH is slow → time and report separately. Alternative: reuse SEPP's extended alignment (cheaper, but couples everything to SEPP). |
-| **Backbone topology** | One topology per (dataset, size), shared by all tools. RNAsim: FastTree-2 on true alignment. 16S: **GG2 topology pruned** to subsample. SARS-CoV-2: MAT pruned. | RAxML-ng search impractical at 200k. |
-| **Model parameters** | Topology fixed; parameters estimated **in each family's native format** on it: raxml-ng `--evaluate` GTR+G4 → EPA-ng family; FastTree GTR+CAT log → pplacer family; RAxML-8 `-f e` info → SEPP; FastTree `-nome -noml` → APPLES-2; DIPPER none. | "Same params for all" is impossible (incompatible formats, different branch-length semantics). Ref-prep is reported as one-time cost, excluded from placement time. |
-| **Threads** | **16 physical cores/job** via SLURM `--cpus-per-task` + cgroup; every thread flag = 16. BSCAMPP `--threads 16 --cpus-per-job 2`. DIPPER: cgroup only. | Thread scaling out of scope. |
-| **Query type** | **Full-length 16S** and **in-silico V4 fragments** cut from the same sequences; fragment length per Q4 (default **150 nt**, EMP Deblur). | Fragment length shifts accuracy more than tool choice → facet, don't pool. |
-| **SEPP config** | Run SEPP **as the lab runs it in production** (Q2) *and* with defaults on shared backbones. | The bar is "as accurate as *our* SEPP". |
-| **Placement reported** | Top-LWR placement per query. | Comparable across tools; DIPPER/APPLES only give one. |
+| GG2 held-out clades + singletons (§4), 4 regions, 1,000 source sequences each (paired across regions) | **Accuracy** at B10k\* and Bfull\* | Attachment edge in GG2 tree restricted to backbone ∪ {q}; held-out-clade members share its stem edge. **Caveat:** GG2 16S were inserted by uDance (APPLES-2 + ML refinement) [V] → possible bias toward apples2 (and ML arms). An apples2 win is **not** read as a placement-quality win without the non-uDance cross-check (T3 simulator scaled to a 10k true-tree panel, in T16) or T17-lite. |
+| EMP Deblur V4 150 bp ASVs (release1 [V]), 10k and 100k | **Runtime, memory, query-count scaling, concordance** | *Concordance with sepp-prod* (edge distance). Never "accuracy". |
+| (optional) T17-lite RNAsim 10k | Bias-free truth | True tree (§9.8) |
+
+**Metrics:** edge distance (primary; polytomy-aware: collapse zero-length branches, any edge in the true equivalence set scores 0); fraction exactly correct; delta error (B10k\* only); DNF recorded as data.
+
+**Verdict ("as accurate as SEPP"):** per (region, backbone size), pooled across bins, paired per-query difference in edge distance (tool − sepp-prod); **pass** if the upper 95% bootstrap CI of the mean ≤ **0.25 edges**. Per-bin results are descriptive only (avoids the multiple-testing trap).
+
+**Short-window caveat:** identical V4-150 fragments can fit many edges equally; edge distance then reflects unavoidable ambiguity — hence the *paired* comparison against SEPP.
 
 ---
 
-## 3. Ground truth & accuracy metrics
+## 4. Percent similarity and held-out design
 
-### 3.1 Datasets and truth
+**Definition:** `sim(q)` = max identity to any backbone leaf over q's non-gap columns in the primary alignment (within the region window for regions), computed **after** the held-out backbone is built, per backbone size. **Never pool bins across sizes.**
 
-| Dataset | Role | Truth | Caveat |
-|---|---|---|---|
-| **RNAsim** (1M simulated RNA; SCAMPP/BSCAMPP/APPLES benchmark; Dryad doi:10.5061/dryad.78nf7dq [link V, contents UNVERIFIED]) | **Primary accuracy** + scaling to 200k | True tree + true alignment | Simulated, not 16S. Reuse rather than simulate (KISS). |
-| **GG2 full-length 16S backbone** (WoL2 genome-informed, uDance-built [V]) | Realistic 16S accuracy; full-length + V4 fragments | **Leave-one-out** vs. GG2 backbone position | Estimated tree → error floor. |
-| **EMP / Qiita V4 ASVs** | **Runtime/memory at realistic scale** + **concordance with SEPP** | **None** (GG2 ASV positions were placed by DEPP [V]) | Report as "concordance", not accuracy. |
-| **SARS-CoV-2** (UShER public MAT, MIT [V]) | Extreme high-similarity stress test | LOO on MAT | MAT *is* UShER placement → agreement-with-UShER. Polytomies/zero-length branches (§3.2). Different locus/length → separate panel (Q8). |
+**Bins:** 75–80, 80–85, 85–90, 90–95, 95–97, 97–99, 99–99.9, ≥99.9.
 
-### 3.2 Metrics
+**Held-out construction (one pass, one pruned backbone per size):**
+1. Using GG2 backbone taxonomy (`2022.10.backbone.tax.qza` [V]), remove disjoint clades from the shipped tree + alignment: ~6 genera, 6 families, 4 orders, 3 classes, 2 small phyla, each ≤2k leaves. Higher ranks → lower-similarity queries.
+2. Remove **~500 singleton leaves** outside those clades. In a 331k backbone singletons usually keep a near-identical neighbor (operon copies, strains, sister species) — this fills **99–99.9 and ≥99.9 on 16S** without SARS-CoV-2. If ≥99.9 at Bfull\* has <100 queries, seed extra singletons whose nearest remaining neighbor is ≥99.9%. V4-150 fragments push identity further up.
+3. Queries = 1,000 held-out sequences (~500 singletons + ~500 clade members, ≤25 per clade), same sources for every region.
+4. **Bfull\*** ≈ 320k leaves; **B10k\*** = uniform subsample of Bfull\*. At B10k\* the same queries shift to lower bins (sparser neighborhoods) — expected, reported per size.
 
-- **Edge distance (primary):** edges between placed and true edge in the backbone. Collapse zero-length/unsupported branches first; placement on *any* edge of the true polytomy-equivalent set scores 0 (else SARS-CoV-2 is noise).
-- **Delta error (secondary):** increase in FN bipartitions after insertion vs. reference restricted to backbone + query (Mirarab et al. 2012), for comparability with SCAMPP/BSCAMPP/APPLES papers.
-- **Failures:** OOM / timeout / crash → **DNF**, plotted explicitly, never dropped.
-- **"As accurate as SEPP" (Q9 default):** per bin with ≥100 queries, paired per-query difference (tool − SEPP) in edge distance; pass if upper 95% bootstrap CI of the mean ≤ 0.25 edges in every bin.
-
----
-
-## 4. Defining "percent similarity"
-
-**Per query:** `sim(q) = max_b identity(q, b)` over backbone leaves *b*, computed on the shared alignment over columns where *q* is non-gap (double gaps ignored). For fragments, identity over the V4 window. Dataset-level mean pairwise identity is reported only as a descriptor.
-
-**Bins:** 75–80, 80–85, 85–90, 90–95, 95–97, 97–99, 99–99.9, ≥99.9. Below ~75% 16S alignment is unreliable → out of scope.
-
-**Populating bins:**
-1. **Natural sampling** — draw held-out queries, bin by `sim`. High bins fill naturally (SARS-CoV-2 fills ≥99%).
-2. **Clade-pruning** for sparse low bins — for target [lo, hi), remove backbone leaves with identity ≥ hi to *q*, then **resubsample the backbone back to fixed size N** so bins share backbone size.
-
-**Confounds to state in the report:**
-- Pruning thins the local neighbourhood: low-similarity error measures "sparse neighbourhood", not just "divergent query".
-- Low-identity queries over-represent certain lineages (archaea, CPR) → report per-bin lineage composition.
-- **Similarity is confounded with backbone size** → always bin *within* a fixed backbone size, never pool across sizes.
-- Fragments drift into higher bins than their parents → facet by query type.
+**Confounds reported:** per-bin lineage composition; per-bin query length (regions); bins with <100 queries flagged, not padded.
 
 ---
 
 ## 5. Scale
 
-| Axis | Values | Notes |
-|---|---|---|
-| Backbone leaves | **1k, 10k, 100k, 200k** | RNAsim covers all; GG2 up to its 16S count [UNVERIFIED]; SARS-CoV-2 1k/10k/100k |
-| Queries (accuracy) | 1,000 per (dataset, size, query type), ≥100 per bin where possible | Under-filled bins flagged, not padded |
-| Queries (scaling) | 1k, 10k, 100k on fixed 10k backbone | Matches ASV batch sizes (Q5) |
-| Replicates | Accuracy: 3 query-set replicates. Timing: all runs timed; 3 repeats of one mid-size config for noise | Exclusive nodes, one node type |
-| Limits | 256 GB / 48 h per job; exceed → DNF | |
+| Axis | Values |
+|---|---|
+| Backbones | B10k\*, Bfull\* (≈320k) |
+| Accuracy queries | 1,000 per region × 4 regions |
+| Scaling queries | EMP V4 10k and 100k on both backbones |
+| Arms at Bfull\* | sepp-prod, (sepp-pinned), pplacer-scampp, epa-ng-scampp, bscampp, apples2, dipper-m CPU + GPU, plus **one capped pplacer attempt** (1k V4 queries, 24 h cap enforced by the harness as `status=timeout`, fixed before the run, no retry) ⚑ |
+| B10k\*-only arms | pplacer, epa-ng, dipper-r, oracle-alignment diagnostics |
+| Replicates | One query set; bootstrap over queries. Timing CV from 3 repeats of one B10k\* config. |
+| Limits | Exclusive x86 node, 16 threads, >256 GB node memory, 72 h wall. GPU: RTX 3090 24 GB. |
 
-**Expected walls** (all [UNVERIFIED] until T21 pilot): pplacer DNF at 100k–200k (SCAMPP's motivation); SEPP memory set by placement-subset size; EPA-ng control may DNF at 200k; DIPPER GPU bounded by GPU memory; APPLES-2, BSCAMPP, DIPPER should scale furthest.
+**Expected walls** [UNVERIFIED until pilot]: pplacer and plain EPA-ng at Bfull\*; DIPPER GPU at Bfull\* may exceed 24 GB.
 
 ---
 
 ## 6. Measurement
 
-| Quantity | How | Gotcha |
-|---|---|---|
-| Wall-clock | Harness timestamps around tool call, cross-checked with `/usr/bin/time -v` | — |
-| CPU time | `/usr/bin/time -v` user + sys (includes waited children) | — |
-| **Peak memory** | **cgroup v2 `memory.peak`** (SLURM cgroup plugin or `systemd-run --scope`); `time -v` max RSS kept as secondary | `time -v` reports largest *single* process — under-reports forking tools. Snakemake `benchmark:` polls coarsely; not primary. |
-| GPU memory | Poll `nvidia-smi --query-compute-apps=used_memory` every 0.5 s, record max | Approximate; record GPU model |
-| Phase split | Separate rules: **ref-prep → align → place → convert → evaluate**, each measured | SEPP align+place inseparable → report total; SEPP rebuilds HMMs every run (real cost) |
-| Provenance | CPU model, node, tool version, env lock hash, exact command | — |
+| Quantity | How |
+|---|---|
+| Wall / CPU time | Harness wall clock; `/usr/bin/time -v` user+sys |
+| Peak memory | cgroup v2 `memory.peak` if T27 confirms; else psutil process-tree RSS **sum** sampled every 0.5 s; `time -v` max RSS always recorded; `mem_source` column |
+| GPU memory | `nvidia-smi --query-compute-apps=used_memory` every 0.5 s, max |
+| Phases | `ref-prep`, `align`, `place`, `convert`, `evaluate` as separate rules, each measured; `sepp-prod` = one `align+place+convert` phase |
+| Provenance | node, CPU model, GPU model, threads, version, env-lock hash, command |
 
-Outputs — one tidy row per run (`results/runs.tsv`):
-`dataset, backbone_n, query_type, query_n, bin, replicate, tool, arm, phase, wall_s, cpu_s, peak_mem_mb, gpu_peak_mb, status, threads, node, cpu_model, version`
-and per-query accuracy (`results/accuracy.tsv`): `run_id, query, sim, edge_dist, delta_err`.
+Tests skip explicitly when cgroups are absent — never pass vacuously.
 
----
-
-## 7. Stack (KISS)
-
-| Concern | Choice | Why |
-|---|---|---|
-| Workflow | **Snakemake** (per-rule `conda:`, SLURM executor plugin) | Python-native; common in bio labs |
-| Environments | **One pinned conda env YAML per tool** (bioconda/conda-forge, linux-64) + explicit lockfile; pip inside env for `apples`, `bscampp` | Conflicting deps isolated |
-| Containers | Only **DIPPER GPU** (Apptainer `.sif` from Docker, pinned by digest) | HPC runs Apptainer |
-| Analysis | Python 3.11, pandas, matplotlib, treeswift; hand-rolled jplace reader | No guppy/gappa in scoring |
-| Tests | `pytest` for pure functions on hand-built trees; **smoke test**: Snakemake on committed tiny fixture (~100 leaves, <1 MB) running every tool (`dipper_cpu` in CI) on GitHub Actions `ubuntu-latest` (x86_64) | CI proves wiring; HPC proves scale |
-| Lint | `ruff check`, `ruff format --check`, `snakemake --lint` | — |
-| Compute | **HPC SLURM, x86_64**, exclusive nodes of one type; one GPU node type for DIPPER (also `dipper_cpu` on CPU nodes) | Q3 |
-| Data | `data/`, `results/` gitignored; only fixture committed; scripted downloads with checksums | — |
+- `results/runs.tsv`: `dataset, backbone, region, query_n, tool, arm, aln, phase, wall_s, cpu_s, peak_mem_mb, mem_source, gpu_peak_mb, status, threads, node, cpu_model, version`
+- `results/accuracy.tsv`: `run_id, query, sim, bin, edge_dist, exact, delta_err, label(accuracy|concordance)`
 
 ---
 
-## 8. Ticket breakdown & timeline
+## 7. Stack
 
-10 weeks, 5 milestones. See `TICKETS.md` for full ticket specs. Wrapper tickets T9–T15 parallelize once T8 is green; dataset tickets T16–T20 run in parallel with wrappers.
-
-| Milestone | Weeks | Tickets |
-|---|---|---|
-| M0 Foundations | 1–2 | T1 skeleton/CI · T2 license & install audit · T3 fixture · T4 measurement harness · T5 accuracy metrics · T6 ref-prep · T7 query alignment · T8 tiny E2E smoke test |
-| M1 Tool wrappers | 2–4 | T9 pplacer · T10 SEPP · T11 pplacer-SCAMPP · T12 EPA-ng-SCAMPP + EPA-ng · T13 BSCAMPP · T14 APPLES-2 · T15 DIPPER |
-| M2 Datasets | 2–5 | T16 similarity/binning · T17 RNAsim · T18 GG2 16S · T19 EMP ASVs · T20 SARS-CoV-2 |
-| M3 Runs | 5–8 | T21 HPC profile & pilot · T22 full benchmark |
-| M4 Analysis | 8–10 | T23 plots · T24 report & recommendation |
-
-Critical path: T1 → T2 → T6/T7 → T8 → T9–T15 → T21 → T22 → T23 → T24.
+| Concern | Choice |
+|---|---|
+| Workflow | Snakemake; Snakefile includes `rules/*.smk` and loads `config/arms/*.yaml` by glob (pre-registered in T8) so wrappers only add files |
+| Environments | One pinned env + lockfile per tool in `envs/`; `sepp-prod` uses the locked QIIME 2 distribution env; DIPPER GPU as digest-pinned Apptainer `.sif` |
+| Code | `src/phylobench/` pure modules: `measure`, `jplace`, `accuracy`, `similarity`, `regions`, `heldout`, `dipper_adapter`, `models`. Snakemake rules do I/O. |
+| Gates | Local (darwin agents): `pytest`, `ruff check`, `ruff format --check`, `snakemake --lint`. CI (`ubuntu-latest`): same + smoke test with every arm (`dipper_cpu`). Unit tests need no tool binaries. |
+| Compute | SLURM x86 exclusive nodes; one RTX 3090 GPU node type; job submission needs explicit user confirmation |
+| Data | `data/`, `results/`, `.snakemake/` gitignored; scripted checksummed downloads (GG2 2022.10, EMP release1) |
 
 ---
 
-## 9. Open questions for the user
+## 8. Timeline — 5 weeks (3-week floor below)
 
-Each has a default used if unanswered.
+| Week | Work |
+|---|---|
+| W1 | **T27** day-0 cluster check (human). T1, T2, T3, T4, T5, T16, T25 |
+| W2 | T6, T7, T8 (smoke). T18 (Bfull\*/B10k\*, queries). **T26 sepp-prod** first; T10, T12, T14, T15 start |
+| W3 | Wrappers merge. T19 (EMP). **T21 pilot** (DIPPER GPU, sepp-prod first, others as they land). T23 plot scripts on sample TSVs |
+| W4 | T22 staged runs: B10k\* accuracy → Bfull\* accuracy → EMP scaling. Optional T17-lite only if B10k\* is done by W4 day 2 |
+| W5 | Buffer; T23 final figures; T24 report |
 
-1. **Why does GPL matter?** Internal use, redistribution in a pipeline/plugin, web service, or commercial? AGPL (EPA-ng → BSCAMPP, EPA-ng-SCAMPP) is *worse* than GPL for services. *Default:* internal use; license is a reported column, not a filter.
-2. **Production SEPP setup?** q2-fragment-insertion? Which reference (GG 13_8, SILVA 128, GG2)? `-A`/`-P`? *Default:* q2-fragment-insertion defaults with its packaged reference, plus default SEPP on our backbones.
-3. **Compute:** cluster, CPU model/cores, max memory/node, wall limit, GPU model/count? Is cgroup v2 `memory.peak` exposed? *Default:* SLURM x86, ≥16 cores, 256 GB, 48 h; DIPPER CPU-only if no NVIDIA GPU.
-4. **Query length:** 150 nt V4, 250 nt, full-length, several? *Default:* 150 nt V4 + full-length.
-5. **Typical unique ASVs per production placement run?** *Default:* 10k (scaling to 100k).
-6. **16S backbone:** GG2, SILVA, GTDB? *Default:* GG2.
-7. **Add plain EPA-ng control?** *Default:* yes.
-8. **Keep SARS-CoV-2?** Different locus/length; UShER-circular truth. *Default:* yes, separate panel ≤100k, never pooled. Include UShER as reference point? *Default:* no.
-9. **"As accurate as SEPP" threshold?** *Default:* per-bin paired non-inferiority margin 0.25 edges (§3.2).
-10. **Deadline?** *Default:* 10 weeks from approval.
-11. **Other candidates** (e.g. DEPP, which GG2 uses for V4 insertion [V])? *Default:* out of scope; revisit if nothing passes.
-12. **Is GPU placement acceptable in production?** *Default:* rank on CPU numbers; GPU shown separately.
-13. **Downstream needs inserted tree (UniFrac/Faith's PD)?** If yes, jplace→tree (guppy, GPL) is part of the replaced pipeline. *Default:* yes — report conversion cost and license.
+**Critical path:** T1 → T2 → T6/T7 → T8 → T26 → T21 → T22 → T23 → T24 (T27 before T21).
+
+**3-week floor (approved) — cut in order:** T17-lite → `dipper-r` → oracle diagnostic → V1–V2 and V3–V4 (keep full-length + V4-150) → EMP 100k → `sepp-pinned`. Runs start W3; report end of W3.
+
+---
+
+## 9. Resolved decisions (user, 2026-10-13/14)
+
+1. **Licenses** are flagged in the report only; no license analysis and no decisions based on license (§1.4).
+2. **Production SEPP** = q2-fragment-insertion + GG2 → `sepp-prod` on the 2022.10 SEPP reference (only GG2 SEPP reference; 2024.09 has none [V]); `-A 1000 -P 5000` [V]; env = **latest QIIME 2 amplicon distribution**, sepp/pplacer/hmmer versions recorded (T2).
+3. **Compute:** SLURM x86, ≥16 cores, >256 GB/node, 72 h; RTX 3090 24 GB. cgroup support unknown → T27 + psutil fallback.
+4. **Regions:** full-length, V4-150, V3–V4, V1–V2.
+5. **Defaults accepted:** 10k-ASV scaling (to 100k); GG2 backbone; EPA-ng control; 0.25-edge margin (per region × size, pooled); DEPP out of scope; GPU shown separately, CPU ranks; inserted tree needed downstream (→ T25 via `guppy tog`).
+6. **Deadline:** 3–5 weeks → 5-week plan; the **3-week floor cut order (§8) is approved**.
+7. **SARS-CoV-2:** deferred out of this cycle (T20); high-similarity bins are filled on 16S (§4).
+8. **RNAsim:** optional **T17-lite** (one 10k panel, accuracy only) in W4 if on schedule; first cut otherwise. APPLES-2 is not expected to be a strong contender; the T16 simulated cross-check still runs.
 
 ---
 
 ## 10. Risks
 
-| Risk | Impact | Mitigation |
-|---|---|---|
-| pplacer/SEPP/EPA-ng hit memory/time walls at 100k–200k | Missing points | Expected; record DNF; T21 pilot calibrates |
-| DIPPER: no jplace, joint placement, may alter backbone, v0.1.x churn, conda CPU-only | Bad/unfair scores | Adapter + RF check (T15); pin digest; report caveats |
-| BSCAMPP uses bundled binaries / shared `~/.bscampp` | Wrong engine version; races | Per-job config + explicit binary paths (T2, T11–T13) |
-| Circular truth (GG2 ASVs/DEPP; MAT/UShER) | Biased accuracy | Concordance/stress only; primary truth = RNAsim + GG2 LOO |
-| Similarity confounded with density, clade, backbone size | Misread gradient | Bin within fixed size; resubsample after pruning; per-bin lineage composition |
-| Memory under-reported for forking tools | Wrong conclusions | cgroup `memory.peak` primary |
-| Timing noise / node heterogeneity | Spurious differences | Exclusive single-type nodes; repeats; record CPU model |
-| Alignment quality dominates fragment accuracy | Tool effects masked | Oracle-alignment arm on RNAsim; shared alignment in arm A |
-| Expensive ref-prep (RAxML-8 info at 200k for SEPP) | Schedule slip | Start T6 early on largest backbones; one-time cost |
-| Fresh upstream releases (pplacer alpha23, epa-ng 0.3.9-pre) | Irreproducibility | Pin + lock every env |
-| Storage (RNAsim 1M, MAT, EMP ASVs) | Disk pressure | Subsample at ingest; gitignored `data/`; checksummed downloads |
-| Shared aligner (WITCH) is GPL and slow | Inflated end-to-end cost | Report alignment time separately |
-
----
-
-## Handoff notes for SWE adversarial review
-
-Attack in particular: (a) are arms A+B the minimum design that answers "replace SEPP"? (b) is cgroup `memory.peak` available on the target cluster? (c) WITCH vs. SEPP's extended alignment as the shared alignment; (d) is 24 tickets too granular (merge T3/T5 or T16/T17)? (e) is DIPPER's prune-others scoring fair to joint placement?
+| Risk | Mitigation |
+|---|---|
+| 5-week schedule; cluster surprises (cgroups, Apptainer, CUDA on 3090) | T27 day 0; staged runs; cut list |
+| Pruned Bfull\* ≠ shipped production reference | ~3% smaller; equality check on shipped reference; stated |
+| Shipped model GTRCAT alpha=1.0 (no fitted Γ) | Same numbers for all arms (matches production); stated |
+| GG2 truth seeded by APPLES-2 (uDance) | Report caveat; 10k simulated true-tree cross-check (T16); optional RNAsim-lite |
+| Single-HMM alignment poor on V1–V2 / divergent clades | Penalizes all challengers equally; oracle diagnostic separates alignment- from placement-limited error |
+| DIPPER `--add` alters backbone; GPU memory at 320k; v0.1.x churn | RF check; digest pin; CPU fallback |
+| BSCAMPP bundled binaries / `~/.bscampp` | Per-job config; provenance shows binary paths |
+| psutil fallback misses short spikes | `mem_source` column; caveat on memory panels |
+| Primer matching drops divergent-primer sequences | Count and report exclusions per region |
+| EMP biom observation IDs may not be sequences [UNVERIFIED] | T19 verifies first |

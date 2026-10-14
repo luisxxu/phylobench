@@ -24,7 +24,7 @@ Six agents form the development pipeline: a Planner/SWE adversarial loop reconci
 5. SWE implements: stubs → tests → code → `/simplify`.
 6. QA runs `/code-review` → full test suite → linters.
 7. Team Lead confirms the PR checklist.
-8. Deployer ships, with a two-failed-attempt circuit breaker.
+8. Deployer submits HPC runs (T21/T22, and the T27 cluster check only), with a two-failed-attempt circuit breaker. Every other ticket ends at a merged PR.
 
 `diagnostics` sits outside this flow — invoke it directly whenever you need to check the live environment's actual state.
 
@@ -32,15 +32,9 @@ Six agents form the development pipeline: a Planner/SWE adversarial loop reconci
 
 Single-line/typo/comment fixes skip the pipeline entirely — just make the change. Anything touching more than one file, or any file with real invariants (schemas, migrations, config, CI, deploy manifests, secrets), goes through the full Team Lead → Planner ⇄ SWE → user go-ahead → SWE implements → QA → Deployer flow.
 
-## Adapting This Pipeline To Your Project
+## Project Specifics
 
-Placeholders below have been filled for phylobench (pytest/ruff/snakemake gates; "deploy" = HPC SLURM submission for T21/T22; diagnostics = read-only `squeue`/`sacct`). Cluster hostnames are added to `diagnostics.md` Memory in T21. Original guidance:
-
-- **`QA.md`** — replace the `{TEST_COMMAND}` and `{LINT_COMMANDS}` placeholders with the real commands from `README.md` Setup. Keep them identical to what CI runs.
-- **`deployer.md`** — replace `{DEPLOY_COMMANDS}` with the real release path, and record the rollback procedure.
-- **`diagnostics.md`** — replace `{ACCESS_PATTERN}` with how you reach the live environment, and fill the Memory section with hostnames, health endpoints, and expected service state.
-- **Every agent** — the `## Memory` section is where durable, hard-won project facts accumulate. Write a fact there the first time it bites you; that is what keeps the pipeline from relearning the same footgun.
-- If the project has no deploy target, delete `deployer.md` and `diagnostics.md` and drop steps 7–8 from the flow.
+Placeholders are filled for phylobench: QA gates are `pytest`, `ruff`, `snakemake --lint` locally plus the CI smoke test; "deploy" means submitting SLURM runs; diagnostics is read-only `squeue`/`sacct`. Cluster hostnames are recorded in `diagnostics.md` Memory by T27. Grow each agent's `## Memory` as the project teaches you things.
 
 ## Frontmatter Convention
 

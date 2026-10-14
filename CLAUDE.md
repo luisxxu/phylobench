@@ -1,6 +1,6 @@
 # phylobench
 
-Benchmark of phylogenetic placement tools — pplacer (baseline), SEPP (current lab tool), pplacer-SCAMPP, EPA-ng-SCAMPP, BSCAMPP, APPLES-2, DIPPER, plus plain EPA-ng as a control — for **accuracy, runtime, and peak memory across a gradient of query-to-backbone similarity**. Goal: find a tool as accurate as SEPP that is cheaper to run and ideally not GPL.
+Benchmark of phylogenetic placement tools — pplacer (baseline), SEPP (current lab tool), pplacer-SCAMPP, EPA-ng-SCAMPP, BSCAMPP, APPLES-2, DIPPER, plus plain EPA-ng as a control — for **accuracy, runtime, and peak memory across a gradient of query-to-backbone similarity**. Goal: find a tool as accurate as the lab's **production SEPP** (q2-fragment-insertion + GG2 2022.10 reference) that is cheaper to run and suitable for eventual wide use in **Knight Lab infrastructure (Qiita / QIIME 2)**. Licenses are flagged in the report, never used to decide.
 
 - **Design / rationale:** [`design.md`](design.md) — read the section a ticket cites before planning.
 - **Backlog:** [`TICKETS.md`](TICKETS.md) — source of truth for scope and dependencies. Mirrored as GitHub issues in the `phylobench` GitHub Project.
@@ -35,24 +35,24 @@ Benchmark of phylogenetic placement tools — pplacer (baseline), SEPP (current 
 These are what make results comparable. Violating one invalidates a run — raise it in plan review instead.
 
 - **Platform:** x86_64 Linux only (CI: GitHub Actions `ubuntu-latest`; production: HPC SLURM). No ARM/macOS-specific code paths; don't try to run tools natively on a Mac.
-- **Pinned versions:** every tool has one env YAML in `envs/` with an exact version (see `design.md` §1.1) and a lockfile. No `latest`, no floating tags, Docker/Apptainer images pinned by digest.
-- **No hidden binaries:** BSCAMPP/SCAMPP must use the pinned external `pplacer`/`epa-ng`, never their bundled copies, with a per-job config (never `~/.bscampp`). pplacer-based arms share one pplacer binary.
-- **Shared inputs:** one backbone topology per (dataset, size) for all tools. Only parameter files differ per tool family (`design.md` §2). Arm A tools all get the same query alignment.
-- **Measure everything through the harness:** every tool call goes through `phylobench-measure` (T4). Peak memory = cgroup v2 `memory.peak` (primary); `/usr/bin/time -v` RSS is secondary. Phases (`ref-prep`, `align`, `place`, `convert`, `evaluate`) are measured separately.
+- **Pinned versions:** every tool has one env YAML in `envs/` with an exact version (see `design.md` §1.1) and a lockfile. No `latest`, no floating tags, Docker/Apptainer images pinned by digest. One exception: `sepp-prod` runs in the locked production QIIME 2 env as shipped.
+- **No hidden binaries:** BSCAMPP/SCAMPP must use the pinned external `pplacer`/`epa-ng`, never their bundled copies, with a per-job config (never `~/.bscampp`). All pplacer-based arms except `sepp-prod` share one pplacer binary. SEPP gets per-job working and temp dirs.
+- **Shared inputs:** two backbones (Bfull\*, B10k\*) pruned from the GG2 2022.10 SEPP reference, shared by all arms; model numbers are the shipped ones, never re-estimated (`design.md` §1.2, §2). All aligned-input arms get the same `hmmalign` alignment.
+- **Measure everything through the harness:** every tool call goes through `phylobench-measure` (T4). Peak memory = cgroup v2 `memory.peak` when readable, else psutil process-tree RSS sum; `mem_source` recorded on every row; `/usr/bin/time -v` RSS is never the primary. Phases (`ref-prep`, `align`, `place`, `convert`, `evaluate`) are measured separately.
 - **Fixed threads:** 16 per job in production, set via both SLURM and each tool's flag.
 - **Failures are data:** OOM/timeout/crash → `status=DNF` row. Never drop or retry silently.
-- **Truth labels are honest:** EMP ASVs and SARS-CoV-2 MAT positions are not ground truth (DEPP / UShER circularity). Label those metrics "concordance".
+- **Truth labels are honest:** truth = held-out GG2 clades/singletons. EMP ASV (and any SARS-CoV-2 MAT) positions are not ground truth (DEPP / UShER circularity) → label "concordance". GG2 truth was seeded by uDance (APPLES-2) — always caveat apples2 results.
 - **Never pool similarity bins across backbone sizes.**
 - **Data stays out of git:** `data/` and `results/` are gitignored; only `tests/fixtures/` is committed (<1 MB). Downloads are scripted with checksums.
-- **Licenses:** when touching a tool, keep `LICENSES.md` accurate, including the license of the engine actually executed (e.g. BSCAMPP → EPA-ng AGPL-3).
+- **Licenses are flagged, never decided on:** `LICENSES.md` records each arm's own license and the engine actually executed (e.g. BSCAMPP → EPA-ng AGPL-3). No license analysis; licenses never change scope, ranking, or the recommendation.
 
 ## Layout
 
 ```
 workflow/Snakefile, workflow/rules/*.smk, workflow/scripts/   # orchestration (I/O)
-src/phylobench/                                                # pure Python: measure, jplace, accuracy, similarity, adapters
+src/phylobench/                                                # pure Python: measure, jplace, accuracy, similarity, regions, heldout, dipper_adapter, models
 envs/<tool>.yaml                                               # one pinned env per tool
-config/{schema,smoke,full}.yaml                                # run configs
+config/{schema,smoke,full}.yaml, config/arms/*.yaml           # run configs; one file per arm (wrappers add files only)
 profiles/slurm/                                                # HPC profile (T21)
 tests/, tests/fixtures/tiny/                                   # pytest + smoke fixture
 docs/tools/<tool>.md, LICENSES.md                              # per-tool command/quirks, licenses
@@ -62,9 +62,9 @@ docs/tools/<tool>.md, LICENSES.md                              # per-tool comman
 
 ```sh
 mamba env create -f envs/phylobench.yaml && conda activate phylobench   # dev env
-pytest                                                                   # unit tests
-ruff check . && ruff format --check . && snakemake --lint                # lint
-snakemake --use-conda --configfile config/smoke.yaml -c 2                # tiny end-to-end smoke test
+pytest                                                                   # unit tests (local + CI)
+ruff check . && ruff format --check . && snakemake --lint                # lint (local + CI)
+snakemake --use-conda --configfile config/smoke.yaml -c 2                # smoke test — CI (linux) only; agents on macOS check it via gh pr checks
 snakemake --use-conda --profile profiles/slurm --configfile config/full.yaml   # full benchmark (HPC only, user-confirmed)
 ```
 
@@ -72,7 +72,7 @@ snakemake --use-conda --profile profiles/slurm --configfile config/full.yaml   #
 
 A six-agent pipeline lives in `.claude/agents/` — see [`.claude/agents/README.md`](.claude/agents/README.md) for the roster, flow, and trigger threshold.
 
-Start with `team-lead` for any change broader than a single-line fix. It dispatches Planner ⇄ SWE to reconcile a plan, blocks on your explicit go-ahead, then runs SWE → QA → Deployer. In this repo "Deployer" means **submitting benchmark runs to the HPC cluster** (T21/T22); there is no service deployment.
+Start with `team-lead` for any change broader than a single-line fix. It dispatches Planner ⇄ SWE to reconcile a plan, blocks on your explicit go-ahead, then runs SWE → QA → Deployer. In this repo "Deployer" means **submitting benchmark runs to the HPC cluster** (T21/T22, plus the T27 cluster check); there is no service deployment.
 
 ## Workflow (One Ticket Per PR)
 
@@ -80,10 +80,18 @@ Start with `team-lead` for any change broader than a single-line fix. It dispatc
 2. **Plan** — Read ticket + cited `design.md` sections, outline types/functions/tests, get approval.
 3. **Tests** — Write failing tests first; define expected behavior (on `tests/fixtures/tiny/`).
 4. **Implement** — Minimum code to pass tests.
-5. **Simplify** — Lint, format, all tests green, smoke test green, no warnings.
+5. **Simplify** — `/simplify`; locally `pytest` + lint green, no warnings. Smoke test runs in CI only.
 6. **PR** — `gh pr create --title "T{N}: {Title}" --body '...'` (body links the issue: `Closes #{issue}`) then `gh pr merge --auto --squash --delete-branch`.
 7. **Monitor** — `gh pr checks --wait`; rebase if needed. Auto-merge fires on green.
 8. **Close out** — move the ticket to **## Done** in `TICKETS.md`.
+
+### PR Checklist (Team Lead gate)
+- [ ] Ticket deliverables and acceptance criteria met; `Closes #{N}` in body
+- [ ] Benchmark Invariants respected (or deviation approved in plan review)
+- [ ] Tests added; local gates green; CI (incl. smoke) green
+- [ ] `docs/tools/<tool>.md` updated for any tool touched; `LICENSES.md` still accurate
+- [ ] No data, results, or secrets committed
+- [ ] Ticket moved to **## Done**
 
 ## Formats
 
