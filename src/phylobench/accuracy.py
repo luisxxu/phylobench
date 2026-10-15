@@ -261,6 +261,8 @@ def score_jplace(
     Unplaced queries are all NaN. Consumers must not skipna: count NaN as missing and
     report the count.
     """
+    if len(set(queries)) != len(queries):
+        raise ValueError("duplicate entries in queries")
     placements = top_placements(doc)
     unknown = {p.query for p in placements} - set(queries)
     if unknown:

@@ -42,7 +42,8 @@ jobs:
               for line in yml.read_text().splitlines():
                   m = re.match(r"^\s*-\s+([^\s=#]+)=(\S+)$", line)
                   # qiime2.yaml truncates some versions (pandoc=3.10 vs pandoc-3.10.2)
-                  if m and not re.search(re.escape(f"/{m[1]}-{m[2]}") + r"[.-]", lock):
+                  tail = r"[.-]" if yml.stem == "qiime2" else "-"
+                  if m and not re.search(re.escape(f"/{m[1]}-{m[2]}") + tail, lock):
                       bad.append(f"{yml}: {m[1]}={m[2]} not in {pin}")
 
           def line_for(env, needle):
@@ -99,6 +100,8 @@ jobs:
         if: matrix.env == 'pplacer'
         run: |
           micromamba activate pplacer
+          # pplacer --version prints "dev", so prove the build from the package list
+          micromamba list -n pplacer '^pplacer$' | grep -E '^\s*pplacer\s+1\.1\.alpha23\s+h01ede22_0\s'
           pplacer --version
           guppy --version
       - name: epa-ng check
