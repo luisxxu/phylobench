@@ -10,6 +10,7 @@ REQUIRED_FIELDS = ("edge_num", "like_weight_ratio", "distal_length", "pendant_le
 # A node's edge number trails its branch length: `name:0.1{3}`. Moving it into the
 # label (`name@3:0.1`) lets a plain Newick parser carry it.
 _EDGE_NUMBER = re.compile(r"(:[^,()\[\]{};]*)?\{(\d+)\}")
+_NUMBERED_LABEL = re.compile(r"(.*)@(\d+)")
 
 
 @dataclass(frozen=True)
@@ -58,9 +59,10 @@ def edge_numbered_tree(newick: str) -> tuple[treeswift.Tree, dict[int, treeswift
     tree = treeswift.read_tree_newick(_EDGE_NUMBER.sub(r"@\2\1", newick))
     nodes: dict[int, treeswift.Node] = {}
     for node in tree.traverse_preorder():
-        if node.label is None or "@" not in node.label:
+        match = node.label and _NUMBERED_LABEL.fullmatch(node.label)
+        if not match:
             continue
-        name, _, number = node.label.rpartition("@")
+        name, number = match.groups()
         node.label = name or None
         if int(number) in nodes:
             raise ValueError(f"duplicate edge number: {number}")

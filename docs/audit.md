@@ -1,6 +1,6 @@
 # T2 install audit
 
-Evidence for the pins in `envs/`. Installs are proven in CI (`.github/workflows/envs.yml`), run: https://github.com/luisxxu/phylobench/actions/runs/38801969783 (all 9 install jobs, lock-guard, lint-test green). Licenses are in `LICENSES.md`.
+Evidence for the pins in `envs/`. Installs are proven in CI (`.github/workflows/envs.yml`), run: https://github.com/luisxxu/phylobench/actions/runs/38803340181 (all 9 install jobs, lock-guard, lint-test green). Licenses are in `LICENSES.md`.
 
 ## 1. QIIME 2 env and the `sepp-pinned` decision
 

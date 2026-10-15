@@ -256,6 +256,12 @@ def test_placed_name_not_in_queries_raises():
         run(BINARY, reference, ["r"], {"q": "a"})
 
 
+def test_duplicate_requested_query_raises():
+    reference = "((a:1,b:1)X:1,((c:1,d:1)Y:1,e:1)Z:1,f:1,q:1)R;"
+    with pytest.raises(ValueError, match="duplicate"):
+        run(BINARY, reference, ["q", "q"], {"q": "X"})
+
+
 def test_one_row_per_query_with_nan_for_unplaced():
     reference = "((a:1,b:1)X:1,((c:1,d:1)Y:1,e:1)Z:1,f:1,q:1,r:1)R;"
     rows = run(BINARY, reference, ["q", "r"], {"q": "X"})

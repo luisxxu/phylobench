@@ -123,3 +123,9 @@ def test_leading_rooted_comment():
 def test_duplicate_edge_number_raises():
     with pytest.raises(ValueError, match="duplicate"):
         edge_numbered_tree("(a:1{0},b:1{0});")
+
+
+def test_unnumbered_label_with_at_sign_is_kept():
+    tree, nodes = edge_numbered_tree("(a:1{0},b:1{1})foo@bar;")
+    assert set(nodes) == {0, 1}
+    assert tree.root.label == "foo@bar"
