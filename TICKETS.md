@@ -40,76 +40,6 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 ---
 
-### T2: License and install audit
-**Week:** W1
-**Description:** Install every in-scope tool from a pinned env on linux-64 (in CI), record licenses (flag only), and resolve the install-level `[UNVERIFIED]` items.
-
-**Deliverables:**
-- [ ] `envs/{pplacer,sepp,bscampp,apples,dipper,epa-ng,fasttree,hmmer}.yaml` + lockfiles; `envs/qiime2.yaml` locked to the latest QIIME 2 amplicon distribution
-- [ ] CI job printing each tool's version
-- [ ] `LICENSES.md` complete up front (wrappers never edit it): tool → own license → engine executed → copyleft flag → source URL at pinned tag. No license analysis.
-- [ ] `docs/audit.md`: QIIME 2 env's sepp/pplacer/hmmer versions and the binary paths SEPP resolves from `main.config`, with the rule **"equal to our pins → no `sepp-pinned` arm"**; pplacer pin (alpha23) evidence; proof BSCAMPP/SCAMPP use the external pinned binaries + immutable per-env config; APPLES-2 thread flag; 
-
-**Acceptance:** every env solves and prints its pinned version in CI; `LICENSES.md` has a row for every arm in design §1.1 plus HMMER, FastTree, guppy.
-
-**Dependencies:** T1
-
-**Agent notes:** Read LICENSE files at the pinned tag; record what *executes*. Licenses are flagged only — never a reason to change scope. No cluster/GPU work here (that's T27).
-
----
-
-### T3: Tiny fixture dataset
-**Week:** W1
-**Description:** Pure-Python seeded simulator producing a tiny dataset with known truth, regions, and held-out clades for unit and smoke tests.
-
-**Deliverables:**
-- [ ] `workflow/scripts/make_fixture.py` (numpy GTR simulation on a random ~100-leaf tree, gap-free, ~1,500 sites, fixed seed, fixed-precision output)
-- [ ] `tests/fixtures/tiny/`: true tree, alignment, primer sites embedded so all four regions extract, held-out clades + singletons, `truth.tsv`, a GTRCAT-style `raxml-info.txt`
-- [ ] Simulator importable so T16 can scale it to a 10k-leaf cross-check panel
-
-**Acceptance:** regeneration reproduces committed files byte-identically; total < 1 MB.
-
-**Dependencies:** T1
-
-**Agent notes:** No downloads. Mirror the GG2 SEPP reference file shapes so downstream code is exercised realistically.
-
----
-
-### T4: Measurement harness
-**Week:** W1
-**Description:** One wrapper that runs a command and records wall, CPU, peak memory (with source), GPU memory, status, and provenance as JSON.
-
-**Deliverables:**
-- [ ] `src/phylobench/measure.py` + CLI `phylobench-measure --out run.json [--gpu] [--timeout S] -- <cmd>`
-- [ ] Peak memory: cgroup v2 `memory.peak` if readable for the job's own cgroup, else psutil process-tree RSS **sum** sampled every 0.5 s; `os.wait4` max RSS (`ru_maxrss`) always recorded; `mem_source` field
-- [ ] `--timeout` enforced by the harness → `status=timeout` (used for the capped pplacer Bfull\* attempt)
-- [ ] Status: `ok | oom | timeout | error`; provenance: node, CPU/GPU model, threads, version, env-lock hash, command
-
-**Acceptance:** tests for status classification and JSON schema; a forking command reports peak ≥ sum of children via psutil; cgroup tests `pytest.skip` explicitly when unavailable (never pass vacuously).
-
-**Dependencies:** T1
-
-**Agent notes:** design §6. `time -v` reports the largest single process — never the silent primary.
-
----
-
-### T5: Accuracy metrics library
-**Week:** W1
-**Description:** Pure functions to read placements and score them against a true tree.
-
-**Deliverables:**
-- [ ] `src/phylobench/jplace.py`: minimal reader → top-LWR (query, edge_num, distal, pendant)
-- [ ] `src/phylobench/accuracy.py`: polytomy-aware edge distance (collapse zero-length branches; any edge in the true equivalence set = 0), exact-correct flag, delta error (FN bipartitions)
-- [ ] Unit tests on hand-built trees incl. polytomies, zero-length edges, degree-2 suppression
-
-**Acceptance:** tests pass; edge distance for 1k queries on a 330k-leaf random tree runs in < 60 s.
-
-**Dependencies:** T1
-
-**Agent notes:** design §3. No O(n²) loops over leaves.
-
----
-
 ### T16: Similarity, held-out construction, and simulated cross-check
 **Week:** W1–W2
 **Description:** Build the held-out backbone + query sets, compute per-query similarity bins, and produce the non-uDance simulated cross-check panel.
@@ -406,6 +336,18 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 ## Done
 
 <!-- Move tickets here once merged. Keep the T{N} prefix. -->
+
+### T2: License and install audit — merged in #33 (2026-10-15)
+Pinned envs + linux-64 lockfiles for 8 tools and QIIME 2 2026.7, `envs.yml` CI (lock-guard + 9 installs, not required), `LICENSES.md` (flags only), `docs/audit.md`. pplacer pinned at 1.1.alpha23; QIIME 2 2026.7 ships alpha19 → `sepp-pinned` required. BSCAMPP uses an immutable per-env config.
+
+### T3: Tiny fixture dataset — merged in #31 (2026-10-15)
+Platform-deterministic simulator (`phylobench.simulate`), 100-leaf backbone + 10 held-out queries in `tests/fixtures/tiny/`, byte-identical on macOS and Linux.
+
+### T4: Measurement harness — merged in #32, test fix #35 (2026-10-15)
+`phylobench-measure` / `python -m phylobench.measure`; DNF and invocation contract in `docs/harness.md`. Linux `ru_maxrss` is inherited across fork/exec — never call `run()` in-process from a large parent.
+
+### T5: Accuracy metrics library — merged in #34 (2026-10-15)
+`phylobench.jplace` + `phylobench.accuracy`: bipartition-keyed truth, polytomy-aware edge distance, delta error, public `edge_distance` core for T19, hashing helpers for T25. 331k-leaf scoring ≈ 17 s.
 
 ### T1: Repo skeleton and CI — merged in #29 (2026-10-15)
 Skeleton, `config/schema.yaml`, `envs/phylobench.yaml`, CI job `lint-test` (now a required check on `main`). Pin change: pandas 2.3.3 (bioconda snakemake 9.27.0 requires pandas <3).

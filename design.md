@@ -90,6 +90,8 @@ Per user decision, the report lists each arm's own license and the license of th
 
 **Metrics:** edge distance (primary; polytomy-aware: collapse zero-length branches, any edge in the true equivalence set scores 0); fraction exactly correct; delta error (B10k\* only); DNF recorded as data.
 
+Edge distance is counted in the backbone with zero-length edges contracted: a true position that is a vertex (query attaches at a multifurcation) is at distance 0 from every incident edge, and two edges sharing a contracted vertex are adjacent (distance 1). Unplaced queries are NaN rows; consumers never `skipna` silently (`phylobench.accuracy`).
+
 **Verdict ("as accurate as SEPP"):** per (region, backbone size), pooled across bins, paired per-query difference in edge distance (tool − sepp-prod); **pass** if the upper 95% bootstrap CI of the mean ≤ **0.25 edges**. Per-bin results are descriptive only (avoids the multiple-testing trap).
 
 **Short-window caveat:** identical V4-150 fragments can fit many edges equally; edge distance then reflects unavoidable ambiguity — hence the *paired* comparison against SEPP.
