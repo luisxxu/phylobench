@@ -1,0 +1,16 @@
+This is RAxML version 8.1.24 released by Alexandros Stamatakis on June 29 2015.
+
+Alignment has 1221 distinct alignment patterns
+
+Partition: 0
+Alignment Patterns: 1221
+Name: No Name Provided
+DataType: DNA
+Substitution Matrix: GTR
+
+RAxML was called as follows:
+
+raxmlHPC-PTHREADS -s aligned-dna-sequences.fasta -m GTRCAT -n info -F -g tree.nwk -T 16 -p 3
+
+Base frequencies: 0.250954 0.234726 0.318990 0.195330 
+alpha[0]: 1.000000 rates[0] ac ag at cg ct gt: 0.947786 2.643649 1.480482 0.786790 4.471837 1.000000
