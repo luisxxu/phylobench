@@ -1,0 +1,196 @@
+name: envs
+
+on:
+  pull_request:
+    paths:
+      - 'envs/**'
+      - '.github/workflows/envs.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'envs/**'
+      - '.github/workflows/envs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lock-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - name: yaml pins match locks
+        shell: python
+        run: |
+          import pathlib, re, sys
+
+          bad = []
+          for yml in sorted(pathlib.Path("envs").glob("*.yaml")):
+              if yml.stem == "phylobench":
+                  continue
+              pin = yml.with_name(f"{yml.stem}.linux-64.pin.txt")
+              if not pin.exists():
+                  bad.append(f"{pin} missing")
+                  continue
+              lock = pin.read_text()
+              if "@EXPLICIT" not in lock:
+                  bad.append(f"{pin}: no @EXPLICIT")
+              if re.search(r"^\s*#\s*pip|^\s*pip\s|pypi", lock, re.M | re.I):
+                  bad.append(f"{pin}: pip lines")
+              for line in yml.read_text().splitlines():
+                  m = re.match(r"^\s*-\s+([^\s=#]+)=(\S+)$", line)
+                  # qiime2.yaml truncates some versions (pandoc=3.10 vs pandoc-3.10.2)
+                  if m and not re.search(re.escape(f"/{m[1]}-{m[2]}") + r"[.-]", lock):
+                      bad.append(f"{yml}: {m[1]}={m[2]} not in {pin}")
+
+          def line_for(env, needle):
+              hits = [
+                  l for l in pathlib.Path(f"envs/{env}.linux-64.pin.txt").read_text().splitlines()
+                  if f"/{needle}-" in l
+              ]
+              if len(hits) != 1:
+                  bad.append(f"{env}: expected one {needle} line, got {len(hits)}")
+                  return None
+              return hits[0]
+
+          for env_set, needle in [
+              (["pplacer", "sepp", "bscampp"], "pplacer-1.1.alpha23"),
+              (["epa-ng", "bscampp"], "epa-ng-0.3.8"),
+          ]:
+              lines = {line_for(e, needle) for e in env_set}
+              if len(lines) != 1:
+                  bad.append(f"{needle} differs across {env_set}: {lines}")
+
+          print("\n".join(bad) or "ok")
+          sys.exit(1 if bad else 0)
+
+  install:
+    needs: lock-guard
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ matrix.env == 'qiime2' && 60 || 20 }}
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [pplacer, sepp, bscampp, apples, dipper, epa-ng, fasttree, hmmer, qiime2]
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: mamba-org/setup-micromamba@f457c30a868e4760d3a6fcea5f25dc655b8edf39  # v3.2.1
+        with:
+          micromamba-version: '2.9.0-0'
+          init-shell: bash
+          cache-environment: false
+          cache-downloads: false
+      - name: disk before
+        run: df -h /
+      - name: create env from lock
+        run: micromamba create -y -n ${{ matrix.env }} -f envs/${{ matrix.env }}.linux-64.pin.txt
+      - name: post-deploy
+        run: |
+          micromamba activate ${{ matrix.env }}
+          if [ -f envs/${{ matrix.env }}.post-deploy.sh ]; then bash envs/${{ matrix.env }}.post-deploy.sh; fi
+      - name: installed packages
+        run: micromamba list -n ${{ matrix.env }}
+      - name: pplacer check
+        if: matrix.env == 'pplacer'
+        run: |
+          micromamba activate pplacer
+          pplacer --version
+          guppy --version
+      - name: epa-ng check
+        if: matrix.env == 'epa-ng'
+        run: |
+          micromamba activate epa-ng
+          epa-ng --version
+      - name: hmmer check
+        if: matrix.env == 'hmmer'
+        run: |
+          micromamba activate hmmer
+          hmmalign -h | head -2
+      - name: fasttree check
+        if: matrix.env == 'fasttree'
+        run: |
+          micromamba activate fasttree
+          FastTree -help 2>&1 | head -1
+      - name: dipper check
+        if: matrix.env == 'dipper'
+        run: |
+          micromamba activate dipper
+          dipper_cpu --help
+          dipper_cpu --version
+      - name: apples check
+        if: matrix.env == 'apples'
+        run: |
+          micromamba activate apples
+          run_apples.py -v
+      - name: bscampp check
+        if: matrix.env == 'bscampp'
+        run: |
+          micromamba activate bscampp
+          run_bscampp.py -v
+          run_scampp.py -v
+          python - <<'EOF'
+          import configparser, os
+          from bscampp.configs import main_config_path
+          prefix = os.environ["CONDA_PREFIX"]
+          print(main_config_path)
+          print(open(main_config_path).read())
+          assert main_config_path == f"{prefix}/share/bscampp/main.config", main_config_path
+          cfg = configparser.ConfigParser()
+          cfg.read(main_config_path)
+          want = {
+              "pplacer_path": f"{prefix}/bin/pplacer",
+              "epang_path": f"{prefix}/bin/epa-ng",
+              "taxit_path": f"{prefix}/bin/taxit",
+          }
+          got = {k: cfg["basic"][k] for k in want}
+          assert got == want, got
+          EOF
+          test ! -e ~/.bscampp
+          pplacer --version
+          epa-ng --version
+          taxit --help | head -1
+      - name: sepp check
+        if: matrix.env == 'sepp'
+        run: |
+          micromamba activate sepp
+          python -c 'import importlib.metadata as m; print(m.version("sepp"))'
+          python - <<'EOF'
+          import configparser, importlib.metadata as m, os, pathlib
+          dist_dir = pathlib.Path(m.distribution("sepp")._path)
+          root = pathlib.Path((dist_dir / "home.path").read_text().strip())
+          print("home.path ->", root)
+          print((root / "main.config").read_text())
+          cfg = configparser.ConfigParser()
+          cfg.read(root / "main.config")
+          prefix = os.environ["CONDA_PREFIX"]
+          paths = [v.split()[0] for s in cfg.sections() for k, v in cfg.items(s) if k == "path"]
+          print(paths)
+          bad = [
+              p for p in paths
+              if not os.path.exists(p) or not p.startswith(f"{prefix}/" if p.endswith(".jar") else f"{prefix}/bin/")
+          ]
+          assert paths and not bad, bad
+          EOF
+          pplacer --version
+          hmmalign -h | head -2
+          java -version
+      - name: qiime2 check
+        if: matrix.env == 'qiime2'
+        run: |
+          micromamba activate qiime2
+          qiime info
+          micromamba list -n qiime2 '^(sepp|pplacer|hmmer|q2-fragment-insertion|openjdk)$'
+          python - <<'EOF'
+          import importlib.metadata as m, pathlib
+          root = pathlib.Path((pathlib.Path(m.distribution("sepp")._path) / "home.path").read_text().strip())
+          print("home.path ->", root)
+          print((root / "main.config").read_text())
+          EOF
+      - name: disk after
+        if: always()
+        run: df -h /

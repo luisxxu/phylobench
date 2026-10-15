@@ -48,7 +48,7 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 - [ ] `envs/{pplacer,sepp,bscampp,apples,dipper,epa-ng,fasttree,hmmer}.yaml` + lockfiles; `envs/qiime2.yaml` locked to the latest QIIME 2 amplicon distribution
 - [ ] CI job printing each tool's version
 - [ ] `LICENSES.md` complete up front (wrappers never edit it): tool → own license → engine executed → copyleft flag → source URL at pinned tag. No license analysis.
-- [ ] `docs/audit.md`: QIIME 2 env's sepp/pplacer/hmmer versions and the binary paths SEPP resolves from `main.config`, with the rule **"equal to our pins → no `sepp-pinned` arm"**; pplacer pin (alpha22) confirmation; proof BSCAMPP/SCAMPP use the external pinned binaries + per-job config; APPLES-2 thread flag; 
+- [ ] `docs/audit.md`: QIIME 2 env's sepp/pplacer/hmmer versions and the binary paths SEPP resolves from `main.config`, with the rule **"equal to our pins → no `sepp-pinned` arm"**; pplacer pin (alpha23) evidence; proof BSCAMPP/SCAMPP use the external pinned binaries + immutable per-env config; APPLES-2 thread flag; 
 
 **Acceptance:** every env solves and prints its pinned version in CI; `LICENSES.md` has a row for every arm in design §1.1 plus HMMER, FastTree, guppy.
 
@@ -159,7 +159,7 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 **Dependencies:** T2, T3
 
-**Agent notes:** design §1.2 ⚑ — alpha=1.0 is as shipped; don't "fix" it.
+**Agent notes:** design §1.2 ⚑ — alpha=1.0 is as shipped; don't "fix" it. Add `envs/raxml-ng.yaml` + lock (AGPL-3, row pre-filled in `LICENSES.md`).
 
 ---
 
@@ -247,7 +247,7 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 **Dependencies:** T8
 
-**Agent notes:** alpha22 pin (alpha20 deadlocks with `-j`).
+**Agent notes:** alpha23 pin (alpha20 deadlocks with `-j`; alpha22→23 build-only).
 
 ---
 
@@ -257,11 +257,11 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 **Deliverables:**
 - [ ] Wrapper DoD for each of the four arms
-- [ ] External pinned `pplacer`/`epa-ng` (never bundled `bscampp/tools/*`), per-job config dir (never `~/.bscampp`)
+- [ ] External pinned `pplacer`/`epa-ng` (never bundled `bscampp/tools/*`), per-env config written at env deploy (never `~/.bscampp`)
 - [ ] `bscampp`: `--threads {threads} --cpus-per-job 2`, subtree 2000, votes 5 recorded explicitly
 - [ ] `epa-ng` control configured for B10k\* only
 
-**Acceptance:** Wrapper DoD; provenance shows external binary paths; two concurrent smoke runs don't share config.
+**Acceptance:** Wrapper DoD; no run writes config; `~/.bscampp` absent; provenance shows external binary paths.
 
 **Dependencies:** T8
 
@@ -291,7 +291,7 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 **Deliverables:**
 - [ ] Wrapper DoD for `dipper-m` (CPU + GPU) and `dipper-r`
 - [ ] CPU: bioconda `dipper`; GPU: Apptainer `.sif` pinned by digest, `--nv`, harness `--gpu`
-- [ ] Output through T25 adapter; thread cap via cgroup/taskset
+- [ ] Output through T25 adapter; native `-T {threads}` (0.1.5, TBB global_control), cgroup still bounds it
 
 **Acceptance:** Wrapper DoD (CPU in CI); adapter RF check passes on fixture output.
 

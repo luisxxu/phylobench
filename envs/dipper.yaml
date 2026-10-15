@@ -1,0 +1,7 @@
+name: dipper
+channels:
+  - conda-forge
+  - bioconda
+  - nodefaults
+dependencies:
+  - dipper=0.1.5

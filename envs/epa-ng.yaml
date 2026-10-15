@@ -1,0 +1,7 @@
+name: epa-ng
+channels:
+  - conda-forge
+  - bioconda
+  - nodefaults
+dependencies:
+  - epa-ng=0.3.8

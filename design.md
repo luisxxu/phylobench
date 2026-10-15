@@ -27,7 +27,7 @@ Markers: **[V]** verified against upstream repo / GitHub API / bioconda / PyPI /
 |---|---|---|---|---|---|
 | `sepp-prod` | q2-fragment-insertion (BSD-3 [V]) → `run-sepp.sh` | Lab's QIIME 2 amplicon distribution env (version per U3), locked | as shipped | GPL-3 (SEPP) | SEPP → pplacer + HMMER; `guppy tog` inside run [V] |
 | `sepp-pinned` (conditional ⚑) | github.com/smirarab/sepp | bioconda `sepp` (uses conda pplacer/hmmer, not bundled [V]) | 4.5.6 [V] | GPL-3 | SEPP → shared pinned pplacer |
-| `pplacer` | github.com/matsen/pplacer | bioconda | **1.1.alpha22** (alpha20 has OCaml-5 `-j` deadlock [V]) | GPL-3 [V] | itself |
+| `pplacer` | github.com/matsen/pplacer | bioconda | **1.1.alpha23** (alpha20 has OCaml-5 `-j` deadlock [V]; alpha22→23 is build-only) | GPL-3 [V] | itself |
 | `pplacer-scampp` | github.com/ewedell/BSCAMPP `run_scampp.py --placement-method pplacer` [V] | PyPI `bscampp` | 1.0.8 [V] | MIT [V] | pplacer (GPL-3) |
 | `epa-ng-scampp` | same, `run_scampp.py` | PyPI `bscampp` | 1.0.8 | MIT | EPA-ng (AGPL-3) |
 | `bscampp` | same, `run_bscampp.py` (subtree 2000, votes 5 [V]) | PyPI `bscampp` | 1.0.8 | MIT | EPA-ng (AGPL-3) |
@@ -36,9 +36,10 @@ Markers: **[V]** verified against upstream repo / GitHub API / bioconda / PyPI /
 | `dipper-m` (CPU + GPU) | github.com/TurakhiaLab/DIPPER `--add -i m` | CPU: bioconda `dipper` (`dipper_cpu` only, issue #13 [V]); GPU: `swalia14/dipper` → Apptainer, digest-pinned | 0.1.5 [V] | MIT [V] | itself |
 | `dipper-r` (B10k\* only) | same, `-i r` (MinHash k=15, sketch 1000 [V]) | same | 0.1.5 | MIT | itself |
 
+- QIIME 2 2026.7 ships pplacer alpha19 ≠ our alpha23 → `sepp-pinned` required (T2, `docs/audit.md`).
 - `sepp-pinned` runs only if T2 finds the QIIME 2 env's sepp/pplacer/hmmer versions differ from our pins (otherwise it duplicates `sepp-prod`). T2 records those versions and the binary paths SEPP resolves from `main.config` in `docs/audit.md` with the explicit rule "equal to pins → no sepp-pinned arm".
 - All pplacer-based arms except `sepp-prod` share one pplacer binary.
-- BSCAMPP/SCAMPP use external pinned `pplacer`/`epa-ng` and a per-job config — never `~/.bscampp` or bundled `bscampp/tools/*` [V].
+- BSCAMPP/SCAMPP use external pinned `pplacer`/`epa-ng`/`taxit` and an immutable per-env config written at env deploy — never `~/.bscampp` or bundled `bscampp/tools/*` binaries [V]. (Exception: the bundled `tools/hamming_distance/*` helpers execute.)
 - `ewedell/SCAMPP` (old, no license file [V]) is not used.
 
 ### 1.2 Inputs (all arms share Bfull\* or B10k\*)
@@ -73,7 +74,7 @@ Per user decision, the report lists each arm's own license and the license of th
 | Alignment | **Primary:** `hmmalign` against one `hmmbuild` profile of the backbone alignment, masked to backbone columns (the realistic deployable path); shared by every aligned-input arm (phase `align`, timed). **Diagnostic (B10k\* only):** oracle (region's own GG2 alignment columns). SEPP aligns internally. A poor single-profile alignment lowers challengers vs. SEPP — reported as a property of the alignment arm, not the tools; the oracle-vs-hmmalign gap at B10k\* is the evidence. ⚑ |
 | End-to-end cost | `sepp-prod` total vs. `align + place + convert` for each challenger. |
 | Regions | full-length, **V4-150**, **V3–V4**, **V1–V2**, cut by primer matching on ungapped GG2 sequences (EMP 515F/806R; 341F/805R; 27F/338R [UNVERIFIED final primer set — T7]) and projected onto alignment columns. Sequences without primer hits excluded and counted. |
-| Threads | 16/job (SLURM + each tool's flag). DIPPER capped via cgroup/taskset (no native flag [V]). BSCAMPP `--threads 16 --cpus-per-job 2`. |
+| Threads | 16/job (SLURM + each tool's flag). DIPPER native `-T {threads}` at 0.1.5 (TBB global_control); cgroup still bounds it. BSCAMPP `--threads 16 --cpus-per-job 2`. |
 | SEPP | `run-sepp.sh <q> <name> -x 16 -A 1000 -P 5000 -a -t -r` [V], one working dir and `-p`/`-d` temp dirs per job. q2-vs-direct equality check on the shipped reference. |
 | Placement scored | Top-LWR only. |
 
@@ -196,7 +197,7 @@ Tests skip explicitly when cgroups are absent — never pass vacuously.
 | GG2 truth seeded by APPLES-2 (uDance) | Report caveat; 10k simulated true-tree cross-check (T16); optional RNAsim-lite |
 | Single-HMM alignment poor on V1–V2 / divergent clades | Penalizes all challengers equally; oracle diagnostic separates alignment- from placement-limited error |
 | DIPPER `--add` alters backbone; GPU memory at 320k; v0.1.x churn | RF check; digest pin; CPU fallback |
-| BSCAMPP bundled binaries / `~/.bscampp` | Per-job config; provenance shows binary paths |
+| BSCAMPP bundled binaries / `~/.bscampp` | Immutable per-env config written at env deploy; provenance shows binary paths |
 | psutil fallback misses short spikes | `mem_source` column; caveat on memory panels |
 | Primer matching drops divergent-primer sequences | Count and report exclusions per region |
 | EMP biom observation IDs may not be sequences [UNVERIFIED] | T19 verifies first |

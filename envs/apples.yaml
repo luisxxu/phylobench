@@ -1,0 +1,13 @@
+name: apples
+channels:
+  - conda-forge
+  - bioconda
+  - nodefaults
+dependencies:
+  - python=3.12.15
+  - pip=26.2.1
+  # apples imports pkg_resources, removed in setuptools 82
+  - setuptools=81.0.0
+  - numpy=2.5.4
+  - treeswift=1.1.51
+  - treecluster=1.0.5

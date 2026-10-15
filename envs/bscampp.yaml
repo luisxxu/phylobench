@@ -1,0 +1,13 @@
+name: bscampp
+channels:
+  - conda-forge
+  - bioconda
+  - nodefaults
+dependencies:
+  - python=3.12.15
+  - pip=26.2.1
+  - numpy=2.5.4
+  - treeswift=1.1.51
+  - taxtastic=1.0.1
+  - pplacer=1.1.alpha23
+  - epa-ng=0.3.8
