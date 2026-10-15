@@ -177,7 +177,12 @@ def test_run_forking_peak_exceeds_single_process(tmp_path):
     script = tmp_path / "parent.py"
     script.write_text(FORKING_PARENT)
     ready = [str(tmp_path / f"ready{i}") for i in range(3)]
-    result = measure.run([sys.executable, str(script), *ready])
+    out = tmp_path / "run.json"
+    # Fresh process: Linux ru_maxrss is inherited across fork/exec, so run()
+    # called from a large pytest process would report the parent's RSS.
+    done = cli("--out", str(out), "--", sys.executable, str(script), *ready)
+    assert done.returncode == 0
+    result = json.loads(out.read_text())
     assert result["status"] == "ok"
     assert result["psutil_peak_mb"] >= 150
     assert result["psutil_peak_mb"] > result["maxrss_mb"]

@@ -40,6 +40,7 @@ T8 asserts that every non-forced row has `status == ok` and non-null `version` a
 - `memory.peak` of the harness's own cgroup includes the harness, the shell, and Snakemake ancestors (about 100-200 MiB) and page cache. It is meaningful only with one rule per SLURM job. T27/T21 decide which source is primary.
 - The psutil RSS sum double-counts shared pages, and 0.5 s sampling misses short spikes.
 - Both values are always recorded; `peak_mem_mb` follows `mem_source`.
+- On Linux `ru_maxrss` (`maxrss_mb`) is inherited across fork/exec, so it is at least the harness's own RSS at spawn (small for the standalone CLI). Never call `run()` in-process from a large parent when `maxrss_mb` matters.
 
 ## 5. Status caveats
 
