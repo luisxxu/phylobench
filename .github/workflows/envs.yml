@@ -134,17 +134,20 @@ jobs:
           run_bscampp.py -v
           run_scampp.py -v
           python - <<'EOF'
-          import os
-          from bscampp.configs import Configs, main_config_path
+          import configparser, os
+          from bscampp.configs import main_config_path
           prefix = os.environ["CONDA_PREFIX"]
           print(main_config_path)
           print(open(main_config_path).read())
+          assert main_config_path == f"{prefix}/share/bscampp/main.config", main_config_path
+          cfg = configparser.ConfigParser()
+          cfg.read(main_config_path)
           want = {
               "pplacer_path": f"{prefix}/bin/pplacer",
               "epang_path": f"{prefix}/bin/epa-ng",
               "taxit_path": f"{prefix}/bin/taxit",
           }
-          got = {k: getattr(Configs, k) for k in want}
+          got = {k: cfg["basic"][k] for k in want}
           assert got == want, got
           EOF
           test ! -e ~/.bscampp
