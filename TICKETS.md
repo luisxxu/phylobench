@@ -40,25 +40,6 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 ---
 
-### T1: Repo skeleton and CI
-**Week:** W1
-**Description:** Create the Snakemake/Python project skeleton and GitHub Actions CI on `ubuntu-latest` (x86_64).
-
-**Deliverables:**
-- [ ] Layout: `workflow/Snakefile`, `workflow/rules/`, `workflow/scripts/`, `src/phylobench/`, `envs/`, `config/arms/`, `tests/`, `docs/tools/`
-- [ ] `pyproject.toml` (Python 3.11; pytest, ruff, numpy, pandas, matplotlib, treeswift, psutil) and `envs/phylobench.yaml`
-- [ ] Snakefile `include:`s `rules/*.smk` by glob and loads `config/arms/*.yaml` by glob
-- [ ] `config/schema.yaml` validating datasets, backbones, regions, arms, threads
-- [ ] `.github/workflows/ci.yml`: `ruff check .`, `ruff format --check .`, `snakemake --lint`, `pytest` (smoke job added in T8)
-
-**Acceptance:** CI green on a PR with one trivial test; `snakemake -n` succeeds on empty config.
-
-**Dependencies:** none
-
-**Agent notes:** KISS — no tool rules yet. Use micromamba in CI with env caching.
-
----
-
 ### T2: License and install audit
 **Week:** W1
 **Description:** Install every in-scope tool from a pinned env on linux-64 (in CI), record licenses (flag only), and resolve the install-level `[UNVERIFIED]` items.
@@ -425,3 +406,6 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 ## Done
 
 <!-- Move tickets here once merged. Keep the T{N} prefix. -->
+
+### T1: Repo skeleton and CI — merged in #29 (2026-10-15)
+Skeleton, `config/schema.yaml`, `envs/phylobench.yaml`, CI job `lint-test` (now a required check on `main`). Pin change: pandas 2.3.3 (bioconda snakemake 9.27.0 requires pandas <3).
