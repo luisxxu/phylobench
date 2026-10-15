@@ -1,0 +1,11 @@
+name: sepp
+channels:
+  - conda-forge
+  - bioconda
+  - nodefaults
+dependencies:
+  - sepp=4.5.6
+  - pplacer=1.1.alpha23
+  - hmmer=3.4
+  # SEPP runs `java -jar seppJsonMerger.jar` but bioconda sepp does not declare java; version matches QIIME 2 2026.7
+  - openjdk=25.0.2
