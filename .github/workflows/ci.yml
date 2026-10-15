@@ -23,6 +23,7 @@ jobs:
           micromamba-version: '2.9.0-0'
           init-shell: bash
           cache-environment: true
+      - run: pip install -e . --no-deps
       - run: ruff check .
       - run: ruff format --check .
       - run: snakemake --lint

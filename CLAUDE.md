@@ -61,7 +61,7 @@ docs/tools/<tool>.md, LICENSES.md                              # per-tool comman
 ## Commands
 
 ```sh
-mamba env create -f envs/phylobench.yaml && conda activate phylobench   # dev env
+mamba env create -f envs/phylobench.yaml && conda activate phylobench && pip install -e . --no-deps   # dev env
 pytest                                                                   # unit tests (local + CI)
 ruff check . && ruff format --check . && snakemake --lint                # lint (local + CI)
 snakemake --use-conda --configfile config/smoke.yaml -c 2                # smoke test — CI (linux) only; agents on macOS check it via gh pr checks
