@@ -13,6 +13,7 @@ The commands below run on x86_64 Linux. The first three commands work after T1; 
 
 ```sh
 mamba env create -f envs/phylobench.yaml && conda activate phylobench
+pip install -e . --no-deps
 pytest
 ruff check . && ruff format --check . && snakemake --lint
 snakemake --use-conda --configfile config/smoke.yaml -c 2

@@ -131,8 +131,8 @@ Per user decision, the report lists each arm's own license and the license of th
 
 | Quantity | How |
 |---|---|
-| Wall / CPU time | Harness wall clock; `/usr/bin/time -v` user+sys |
-| Peak memory | cgroup v2 `memory.peak` if T27 confirms; else psutil process-tree RSS **sum** sampled every 0.5 s; `time -v` max RSS always recorded; `mem_source` column |
+| Wall / CPU time | Harness wall clock; CPU user+sys from `os.wait4` rusage |
+| Peak memory | cgroup v2 `memory.peak` if T27 confirms; else psutil process-tree RSS **sum** sampled every 0.5 s; `os.wait4` max RSS (`ru_maxrss`, same as GNU `time -v`) always recorded; both recorded; `mem_source` column |
 | GPU memory | `nvidia-smi --query-compute-apps=used_memory` every 0.5 s, max |
 | Phases | `ref-prep`, `align`, `place`, `convert`, `evaluate` as separate rules, each measured; `sepp-prod` = one `align+place+convert` phase |
 | Provenance | node, CPU model, GPU model, threads, version, env-lock hash, command |
