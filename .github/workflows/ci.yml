@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: mamba-org/setup-micromamba@f457c30a868e4760d3a6fcea5f25dc655b8edf39  # v3.2.1
+        with:
+          environment-file: envs/phylobench.yaml
+          micromamba-version: '2.9.0-0'
+          init-shell: bash
+          cache-environment: true
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: snakemake --lint
+      - run: snakemake -n
+      - run: pytest

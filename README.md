@@ -9,7 +9,7 @@ Benchmark of phylogenetic placement tools (pplacer, SEPP, pplacer-SCAMPP, EPA-ng
 
 ## Setup
 
-The commands below run on x86_64 Linux. They work once T1 lands.
+The commands below run on x86_64 Linux. The first three commands work after T1; the smoke test works after T8.
 
 ```sh
 mamba env create -f envs/phylobench.yaml && conda activate phylobench
