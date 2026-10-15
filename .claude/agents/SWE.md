@@ -48,6 +48,7 @@ Two-phase agent: (1) adversarially review the Planner's draft plan before any co
 - Copy the T8 pplacer rule as the template for new wrappers; don't invent a new pattern per tool. Wrappers add files only (`rules/<tool>.smk`, `config/arms/<arm>.yaml`, `envs/`, `docs/tools/`) — never edit shared config.
 - Agents run on macOS: run only `pytest` and linters locally; unit tests must not need tool binaries. The smoke test is CI-only.
 - Trees reach 200k leaves: no O(n²) Python loops over leaves; use treeswift/numpy.
+- Before pinning a package, dry-run solve the whole env for linux-64 (`conda create --dry-run -n x --platform linux-64 ...`); per-package existence is not enough. Bioconda snakemake 9.27.0 requires pandas <3 (T1).
 
 ## Output Contract
 

@@ -40,6 +40,7 @@ Orchestrate the full development pipeline: decide whether a task needs the Plann
 - Deployer is only dispatched for T21/T22 (HPC submission). For all other tickets the pipeline ends at QA + merged PR.
 - Wrapper tickets (T10, T12, T14, T15, T26) are independent once T8 is merged and can be dispatched in parallel worktrees, because wrappers only add files. T26 (sepp-prod) goes first. T27 is human/Deployer work.
 - The PR checklist is defined in `CLAUDE.md` → Workflow → PR Checklist.
+- `lint-test` is a required check on `main`; any new CI job that must gate merges (e.g. T8's `smoke`) must be added to branch protection by the user, or auto-merge fires before it runs.
 
 ## Output Contract
 
