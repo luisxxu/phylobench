@@ -63,7 +63,7 @@ def _sum_lengths(a, b):
     return None if a is None or b is None else a + b
 
 
-def _contract_bifurcating_root(root: treeswift.Node) -> None:
+def contract_bifurcating_root(root: treeswift.Node) -> None:
     """Drop a degree-2 root: its internal child merges in; the other edge sums both."""
     if len(root.children) != 2:
         return
@@ -80,7 +80,7 @@ def _contract_bifurcating_root(root: treeswift.Node) -> None:
 
 def prepare_backbone(newick: str, seed: int = 0) -> Backbone:
     tree = treeswift.read_tree_newick(newick)
-    _contract_bifurcating_root(tree.root)
+    contract_bifurcating_root(tree.root)
     nodes = list(tree.traverse_preorder())
     index = {node: i for i, node in enumerate(nodes)}
     hashes = leaf_hashes(tree.labels(internal=False), seed)

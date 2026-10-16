@@ -40,24 +40,6 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 ---
 
-### T16: Similarity, held-out construction, and simulated cross-check
-**Week:** W1–W2
-**Description:** Build the held-out backbone + query sets, compute per-query similarity bins, and produce the non-uDance simulated cross-check panel.
-
-**Deliverables:**
-- [ ] `src/phylobench/heldout.py`: choose disjoint clades at mixed ranks (~6 genera, 6 families, 4 orders, 3 classes, 2 small phyla, each ≤2k leaves) + ~500 singletons; ≥99.9 seeding rule; prune tree (suppress degree-2 nodes, additive branch lengths) and alignment once
-- [ ] `src/phylobench/similarity.py`: `sim(q)` over q's non-gap columns (region window aware); bins 75–80 … ≥99.9; chunked numpy
-- [ ] Per-bin lineage composition and query-length report
-- [ ] 10k-leaf simulated true-tree panel from the T3 simulator (cross-check for uDance/APPLES-2 bias)
-
-**Acceptance:** on the fixture, no held-out leaf remains in the backbone, every query's truth edge exists in the pruned tree, no degree-2 nodes remain; `sim` on 10k × 10k completes in < 5 min.
-
-**Dependencies:** T3, T5
-
-**Agent notes:** design §4. One pruned backbone per size — never per query.
-
----
-
 ### T25: Tree ↔ placement conversion (guppy tog + DIPPER adapter)
 **Week:** W1–W2
 **Description:** Convert jplace arms to inserted trees with `guppy tog` (as production does), and write the O(N) DIPPER Newick→placement adapter.
@@ -141,7 +123,7 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 **Dependencies:** T7, T16
 
-**Agent notes:** design §3–§4. `data/` never committed.
+**Agent notes:** design §3–§4. `data/` never committed. ≥99.9 seeding (design §4 step 2) built here from similarity() + heldout.choose_groups; moved from T16. Similarity memory ≈16·R·L bytes (R reference leaves, L alignment columns); check against GG2 alignment width.
 
 ---
 
@@ -295,6 +277,7 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 - [ ] `config/full.yaml` from T21 go/no-go
 - [ ] Complete `results/runs.tsv` + `results/accuracy.tsv`, DNFs recorded
 - [ ] Archived results tarball with checksums and env locks
+- [ ] Accuracy arms on the T16 simulated 10k panel (data/sim10k) — uDance/APPLES-2 cross-check
 
 **Acceptance:** every planned (backbone, region, arm) cell has a row with status — no silent gaps.
 
@@ -336,6 +319,9 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 ## Done
 
 <!-- Move tickets here once merged. Keep the T{N} prefix. -->
+
+### T16: Similarity, held-out construction, and simulated cross-check — merged in #TBD (2026-10-16)
+`phylobench.similarity` (windowed exact-integer sim, bins, per-bin report), `phylobench.heldout` (monophyletic-taxon clade/singleton selection, tree/alignment pruning), `workflow/scripts/make_sim_panel.py` (10k-leaf simulated panel to `data/sim10k`). ≥99.9 seeding moved to T18 (needs Bfull* similarity). 10k × 10k × 1500 similarity ≈ 5 s.
 
 ### T2: License and install audit — merged in #33 (2026-10-15)
 Pinned envs + linux-64 lockfiles for 8 tools and QIIME 2 2026.7, `envs.yml` CI (lock-guard + 9 installs, not required), `LICENSES.md` (flags only), `docs/audit.md`. pplacer pinned at 1.1.alpha23; QIIME 2 2026.7 ships alpha19 → `sepp-pinned` required. BSCAMPP uses an immutable per-env config.
