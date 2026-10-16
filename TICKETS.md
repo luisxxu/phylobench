@@ -38,21 +38,6 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 **Agent notes:** No job submission beyond trivial `srun` probes. Decides T4's primary memory source.
 
----
-
-### T25: Tree ↔ placement conversion (guppy tog + DIPPER adapter)
-**Week:** W1–W2
-**Description:** Convert jplace arms to inserted trees with `guppy tog` (as production does), and write the O(N) DIPPER Newick→placement adapter.
-
-**Deliverables:**
-- [ ] `workflow/rules/convert.smk`: `guppy tog` from the pinned pplacer env for every jplace arm (phase `convert`, harness-wrapped)
-- [ ] `src/phylobench/dipper_adapter.py`: random 64-bit leaf hashes → XOR edge signatures → one postorder pass maps each query to its backbone edge; RF check that the backbone topology is unchanged (fail loudly)
-
-**Acceptance:** `guppy tog` produces an inserted tree containing every query for a fixture jplace (CI); adapter maps 100k queries on a synthetic 330k tree in < 60 s; adapter unit tests on hand-built trees.
-
-**Dependencies:** T2, T5
-
-**Agent notes:** design §1.3. Document DIPPER joint placement; don't "fix" it. The adapter is pure Python and can start before T2; the convert rule needs T2's pplacer env.
 
 ---
 
@@ -293,6 +278,12 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 ### T16: Similarity, held-out construction, and simulated cross-check — merged in #39 (2026-10-16)
 `phylobench.similarity` (windowed exact-integer sim, bins, per-bin report), `phylobench.heldout` (monophyletic-taxon clade/singleton selection, tree/alignment pruning), `workflow/scripts/make_sim_panel.py` (10k-leaf simulated panel to `data/sim10k`). ≥99.9 seeding moved to T18 (needs Bfull* similarity). 10k × 10k × 1500 similarity ≈ 5 s.
+
+### T25: Tree <-> placement conversion (guppy tog + DIPPER adapter)
+- [x] `workflow/rules/convert.smk`: `guppy tog` rule, harness-wrapped (phase `convert`)
+- [x] `phylobench.dipper_adapter`: XOR edge signatures, one postorder pass, topology check fails loudly; reuses T5 `true_positions`
+- [x] `guppy-tog` CI workflow (`convert.yml`, not required); adapter perf test on 100k queries / 330k leaves < 60 s
+- [x] `docs/tools/dipper.md`, `docs/tools/guppy.md`; design.md 1.3 rooting-agnostic
 
 ### T2: License and install audit — merged in #33 (2026-10-15)
 Pinned envs + linux-64 lockfiles for 8 tools and QIIME 2 2026.7, `envs.yml` CI (lock-guard + 9 installs, not required), `LICENSES.md` (flags only), `docs/audit.md`. pplacer pinned at 1.1.alpha23; QIIME 2 2026.7 ships alpha19 → `sepp-pinned` required. BSCAMPP uses an immutable per-env config.
