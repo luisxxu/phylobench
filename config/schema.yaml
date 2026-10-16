@@ -7,21 +7,58 @@ properties:
     items:
       type: string
     uniqueItems: true
+    default: []
   backbones:
     type: array
     items:
       type: string
       minLength: 1
     uniqueItems: true
+    default: []
   regions:
     type: array
     items:
-      enum: [full-length, V4-150, V3-V4, V1-V2]
+      enum:
+        [full-length, V4-150, V3-V4, V1-V2, V1-V3, V4-V5, V5-V6, V6-V8, V7-V9]
     uniqueItems: true
+    default: []
+  alns:
+    type: array
+    items:
+      enum: [hmmalign, oracle]
+    uniqueItems: true
+    default: []
+  arm:
+    type: string
+  forced_dnf:
+    type: object
+    additionalProperties: false
+    required: [region, aln]
+    properties:
+      region:
+        type: string
+      aln:
+        type: string
   arms:
     type: object
     additionalProperties:
       type: object
+      additionalProperties: false
+      required: [tool, aligned, phases]
+      properties:
+        tool:
+          type: string
+          minLength: 1
+        aligned:
+          type: boolean
+        phases:
+          type: object
+          minProperties: 1
+          additionalProperties:
+            type: string
+        smoke_min_exact:
+          type: integer
+          minimum: 0
   threads:
     type: integer
     minimum: 1

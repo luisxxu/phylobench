@@ -1,6 +1,5 @@
 HMMER_VERSION = "hmmer 3.4"
 HMMER_ENV_LOCK = "envs/hmmer.linux-64.pin.txt"
-SCRIPTS = Path(workflow.basedir) / "scripts"
 
 
 wildcard_constraints:

@@ -1,19 +1,20 @@
+import sys
 from pathlib import Path
 
-import yaml
 from snakemake.utils import validate
 
-# Arms come only from config/arms/*.yaml (keyed by file stem); this overrides any `arms` key from --configfile.
-config["arms"] = {
-    p.stem: yaml.safe_load(p.read_text())
-    for p in sorted((Path(workflow.basedir).parent / "config" / "arms").glob("*.yaml"))
-}
+from phylobench.tables import load_arms
+
+# Arms come only from config/arms/*.yaml (keyed by file stem); this overrides any `arms`
+# key from --configfile. `--config arm=<stem>` runs one arm (CI smoke matrix).
+config["arms"] = load_arms(
+    Path(workflow.basedir).parent / "config" / "arms", only=config.get("arm")
+)
 
 validate(config, "../config/schema.yaml")
 
-import sys
-
 MEASURE = f"{sys.executable} -m phylobench.measure"
+SCRIPTS = Path(workflow.basedir) / "scripts"
 
 for smk in sorted(Path(workflow.basedir, "rules").glob("*.smk")):
 
@@ -22,4 +23,5 @@ for smk in sorted(Path(workflow.basedir, "rules").glob("*.smk")):
 
 rule all:
     input:
-        [],
+        "results/runs.tsv",
+        "results/accuracy.tsv",

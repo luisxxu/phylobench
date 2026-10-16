@@ -8,7 +8,7 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 **Wrapper DoD** (T10, T12, T14, T15, T26):
 - [ ] `envs/<tool>.yaml` pinned per `design.md` §1.1 + lockfile (linux-64)
-- [ ] `workflow/rules/<tool>.smk` + `config/arms/<arm>.yaml` — **add files only**; never edit shared config (T8 globs them)
+- [ ] `workflow/rules/<tool>.smk` + `config/arms/<arm>.yaml` — **add files only**; never edit shared config (T8 globs them; contract in [`docs/harness.md`](docs/harness.md) §7)
 - [ ] Every tool call wrapped by `phylobench-measure` (T4); output normalized to jplace (or T25 adapter) and scored by T5
 - [ ] Tool completes on the fixture with T6 ref-prep outputs, in the CI smoke matrix
 - [ ] `docs/tools/<tool>.md`: exact command line, version, threads, license of executed engine, quirks
@@ -41,24 +41,6 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 ---
 
 ### Week 2 — Ref-prep, alignment, smoke test, datasets
-
----
-
-### T8: Tiny end-to-end smoke test
-**Week:** W2
-**Description:** Wire fixture → ref-prep → align → pplacer → convert → evaluate → tidy TSVs in CI, and set the add-files-only convention for wrappers.
-
-**Deliverables:**
-- [ ] `config/smoke.yaml` + `config/arms/pplacer.yaml`; minimal `workflow/rules/pplacer.smk`
-- [ ] `workflow/rules/evaluate.smk` → `results/runs.tsv` and `results/accuracy.tsv` (columns per design §6)
-- [ ] CI job `smoke`: `snakemake --use-conda --configfile config/smoke.yaml -c 2`, matrix driven by the `config/arms/` glob
-- [ ] Assert end to end that every aligned-query file from T7 (`hmmalign.aligned.fasta`, `oracle.aligned.fasta`) has exactly the backbone's column count
-
-**Acceptance:** CI smoke green; `accuracy.tsv` has one row per fixture query × region; pplacer full-length exact-correct ≥ 8/10 on the fixture; smoke includes one forced-DNF case (harness `--timeout 1`) that yields a DNF row; every other row has status ok and non-null version and env_lock_sha256.
-
-**Dependencies:** T3, T4, T5, T6, T7
-
-**Agent notes:** The template every wrapper copies. Adding a wrapper must not require editing any existing file.
 
 ---
 
@@ -271,6 +253,12 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 ## Done
 
 <!-- Move tickets here once merged. Keep the T{N} prefix. -->
+
+### T8: Tiny end-to-end smoke test — closes #8
+- [x] `config/smoke.yaml`, `config/arms/pplacer.yaml`, `workflow/rules/{pplacer,evaluate,smoke}.smk`; `phylobench.tables` + `check_smoke.py`
+- [x] `results/runs.tsv` (design §6 columns + `run_id`, `dnf_reason`, `env_lock_sha256`; non-ok → `status=DNF`) and `results/accuracy.tsv`
+- [x] CI `arms` → `smoke-arm` matrix (one job per `config/arms/*.yaml`) → `smoke` aggregate; asserts backbone-width aligned queries, forced-DNF row, ok + provenance on every other row, no conda pin-file fallback
+- [x] Arm contract for wrappers: `docs/harness.md` §7; `docs/tools/pplacer.md`; guppy layout `{cell}/placements.tog.*`
 
 ### T7: Regions and query alignment — merged in #41 (2026-10-16)
 `phylobench.regions` (IUPAC primer matching for V4-150, V3-V4, V1-V2, V1-V3, V4-V5, V5-V6, V6-V8, V7-V9 with exclusion counts) and `workflow/rules/align.smk` (backbone `hmmbuild` + `hmmalign`, masked to backbone columns, timed `align` phase, oracle passthrough for B10k\*). Notes in `docs/tools/hmmer.md`.

@@ -27,5 +27,70 @@ jobs:
       - run: ruff check .
       - run: ruff format --check .
       - run: snakemake --lint
-      - run: snakemake -n
+      - run: snakemake -n --configfile config/smoke.yaml
       - run: pytest
+
+  arms:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      arms: ${{ steps.glob.outputs.arms }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - id: glob
+        run: |
+          arms=$(python3 -c 'import json, pathlib; print(json.dumps(sorted(p.stem for p in pathlib.Path("config/arms").glob("*.yaml"))))')
+          echo "arms=$arms" >> "$GITHUB_OUTPUT"
+
+  smoke-arm:
+    needs: arms
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        arm: ${{ fromJSON(needs.arms.outputs.arms) }}
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: mamba-org/setup-micromamba@f457c30a868e4760d3a6fcea5f25dc655b8edf39  # v3.2.1
+        with:
+          environment-file: envs/phylobench.yaml
+          micromamba-version: '2.9.0-0'
+          init-shell: bash
+          cache-environment: true
+      - run: pip install -e . --no-deps
+      # Snakemake --use-conda needs a conda binary; the runner's own conda is only appended to PATH
+      # so the phylobench env's python and snakemake stay first.
+      - name: conda >= 24.7.1 available to snakemake
+        run: |
+          echo "CONDA_BIN=$CONDA/bin" >> "$GITHUB_ENV"
+          have=$(PATH="$PATH:$CONDA/bin" conda --version | awk '{print $2}')
+          if [ "$(printf '%s\n24.7.1\n' "$have" | sort -V | head -1)" != "24.7.1" ]; then
+            echo "conda $have is older than 24.7.1, which snakemake --use-conda needs"
+            exit 1
+          fi
+      - name: smoke
+        run: |
+          set -o pipefail
+          PATH="$PATH:$CONDA_BIN" snakemake --use-conda --configfile config/smoke.yaml -c 2 \
+            --config arm=${{ matrix.arm }} 2>&1 | tee smoke.log
+      - name: locked env pins installed (no YAML fallback)
+        run: "! grep -q 'Failed to install conda environment from pin file' smoke.log"
+      - name: acceptance checks
+        run: python workflow/scripts/check_smoke.py --configfile config/smoke.yaml --arm ${{ matrix.arm }}
+      - name: tail logs
+        if: failure()
+        run: |
+          find results -name '*.log' -print -exec tail -n 40 {} \; || true
+          tail -n 60 smoke.log || true
+
+  smoke:
+    needs: smoke-arm
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: every smoke-arm job passed
+        run: test "${{ needs.smoke-arm.result }}" = success
