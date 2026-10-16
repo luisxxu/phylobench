@@ -2,33 +2,12 @@ import time
 
 import numpy as np
 import treeswift
-from tree_helpers import to_newick
+from tree_helpers import coalescent_tree
 
 from phylobench.accuracy import score_jplace
+from phylobench.jplace import to_newick
 
 TIME_LIMIT_S = 60
-
-
-def coalescent_tree(leaf_count: int, rng, zero_fraction: float = 0.1) -> treeswift.Tree:
-    active = [treeswift.Node(label=f"t{i}") for i in range(leaf_count)]
-    while len(active) > 1:
-        picks = []
-        for _ in range(2):
-            i = int(rng.integers(len(active)))
-            active[i], active[-1] = active[-1], active[i]
-            picks.append(active.pop())
-        parent = treeswift.Node()
-        for child in picks:
-            parent.add_child(child)
-        active.append(parent)
-    tree = treeswift.Tree()
-    tree.root = active[0]
-    for node in tree.traverse_preorder():
-        if node is not tree.root:
-            node.edge_length = (
-                0.0 if rng.random() < zero_fraction else float(rng.exponential(0.1))
-            )
-    return tree
 
 
 def time_scoring(

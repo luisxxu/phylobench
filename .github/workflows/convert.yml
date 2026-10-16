@@ -1,0 +1,46 @@
+name: convert
+
+on:
+  pull_request:
+    paths:
+      - 'envs/pplacer*'
+      - 'src/phylobench/jplace.py'
+      - 'tests/test_guppy_tog.py'
+      - 'workflow/rules/convert.smk'
+      - '.github/workflows/convert.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'envs/pplacer*'
+      - 'src/phylobench/jplace.py'
+      - 'tests/test_guppy_tog.py'
+      - 'workflow/rules/convert.smk'
+      - '.github/workflows/convert.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  guppy-tog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: mamba-org/setup-micromamba@f457c30a868e4760d3a6fcea5f25dc655b8edf39  # v3.2.1
+        with:
+          environment-file: envs/phylobench.yaml
+          micromamba-version: '2.9.0-0'
+          init-shell: bash
+          cache-environment: true
+      - run: pip install -e . --no-deps
+      - name: create pplacer env from lock
+        run: micromamba create -y -n pplacer -f envs/pplacer.linux-64.pin.txt
+      - name: guppy tog on the fixture jplace
+        run: |
+          GUPPY="$(micromamba run -n pplacer which guppy)"
+          test -x "$GUPPY"
+          GUPPY="$GUPPY" pytest tests/test_guppy_tog.py

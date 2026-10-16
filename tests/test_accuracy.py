@@ -2,7 +2,7 @@ import math
 
 import numpy as np
 import pytest
-from tree_helpers import edge_numbers, numbered_doc, place
+from tree_helpers import edge_numbers, place
 
 from phylobench.accuracy import (
     Backbone,
@@ -14,6 +14,7 @@ from phylobench.accuracy import (
     score_jplace,
     true_positions,
 )
+from phylobench.jplace import numbered_doc
 
 # Binary except for the trifurcating root R; internal nodes are named for placement.
 BINARY = "((a:1,b:1)X:1,((c:1,d:1)Y:1,e:1)Z:1,f:1)R;"
