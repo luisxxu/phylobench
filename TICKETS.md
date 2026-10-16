@@ -80,12 +80,12 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 ### T18: GG2 16S dataset
 **Week:** W2
-**Description:** Download the GG2 2022.10 SEPP reference + taxonomy and build Bfull\*, B10k\*, and the held-out query sets for four regions.
+**Description:** Download the GG2 2022.10 SEPP reference + taxonomy and build Bfull\*, B10k\*, and the held-out query sets for five regions.
 
 **Deliverables:**
 - [ ] Scripted checksummed download of `2022.10.backbone.sepp-reference.qza` and `2022.10.backbone.tax.qza`; unzip `.qza` without needing QIIME 2
 - [ ] Bfull\* (shipped minus held-out, via T16) and B10k\* (uniform subsample of Bfull\*); **pruned-reference checksums recorded** in `data/gg2/MANIFEST.tsv`
-- [ ] 1,000 held-out source sequences × {full-length, V4-150, V3–V4, V1–V2}; per-size bin counts; ≥99.9 seeding applied
+- [ ] 1,000 held-out source sequences × {full-length, V4-150, V3–V4, V1–V2, V5–V6}; per-size bin counts; ≥99.9 seeding applied
 
 **Acceptance:** manifest lists counts per backbone × region × bin and checksums; no held-out leaf in either backbone (test); bins < 100 flagged.
 
@@ -289,7 +289,7 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 <!-- Move tickets here once merged. Keep the T{N} prefix. -->
 
 ### T7: Regions and query alignment — merged in #TBD (2026-10-16)
-`phylobench.regions` (IUPAC primer matching for V4-150, V3-V4, V1-V2 with exclusion counts) and `workflow/rules/align.smk` (backbone `hmmbuild` + `hmmalign`, masked to backbone columns, timed `align` phase, oracle passthrough for B10k\*). Notes in `docs/tools/hmmer.md`.
+`phylobench.regions` (IUPAC primer matching for V4-150, V3-V4, V1-V2, V5-V6 with exclusion counts) and `workflow/rules/align.smk` (backbone `hmmbuild` + `hmmalign`, masked to backbone columns, timed `align` phase, oracle passthrough for B10k\*). Notes in `docs/tools/hmmer.md`.
 
 ### T16: Similarity, held-out construction, and simulated cross-check — merged in #39 (2026-10-16)
 `phylobench.similarity` (windowed exact-integer sim, bins, per-bin report), `phylobench.heldout` (monophyletic-taxon clade/singleton selection, tree/alignment pruning), `workflow/scripts/make_sim_panel.py` (10k-leaf simulated panel to `data/sim10k`). ≥99.9 seeding moved to T18 (needs Bfull* similarity). 10k × 10k × 1500 similarity ≈ 5 s.

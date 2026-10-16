@@ -73,7 +73,7 @@ Per user decision, the report lists each arm's own license and the license of th
 | Model params | Shipped numbers for every likelihood arm (§1.2); ME branch lengths for APPLES-2 only. Ref-prep timed as a one-time cost. |
 | Alignment | **Primary:** `hmmalign` against one `hmmbuild` profile of the backbone alignment, masked to backbone columns (the realistic deployable path); shared by every aligned-input arm (phase `align`, timed). **Diagnostic (B10k\* only):** oracle (region's own GG2 alignment columns). SEPP aligns internally. A poor single-profile alignment lowers challengers vs. SEPP — reported as a property of the alignment arm, not the tools; the oracle-vs-hmmalign gap at B10k\* is the evidence. ⚑ |
 | End-to-end cost | `sepp-prod` total vs. `align + place + convert` for each challenger. |
-| Regions | full-length, **V4-150**, **V3–V4**, **V1–V2**, cut by primer matching on ungapped GG2 sequences (V4-150: 515F Parada `GTGYCAGCMGCCGCGGTAA` / 806R Apprill `GGACTACNVGGGTWTCTAAT`, first 150 nt after 515F; V3–V4: 341F `CCTACGGGNGGCWGCAG` / 805R `GACTACHVGGGTATCTAATCC`; V1–V2: 27F `AGAGTTTGATCMTGGCTCAG` / 338R `GCTGCCTCCCGTAGGAGT`; exact match, primers excluded from the amplicon) and projected onto alignment columns. Sequences without primer hits excluded and counted. |
+| Regions | full-length, **V4-150**, **V3–V4**, **V1–V2**, **V5–V6**, cut by primer matching on ungapped GG2 sequences (V4-150: 515F Parada `GTGYCAGCMGCCGCGGTAA` / 806R Apprill `GGACTACNVGGGTWTCTAAT`, first 150 nt after 515F; V3–V4: 341F `CCTACGGGNGGCWGCAG` / 805R `GACTACHVGGGTATCTAATCC`; V1–V2: 27F `AGAGTTTGATCMTGGCTCAG` / 338R `GCTGCCTCCCGTAGGAGT`; V5–V6: 784F `AGGATTAGATACCCTGGTA` / 1064R `CGACRRCCATGCANCACCT`; exact match, primers excluded from the amplicon) and projected onto alignment columns. Sequences without primer hits excluded and counted. |
 | Threads | 16/job (SLURM + each tool's flag). DIPPER native `-T {threads}` at 0.1.5 (TBB global_control); cgroup still bounds it. BSCAMPP `--threads 16 --cpus-per-job 2`. |
 | SEPP | `run-sepp.sh <q> <name> -x 16 -A 1000 -P 5000 -a -t -r` [V], one working dir and `-p`/`-d` temp dirs per job. q2-vs-direct equality check on the shipped reference. |
 | Placement scored | Top-LWR only. |
@@ -84,7 +84,7 @@ Per user decision, the report lists each arm's own license and the license of th
 
 | Data | Role | Truth label |
 |---|---|---|
-| GG2 held-out clades + singletons (§4), 4 regions, 1,000 source sequences each (paired across regions) | **Accuracy** at B10k\* and Bfull\* | Attachment edge in GG2 tree restricted to backbone ∪ {q}; held-out-clade members share its stem edge. **Caveat:** GG2 16S were inserted by uDance (APPLES-2 + ML refinement) [V] → possible bias toward apples2 (and ML arms). An apples2 win is **not** read as a placement-quality win without the non-uDance cross-check (T3 simulator scaled to a 10k true-tree panel, in T16) or T17-lite. |
+| GG2 held-out clades + singletons (§4), 5 regions, 1,000 source sequences each (paired across regions) | **Accuracy** at B10k\* and Bfull\* | Attachment edge in GG2 tree restricted to backbone ∪ {q}; held-out-clade members share its stem edge. **Caveat:** GG2 16S were inserted by uDance (APPLES-2 + ML refinement) [V] → possible bias toward apples2 (and ML arms). An apples2 win is **not** read as a placement-quality win without the non-uDance cross-check (T3 simulator scaled to a 10k true-tree panel, in T16) or T17-lite. |
 | EMP Deblur V4 150 bp ASVs (release1 [V]), 10k and 100k | **Runtime, memory, query-count scaling, concordance** | *Concordance with sepp-prod* (edge distance). Never "accuracy". |
 | (optional) T17-lite RNAsim 10k | Bias-free truth | True tree (§9.8) |
 
@@ -119,7 +119,7 @@ Edge distance is counted in the backbone with zero-length edges contracted: a tr
 | Axis | Values |
 |---|---|
 | Backbones | B10k\*, Bfull\* (≈320k) |
-| Accuracy queries | 1,000 per region × 4 regions |
+| Accuracy queries | 1,000 per region × 5 regions |
 | Scaling queries | EMP V4 10k and 100k on both backbones |
 | Arms at Bfull\* | sepp-prod, (sepp-pinned), pplacer-scampp, epa-ng-scampp, bscampp, apples2, dipper-m CPU + GPU, plus **one capped pplacer attempt** (1k V4 queries, 24 h cap enforced by the harness as `status=timeout`, fixed before the run, no retry) ⚑ |
 | B10k\*-only arms | pplacer, epa-ng, dipper-r, oracle-alignment diagnostics |
@@ -172,7 +172,7 @@ Tests skip explicitly when cgroups are absent — never pass vacuously.
 
 **Critical path:** T1 → T2 → T6/T7 → T8 → T26 → T21 → T22 → T23 → T24 (T27 before T21).
 
-**3-week floor (approved) — cut in order:** T17-lite → `dipper-r` → oracle diagnostic → V1–V2 and V3–V4 (keep full-length + V4-150) → EMP 100k → `sepp-pinned`. Runs start W3; report end of W3.
+**3-week floor (approved) — cut in order:** T17-lite → `dipper-r` → oracle diagnostic → V1–V2, V3–V4 and V5–V6 (keep full-length + V4-150) → EMP 100k → `sepp-pinned`. Runs start W3; report end of W3.
 
 ---
 
@@ -181,7 +181,7 @@ Tests skip explicitly when cgroups are absent — never pass vacuously.
 1. **Licenses** are flagged in the report only; no license analysis and no decisions based on license (§1.4).
 2. **Production SEPP** = q2-fragment-insertion + GG2 → `sepp-prod` on the 2022.10 SEPP reference (only GG2 SEPP reference; 2024.09 has none [V]); `-A 1000 -P 5000` [V]; env = **latest QIIME 2 amplicon distribution**, sepp/pplacer/hmmer versions recorded (T2).
 3. **Compute:** SLURM x86, ≥16 cores, >256 GB/node, 72 h; RTX 3090 24 GB. cgroup support unknown → T27 + psutil fallback.
-4. **Regions:** full-length, V4-150, V3–V4, V1–V2.
+4. **Regions:** full-length, V4-150, V3–V4, V1–V2, V5–V6 (V5–V6 added 2026-10-16).
 5. **Defaults accepted:** 10k-ASV scaling (to 100k); GG2 backbone; EPA-ng control; 0.25-edge margin (per region × size, pooled); DEPP out of scope; GPU shown separately, CPU ranks; inserted tree needed downstream (→ T25 via `guppy tog`).
 6. **Deadline:** 3–5 weeks → 5-week plan; the **3-week floor cut order (§8) is approved**.
 7. **SARS-CoV-2:** deferred out of this cycle (T20); high-similarity bins are filled on 16S (§4).

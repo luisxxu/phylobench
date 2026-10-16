@@ -57,7 +57,7 @@ def test_full_length_span_is_whole_sequence():
     assert amplicon_span("ACGTACGT", "full-length") == (0, 8)
 
 
-@pytest.mark.parametrize("region", ["V3-V4", "V1-V2"])
+@pytest.mark.parametrize("region", [r for r in PRIMED_REGIONS if r not in TRIM])
 def test_span_excludes_primers(region):
     seq, insert = synthetic(region)
     start, end = amplicon_span(seq, region)
