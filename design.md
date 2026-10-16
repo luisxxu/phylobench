@@ -56,7 +56,7 @@ Markers: **[V]** verified against upstream repo / GitHub API / bioconda / PyPI /
 
 ### 1.3 DIPPER adapter and jplace→tree conversion (T25)
 
-- **Adapter (Newick → placement), one O(N+Q) postorder pass:** assign each backbone leaf a random 64-bit hash; XOR-signature every backbone edge; in DIPPER's output (rooted at a fixed backbone leaf) compute backbone-only signatures per node; each query walks up to the first ancestor with non-empty signature → backbone edge. Fail-loud RF check that the backbone topology is unchanged [UNVERIFIED whether `--add` preserves it]. Joint-placement caveat reported; delta error computed at B10k\*.
+- **Adapter (Newick → placement), one O(N+Q) postorder pass:** assign each backbone leaf a random 64-bit hash; XOR-signature every backbone edge; in DIPPER's output (any rooting: edges are matched by canonical splits, so the adapter is rooting-agnostic) compute backbone-only signatures per node; each query walks up to the first ancestor with non-empty signature → backbone edge. Fail-loud RF check that the backbone topology is unchanged [UNVERIFIED whether `--add` preserves it]. Joint-placement caveat reported; delta error computed at B10k\*.
 - **jplace → tree:** `guppy tog` from the pinned pplacer env, measured as phase `convert` for every jplace arm (`sepp-prod` runs it internally, as production does).
 
 ### 1.4 Licenses (flagged only — no license analysis, no decisions)
