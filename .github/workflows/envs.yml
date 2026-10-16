@@ -226,6 +226,7 @@ jobs:
         run: |
           micromamba activate epa-ng
           for m in tiny gg2; do
+            mkdir -p $RUNNER_TEMP/epa-$m
             epa-ng --ref-msa tests/fixtures/tiny/aligned-dna-sequences.fasta \
               --tree tests/fixtures/tiny/tree.nwk \
               --query tests/fixtures/tiny/queries.aligned.fasta \
