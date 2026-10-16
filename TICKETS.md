@@ -58,22 +58,6 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 ### Week 2 — Ref-prep, alignment, smoke test, datasets
 
-### T7: Regions and query alignment
-**Week:** W2
-**Description:** Extract amplicon regions by primer matching and produce the shared hmmalign alignment plus the oracle diagnostic.
-
-**Deliverables:**
-- [ ] `src/phylobench/regions.py`: primer matching (IUPAC-aware) on ungapped sequences for V4-150 (515F/806R, trimmed to 150), V3–V4 (341F/805R), V1–V2 (27F/338R) [confirm primer set], projected onto the row's alignment columns; exclusion counts
-- [ ] Check aligned rows ungap to the full-length FASTA
-- [ ] `hmmbuild` profile of each backbone + `hmmalign` + mask to backbone columns (phase `align`, timed)
-- [ ] Oracle passthrough (region's GG2 alignment columns) for the B10k\* diagnostic
-
-**Acceptance:** on the fixture, every region extracts for every sequence; aligned queries have exactly the backbone's column count.
-
-**Dependencies:** T2, T3
-
-**Agent notes:** design §2. WITCH is out of scope.
-
 ---
 
 ### T8: Tiny end-to-end smoke test
@@ -84,6 +68,7 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 - [ ] `config/smoke.yaml` + `config/arms/pplacer.yaml`; minimal `workflow/rules/pplacer.smk`
 - [ ] `workflow/rules/evaluate.smk` → `results/runs.tsv` and `results/accuracy.tsv` (columns per design §6)
 - [ ] CI job `smoke`: `snakemake --use-conda --configfile config/smoke.yaml -c 2`, matrix driven by the `config/arms/` glob
+- [ ] Assert end to end that every aligned-query file from T7 (`hmmalign.aligned.fasta`, `oracle.aligned.fasta`) has exactly the backbone's column count
 
 **Acceptance:** CI smoke green; `accuracy.tsv` has one row per fixture query × region; pplacer full-length exact-correct ≥ 8/10 on the fixture; smoke includes one forced-DNF case (harness `--timeout 1`) that yields a DNF row; every other row has status ok and non-null version and env_lock_sha256.
 
@@ -95,12 +80,12 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 ### T18: GG2 16S dataset
 **Week:** W2
-**Description:** Download the GG2 2022.10 SEPP reference + taxonomy and build Bfull\*, B10k\*, and the held-out query sets for four regions.
+**Description:** Download the GG2 2022.10 SEPP reference + taxonomy and build Bfull\*, B10k\*, and the held-out query sets for all nine regions.
 
 **Deliverables:**
 - [ ] Scripted checksummed download of `2022.10.backbone.sepp-reference.qza` and `2022.10.backbone.tax.qza`; unzip `.qza` without needing QIIME 2
 - [ ] Bfull\* (shipped minus held-out, via T16) and B10k\* (uniform subsample of Bfull\*); **pruned-reference checksums recorded** in `data/gg2/MANIFEST.tsv`
-- [ ] 1,000 held-out source sequences × {full-length, V4-150, V3–V4, V1–V2}; per-size bin counts; ≥99.9 seeding applied
+- [ ] 1,000 held-out source sequences × {full-length, V4-150, V3–V4, V1–V2, V1–V3, V4–V5, V5–V6, V6–V8, V7–V9}; per-size bin counts; ≥99.9 seeding applied
 
 **Acceptance:** manifest lists counts per backbone × region × bin and checksums; no held-out leaf in either backbone (test); bins < 100 flagged.
 
@@ -302,6 +287,9 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 ## Done
 
 <!-- Move tickets here once merged. Keep the T{N} prefix. -->
+
+### T7: Regions and query alignment — merged in #41 (2026-10-16)
+`phylobench.regions` (IUPAC primer matching for V4-150, V3-V4, V1-V2, V1-V3, V4-V5, V5-V6, V6-V8, V7-V9 with exclusion counts) and `workflow/rules/align.smk` (backbone `hmmbuild` + `hmmalign`, masked to backbone columns, timed `align` phase, oracle passthrough for B10k\*). Notes in `docs/tools/hmmer.md`.
 
 ### T16: Similarity, held-out construction, and simulated cross-check — merged in #39 (2026-10-16)
 `phylobench.similarity` (windowed exact-integer sim, bins, per-bin report), `phylobench.heldout` (monophyletic-taxon clade/singleton selection, tree/alignment pruning), `workflow/scripts/make_sim_panel.py` (10k-leaf simulated panel to `data/sim10k`). ≥99.9 seeding moved to T18 (needs Bfull* similarity). 10k × 10k × 1500 similarity ≈ 5 s.
