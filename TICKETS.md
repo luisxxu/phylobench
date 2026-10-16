@@ -320,7 +320,7 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 <!-- Move tickets here once merged. Keep the T{N} prefix. -->
 
-### T16: Similarity, held-out construction, and simulated cross-check — merged in #TBD (2026-10-16)
+### T16: Similarity, held-out construction, and simulated cross-check — merged in #39 (2026-10-16)
 `phylobench.similarity` (windowed exact-integer sim, bins, per-bin report), `phylobench.heldout` (monophyletic-taxon clade/singleton selection, tree/alignment pruning), `workflow/scripts/make_sim_panel.py` (10k-leaf simulated panel to `data/sim10k`). ≥99.9 seeding moved to T18 (needs Bfull* similarity). 10k × 10k × 1500 similarity ≈ 5 s.
 
 ### T2: License and install audit — merged in #33 (2026-10-15)
