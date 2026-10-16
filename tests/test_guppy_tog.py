@@ -40,7 +40,9 @@ def test_tog_inserts_every_query_on_its_placed_edge(tmp_path):
     placed_on = dict(zip(queries, placeable, strict=False))
     for query, edge in placed_on.items():
         length = edges[edge].edge_length
-        doc["placements"].append({"p": [[edge, -1.0, 1.0, 0.5 * length, 0.01]], "n": [query]})
+        doc["placements"].append(
+            {"p": [[edge, -1.0, 1.0, 0.5 * length, 0.01]], "n": [query]}
+        )
     jplace = tmp_path / "in.jplace"
     jplace.write_text(json.dumps(doc))
     out = tmp_path / "out.tre"
