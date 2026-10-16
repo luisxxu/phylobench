@@ -288,7 +288,7 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 <!-- Move tickets here once merged. Keep the T{N} prefix. -->
 
-### T7: Regions and query alignment — merged in #TBD (2026-10-16)
+### T7: Regions and query alignment — merged in #41 (2026-10-16)
 `phylobench.regions` (IUPAC primer matching for V4-150, V3-V4, V1-V2, V1-V3, V4-V5, V5-V6, V6-V8, V7-V9 with exclusion counts) and `workflow/rules/align.smk` (backbone `hmmbuild` + `hmmalign`, masked to backbone columns, timed `align` phase, oracle passthrough for B10k\*). Notes in `docs/tools/hmmer.md`.
 
 ### T16: Similarity, held-out construction, and simulated cross-check — merged in #39 (2026-10-16)
