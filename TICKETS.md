@@ -58,22 +58,6 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 ### Week 2 — Ref-prep, alignment, smoke test, datasets
 
-### T7: Regions and query alignment
-**Week:** W2
-**Description:** Extract amplicon regions by primer matching and produce the shared hmmalign alignment plus the oracle diagnostic.
-
-**Deliverables:**
-- [ ] `src/phylobench/regions.py`: primer matching (IUPAC-aware) on ungapped sequences for V4-150 (515F/806R, trimmed to 150), V3–V4 (341F/805R), V1–V2 (27F/338R) [confirm primer set], projected onto the row's alignment columns; exclusion counts
-- [ ] Check aligned rows ungap to the full-length FASTA
-- [ ] `hmmbuild` profile of each backbone + `hmmalign` + mask to backbone columns (phase `align`, timed)
-- [ ] Oracle passthrough (region's GG2 alignment columns) for the B10k\* diagnostic
-
-**Acceptance:** on the fixture, every region extracts for every sequence; aligned queries have exactly the backbone's column count.
-
-**Dependencies:** T2, T3
-
-**Agent notes:** design §2. WITCH is out of scope.
-
 ---
 
 ### T8: Tiny end-to-end smoke test
@@ -303,6 +287,9 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 ## Done
 
 <!-- Move tickets here once merged. Keep the T{N} prefix. -->
+
+### T7: Regions and query alignment — merged in #TBD (2026-10-16)
+`phylobench.regions` (IUPAC primer matching for V4-150, V3-V4, V1-V2 with exclusion counts) and `workflow/rules/align.smk` (backbone `hmmbuild` + `hmmalign`, masked to backbone columns, timed `align` phase, oracle passthrough for B10k\*). Notes in `docs/tools/hmmer.md`.
 
 ### T16: Similarity, held-out construction, and simulated cross-check — merged in #39 (2026-10-16)
 `phylobench.similarity` (windowed exact-integer sim, bins, per-bin report), `phylobench.heldout` (monophyletic-taxon clade/singleton selection, tree/alignment pruning), `workflow/scripts/make_sim_panel.py` (10k-leaf simulated panel to `data/sim10k`). ≥99.9 seeding moved to T18 (needs Bfull* similarity). 10k × 10k × 1500 similarity ≈ 5 s.
