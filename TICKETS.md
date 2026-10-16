@@ -76,23 +76,6 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 ### Week 2 — Ref-prep, alignment, smoke test, datasets
 
-### T6: Reference prep (pruning + model conversion)
-**Week:** W2
-**Description:** Produce each tool family's parameter inputs from the shipped GG2 SEPP reference numbers — no re-estimation.
-
-**Deliverables:**
-- [ ] `src/phylobench/models.py`: parse `raxml-info.txt` (GTR rates, base freqs, alpha) → EPA-ng/raxml-ng string `GTR{rates}+FU{freqs}+G4m{1.0}`
-- [ ] FastTree `-nome -noml` ME branch lengths for APPLES-2, once per backbone
-- [ ] Rules wrapped by harness, phase `ref-prep`
-
-**Acceptance:** model string parses in pinned raxml-ng and EPA-ng; test that info-file rate order maps to AC/AG/AT/CG/CT/GT (a known permuted input fails); pplacer and epa-ng each complete on the fixture using T6 outputs (CI).
-
-**Dependencies:** T2, T3
-
-**Agent notes:** design §1.2 ⚑ — alpha=1.0 is as shipped; don't "fix" it. Add `envs/raxml-ng.yaml` + lock (AGPL-3, row pre-filled in `LICENSES.md`).
-
----
-
 ### T7: Regions and query alignment
 **Week:** W2
 **Description:** Extract amplicon regions by primer matching and produce the shared hmmalign alignment plus the oracle diagnostic.
@@ -351,3 +334,6 @@ Platform-deterministic simulator (`phylobench.simulate`), 100-leaf backbone + 10
 
 ### T1: Repo skeleton and CI — merged in #29 (2026-10-15)
 Skeleton, `config/schema.yaml`, `envs/phylobench.yaml`, CI job `lint-test` (now a required check on `main`). Pin change: pandas 2.3.3 (bioconda snakemake 9.27.0 requires pandas <3).
+
+### T6: Reference prep (pruning + model conversion) — merged 2026-10-16
+`phylobench.models` (RAxML-8 info to `GTR{..}+FU{..}+G4m{1.0}`, strict `ac ag at cg ct gt` label check, alpha as shipped), `refprep.smk` (model writer + harness-wrapped FastTreeMP `-nome -noml` ME tree, phase `ref-prep`), `envs/raxml-ng.yaml` 2.0.3 + lock. `envs.yml` T6 steps: raxml-ng `--check`, epa-ng and pplacer on the fixture, FastTreeMP run. No pruning (T16/T18).
