@@ -5,11 +5,17 @@ on:
     paths:
       - 'envs/**'
       - '.github/workflows/envs.yml'
+      - 'src/phylobench/models.py'
+      - 'workflow/scripts/write_epa_ng_model.py'
+      - 'tests/fixtures/**'
   push:
     branches: [main]
     paths:
       - 'envs/**'
       - '.github/workflows/envs.yml'
+      - 'src/phylobench/models.py'
+      - 'workflow/scripts/write_epa_ng_model.py'
+      - 'tests/fixtures/**'
   workflow_dispatch:
 
 permissions:
@@ -74,7 +80,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        env: [pplacer, sepp, bscampp, apples, dipper, epa-ng, fasttree, hmmer, qiime2]
+        env: [pplacer, sepp, bscampp, apples, dipper, epa-ng, fasttree, hmmer, raxml-ng, qiime2]
     defaults:
       run:
         shell: bash -el {0}
@@ -194,6 +200,57 @@ jobs:
           print("home.path ->", root)
           print((root / "main.config").read_text())
           EOF
+      - name: epa-ng model files (T6)
+        if: matrix.env == 'raxml-ng' || matrix.env == 'epa-ng'
+        run: |
+          for m in tiny gg2; do
+            case $m in
+              tiny) info=tests/fixtures/tiny/raxml-info.txt ;;
+              gg2) info=tests/fixtures/gg2-2022.10/raxml-info.txt ;;
+            esac
+            PYTHONPATH=src /usr/bin/python3 workflow/scripts/write_epa_ng_model.py \
+              $info tests/fixtures/tiny/aligned-dna-sequences.fasta $RUNNER_TEMP/$m.model
+          done
+      - name: raxml-ng model check (T6)
+        if: matrix.env == 'raxml-ng'
+        run: |
+          micromamba activate raxml-ng
+          raxml-ng --version
+          for m in tiny gg2; do
+            cat $RUNNER_TEMP/$m.model
+            raxml-ng --check --msa tests/fixtures/tiny/aligned-dna-sequences.fasta \
+              --model $RUNNER_TEMP/$m.model --prefix $RUNNER_TEMP/check-$m --threads 1
+          done
+      - name: epa-ng fixture (T6)
+        if: matrix.env == 'epa-ng'
+        run: |
+          micromamba activate epa-ng
+          for m in tiny gg2; do
+            epa-ng --ref-msa tests/fixtures/tiny/aligned-dna-sequences.fasta \
+              --tree tests/fixtures/tiny/tree.nwk \
+              --query tests/fixtures/tiny/queries.aligned.fasta \
+              --model $RUNNER_TEMP/$m.model --outdir $RUNNER_TEMP/epa-$m --threads 2 --redo
+            python3 -I -c "import json,sys; assert len(json.load(open(sys.argv[1]))['placements'])==10" \
+              $RUNNER_TEMP/epa-$m/epa_result.jplace
+          done
+      - name: pplacer fixture (T6)
+        if: matrix.env == 'pplacer'
+        run: |
+          micromamba activate pplacer
+          pplacer -j 2 -t tests/fixtures/tiny/tree.nwk -s tests/fixtures/tiny/raxml-info.txt \
+            -r tests/fixtures/tiny/aligned-dna-sequences.fasta -o $RUNNER_TEMP/pplacer.jplace \
+            tests/fixtures/tiny/queries.aligned.fasta
+          python3 -I -c "import json,sys; assert len(json.load(open(sys.argv[1]))['placements'])==10" \
+            $RUNNER_TEMP/pplacer.jplace
+      - name: fasttree fixture (T6)
+        if: matrix.env == 'fasttree'
+        run: |
+          micromamba activate fasttree
+          FastTreeMP -help 2>&1 | head -1
+          OMP_NUM_THREADS=2 FastTreeMP -nosupport -nt -nome -noml \
+            -intree tests/fixtures/tiny/tree.nwk tests/fixtures/tiny/aligned-dna-sequences.fasta \
+            > $RUNNER_TEMP/me-tree.nwk
+          test -s $RUNNER_TEMP/me-tree.nwk
       - name: disk after
         if: always()
         run: df -h /
