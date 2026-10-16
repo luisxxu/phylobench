@@ -84,6 +84,7 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 - [ ] `config/smoke.yaml` + `config/arms/pplacer.yaml`; minimal `workflow/rules/pplacer.smk`
 - [ ] `workflow/rules/evaluate.smk` → `results/runs.tsv` and `results/accuracy.tsv` (columns per design §6)
 - [ ] CI job `smoke`: `snakemake --use-conda --configfile config/smoke.yaml -c 2`, matrix driven by the `config/arms/` glob
+- [ ] Assert end to end that every aligned-query file from T7 (`hmmalign.aligned.fasta`, `oracle.aligned.fasta`) has exactly the backbone's column count
 
 **Acceptance:** CI smoke green; `accuracy.tsv` has one row per fixture query × region; pplacer full-length exact-correct ≥ 8/10 on the fixture; smoke includes one forced-DNF case (harness `--timeout 1`) that yields a DNF row; every other row has status ok and non-null version and env_lock_sha256.
 
