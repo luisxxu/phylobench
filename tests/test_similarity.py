@@ -81,6 +81,17 @@ def test_empty_window_raises_naming_query():
         similarity({"allgap": "----"}, {"r": "ACGT"})
 
 
+@pytest.mark.parametrize("window", [(-1, 3), (0, 5), (3, 2)])
+def test_window_out_of_bounds_raises(window):
+    with pytest.raises(ValueError, match="q: window"):
+        similarity({"q": "ACGT"}, {"r": "ACGT"}, {"q": window})
+
+
+def test_no_refs_raises():
+    with pytest.raises(ValueError, match="no reference"):
+        similarity({"q": "ACGT"}, {})
+
+
 @pytest.mark.parametrize("chunk", [1, 7, 1000])
 def test_random_matches_brute_force_exactly(chunk):
     rng = np.random.default_rng(3)

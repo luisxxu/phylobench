@@ -58,6 +58,8 @@ def similarity(
     windows maps a query to half-open column bounds (default: all columns). Float32
     products of 0/1 values sum exactly while the alignment has under 2**24 columns.
     """
+    if not refs:
+        raise ValueError("no reference sequences")
     n_columns = len(next(iter(refs.values())))
     ref_codes = _encode(refs, n_columns)
     query_codes = _encode(queries, n_columns)
@@ -67,6 +69,8 @@ def similarity(
     inside = np.zeros(query_codes.shape, dtype=bool)
     for i, name in enumerate(queries):
         start, end = windows.get(name, (0, n_columns))
+        if not 0 <= start <= end <= n_columns:
+            raise ValueError(f"{name}: window {(start, end)} outside 0..{n_columns}")
         inside[i, start:end] = True
     counted = inside & (query_codes != _GAP)
     n_counted = counted.sum(axis=1)
