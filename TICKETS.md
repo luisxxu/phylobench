@@ -38,7 +38,6 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 **Agent notes:** No job submission beyond trivial `srun` probes. Decides T4's primary memory source.
 
-
 ---
 
 ### Week 2 — Ref-prep, alignment, smoke test, datasets
