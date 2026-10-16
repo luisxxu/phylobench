@@ -1,7 +1,3 @@
-import sys
-from pathlib import Path
-
-
 rule guppy_tog:
     input:
         jplace="{prefix}.jplace",
@@ -11,7 +7,7 @@ rule guppy_tog:
     log:
         "{prefix}.tog.log",
     params:
-        harness=f"{sys.executable} -m phylobench.measure",
+        harness=MEASURE,
         env_lock=Path(workflow.basedir).parent / "envs" / "pplacer.linux-64.pin.txt",
     threads: config["threads"]
     conda:

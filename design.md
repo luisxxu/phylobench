@@ -142,7 +142,7 @@ Edge distance is counted in the backbone with zero-length edges contracted: a tr
 
 Tests skip explicitly when cgroups are absent — never pass vacuously.
 
-- `results/runs.tsv`: `dataset, backbone, region, query_n, tool, arm, aln, phase, wall_s, cpu_s, peak_mem_mb, mem_source, gpu_peak_mb, status, threads, node, cpu_model, version`
+- `results/runs.tsv`: `dataset, backbone, region, query_n, tool, arm, aln, phase, wall_s, cpu_s, peak_mem_mb, mem_source, gpu_peak_mb, status, threads, node, cpu_model, version, run_id, dnf_reason, env_lock_sha256`; `status` ∈ {`ok`, `DNF`} (`dnf_reason` = the harness status: `oom|timeout|error`)
 - `results/accuracy.tsv`: `run_id, query, sim, bin, edge_dist, exact, delta_err, label(accuracy|concordance)`
 
 ---

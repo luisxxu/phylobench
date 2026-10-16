@@ -50,3 +50,28 @@ T8 asserts that every non-forced row has `status == ok` and non-null `version` a
 ## 6. GPU memory
 
 `--gpu` sums `used_memory` over all compute processes on the visible GPUs (`nvidia-smi --query-compute-apps`). That is correct for an exclusive `--gres` allocation and works with `apptainer --nv`.
+
+## 7. Arm contract (T8)
+
+Adding a tool arm means adding files only: `workflow/rules/<tool>.smk`, `config/arms/<arm>.yaml`, `envs/<tool>.yaml`, `docs/tools/<tool>.md`. T8's `Snakefile`, `evaluate.smk`, `smoke.smk`, `config/schema.yaml`, `config/smoke.yaml` and `ci.yml` are never edited. The template is `workflow/rules/pplacer.smk` and `config/arms/pplacer.yaml`.
+
+**Arm YAML** (strict, validated by `config/schema.yaml`; the file stem is the arm name):
+
+| Key | Meaning |
+|---|---|
+| `tool` | required; the `tool` column of the arm's phases in `runs.tsv` (the `convert` phase is always `guppy`) |
+| `aligned` | required; `true` runs over every `alns` entry in the config, `false` runs once with `aln=raw` on the unaligned region queries |
+| `phases` | required; ordered map phase name to its `run.json` filename in the cell directory. The first entry is the gating phase that produced `placements.jplace`. Listing `convert: placements.tog.run.json` triggers the shared `guppy_tog` rule |
+| `smoke_min_exact` | optional; minimum exact placements on the full-length cell for each aln in the smoke test |
+
+**Cell** = `results/{dataset}/{backbone}/{region}/{aln}/{arm}/`; `run_id` is `dataset/backbone/region/aln/arm`. The rule writes `placements.jplace` (jplace v3 on the backbone tree, edge numbers as in `data/{dataset}/{backbone}/tree.nwk`) and one `run.json` per listed phase. `evaluate` adds `accuracy.tsv` and `evaluate.run.json`.
+
+**Inputs** a rule may use: aligned queries `results/{dataset}/{backbone}/{region}/{aln}.aligned.fasta`; raw queries `results/{dataset}/regions/{region}/queries.fasta`; backbone `data/{dataset}/{backbone}/{tree.nwk,aligned-dna-sequences.fasta,raxml-info.txt}`; truth `data/{dataset}/{backbone}/reference_tree.nwk` (the reference tree with the queries attached; T8 defines this contract and T18 must produce it); ref-prep outputs under `results/ref-prep/{dataset}/{backbone}/`.
+
+**Run contract**: every tool call is `{MEASURE} --out <run.json> --threads {threads} --tool-version '<pin>' --env-lock envs/<env>.linux-64.pin.txt -- <cmd>` followed by the DNF touch snippet of section 2; `threads` is `config["threads"]` and is also passed to the tool's own flag; `conda:` is the tool env; `log:` is set.
+
+**DNF mapping**: in `runs.tsv` a harness status other than `ok` becomes `status=DNF` with `dnf_reason` set to the harness status (`oom|timeout|error`). `evaluate` reads only the gating `run.json`: not ok gives a header-only `accuracy.tsv` and the jplace is never opened; ok with an empty jplace is a hard failure. A failing `evaluate` itself fails the job (a scoring bug is never a DNF row).
+
+**Forced DNF**: `smoke.smk` runs `sleep 30` under `--timeout 1` into the cell `.../forced-dnf/` (`forced_dnf` in `config/smoke.yaml`), yielding a `place` row with `status=DNF`, `dnf_reason=timeout` and no accuracy rows.
+
+**Acceptance checks** (`workflow/scripts/check_smoke.py`, CI per arm, logic in `phylobench.tables.smoke_failures`): every aligned-query file has the backbone's width; every planned `(run_id, phase)` appears exactly once and nothing else; the forced row is DNF/timeout; every other row is `ok` with non-null `version` and `env_lock_sha256`; every non-forced cell has one non-NaN accuracy row per fixture query; arms with `smoke_min_exact` meet it on the full-length cell. CI also fails if Snakemake logs `Failed to install conda environment from pin file` (silent fallback to the unlocked YAML).

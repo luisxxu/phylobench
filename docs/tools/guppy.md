@@ -1,6 +1,6 @@
 # guppy (`guppy tog`, phase `convert`)
 
-Converts a jplace to an inserted tree for every jplace arm (`sepp-prod` runs it internally, as production does). Rule: `workflow/rules/convert.smk` (`guppy_tog`).
+Converts a jplace to an inserted tree for every jplace arm (`sepp-prod` runs it internally, as production does). Rule: `workflow/rules/convert.smk` (`guppy_tog`), harness-wrapped via the Snakefile `MEASURE` constant.
 
 ## Command line
 
@@ -10,7 +10,7 @@ phylobench-measure --out {prefix}.tog.run.json --threads {threads} \
     guppy tog -o {prefix}.tog.tre {prefix}.jplace
 ```
 
-stdout/stderr go to `{prefix}.tog.log`. On `status != ok` the rule touches the output tree so the job succeeds and `run.json` survives (`docs/harness.md` section 2). That DNF path is untested until T8 has a forced-DNF case.
+stdout/stderr go to `{prefix}.tog.log`. On `status != ok` the rule touches the output tree so the job succeeds and `run.json` survives (`docs/harness.md` section 2). The smoke test's forced-DNF case exercises the `place` phase only, so this guppy DNF branch is not exercised there.
 
 ## Version
 
@@ -25,7 +25,7 @@ guppy is single-threaded and has no thread flag. `threads` only sets the SLURM r
 
 - Best placement only: `guppy tog` takes the top placement per query.
 - A pquery with several names becomes a zero-length polytomy.
-- The `{prefix}` file layout is provisional; T8 owns the layout.
+- `{prefix}` is `{cell}/placements` (cell layout in `docs/harness.md` section 7), so outputs are `{cell}/placements.tog.tre`, `.tog.run.json` and `.tog.log`. An arm requests the rule by listing `convert: placements.tog.run.json` under `phases`.
 - CI proof: `.github/workflows/convert.yml` runs `tests/test_guppy_tog.py` with the locked pplacer env (the test needs `GUPPY` and is skipped otherwise).
 
 ## License
