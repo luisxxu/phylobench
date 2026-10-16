@@ -6,7 +6,7 @@ SCRIPTS = Path(workflow.basedir) / "scripts"
 wildcard_constraints:
     dataset="[^/]+",
     backbone="[^/]+",
-    region="full-length|V4-150|V3-V4|V1-V2|V5-V6",
+    region="full-length|V4-150|V3-V4|V1-V2|V1-V3|V4-V5|V5-V6|V6-V8|V7-V9",
 
 
 # Python rules call the phylobench env's interpreter by absolute path (as MEASURE does),

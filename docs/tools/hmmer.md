@@ -29,6 +29,10 @@ Primers are matched exactly (IUPAC-aware, 0 mismatches) on the ungapped sequence
 | V4-150 | 515F (Parada) `GTGYCAGCMGCCGCGGTAA` | 806R (Apprill) `GGACTACNVGGGTWTCTAAT` |
 | V3-V4 | 341F `CCTACGGGNGGCWGCAG` | 805R `GACTACHVGGGTATCTAATCC` |
 | V1-V2 | 27F `AGAGTTTGATCMTGGCTCAG` | 338R `GCTGCCTCCCGTAGGAGT` |
+| V1-V3 | 27F `AGAGTTTGATCMTGGCTCAG` | 534R `ATTACCGCGGCTGCTGG` |
+| V4-V5 | 515F `GTGYCAGCMGCCGCGGTAA` | 926R `CCGYCAATTYMTTTRAGTTT` |
 | V5-V6 | 784F `AGGATTAGATACCCTGGTA` | 1064R `CGACRRCCATGCANCACCT` |
+| V6-V8 | 926F `AAACTYAAAKGAATTGRCGG` | 1392R `ACGGGCGGTGTGTRC` |
+| V7-V9 | 1115F `CAACGAGCGCAACCCT` | 1492R `GGTTACCTTGTTACGACTT` |
 
 V4-150 is the first 150 nt after 515F, and 806R must still match downstream. A DNF'd `hmmbuild` leaves an empty `.hmm`, so the dependent `hmmalign` fails loudly rather than producing a row; a DNF'd `hmmalign` yields an empty masked output and its `run.json` carries the status.

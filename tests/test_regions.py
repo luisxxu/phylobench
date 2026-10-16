@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from phylobench.regions import (
+    IUPAC,
     PRIMERS,
     REGIONS,
     TRIM,
@@ -28,14 +29,14 @@ BACKBONE_WIDTH = 1500
 PRIMED_REGIONS = [r for r in REGIONS if r != "full-length"]
 
 
+def concrete(primer):
+    return "".join(IUPAC[base][1] if base in IUPAC else base for base in primer)
+
+
 def synthetic(region, insert="A" * 200):
     forward, reverse = PRIMERS[region]
-    forward = forward.replace("Y", "C").replace("M", "A").replace("N", "G")
-    forward = forward.replace("W", "A")
-    reverse_site = reverse_complement(reverse).replace("N", "A").replace("B", "C")
-    reverse_site = reverse_site.replace("W", "A").replace("V", "A").replace("H", "A")
-    reverse_site = reverse_site.replace("D", "A")
-    return f"GGG{forward}{insert}{reverse_site}TTT", insert
+    reverse_site = reverse_complement(reverse)
+    return f"GGG{concrete(forward)}{insert}{concrete(reverse_site)}TTT", insert
 
 
 def test_reverse_complement_handles_iupac():
