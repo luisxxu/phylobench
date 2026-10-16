@@ -8,7 +8,7 @@ CI parse check only: `envs.yml` runs `raxml-ng --check` on the generated model f
 
 ## EPA-ng model file
 
-EPA-ng cannot read the RAxML-8 GTRCAT `raxml-info.txt` shipped with the GG2 reference, so T6 converts it (`src/phylobench/models.py`, `workflow/scripts/write_epa_ng_model.py`). Rule `refprep_epa_ng_model` writes `results/ref-prep/{backbone}/epa-ng.model`, one line:
+EPA-ng cannot read the RAxML-8 GTRCAT `raxml-info.txt` shipped with the GG2 reference, so T6 converts it (`src/phylobench/models.py`, `workflow/scripts/write_epa_ng_model.py`). Rule `refprep_epa_ng_model` writes `results/ref-prep/{dataset}/{backbone}/epa-ng.model`, one line:
 
 ```
 GTR{ac/ag/at/cg/ct/gt}+FU{A/C/G/T}+G4m{alpha}, noname = 1-{alignment width}
@@ -27,4 +27,4 @@ GTR{ac/ag/at/cg/ct/gt}+FU{A/C/G/T}+G4m{alpha}, noname = 1-{alignment width}
 
 ## Input contract (shared with T18)
 
-`data/backbones/{backbone}/{tree.nwk,aligned-dna-sequences.fasta,raxml-info.txt}`.
+`data/{dataset}/{backbone}/{tree.nwk,aligned-dna-sequences.fasta,raxml-info.txt}`.

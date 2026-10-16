@@ -11,6 +11,10 @@ config["arms"] = {
 
 validate(config, "../config/schema.yaml")
 
+import sys
+
+MEASURE = f"{sys.executable} -m phylobench.measure"
+
 for smk in sorted(Path(workflow.basedir, "rules").glob("*.smk")):
 
     include: str(smk)

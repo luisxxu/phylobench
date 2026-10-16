@@ -1,17 +1,12 @@
-import sys
-
-# Private until T8 defines the shared harness constant in the Snakefile.
-REFPREP_MEASURE = f"{sys.executable} -m phylobench.measure"
-
 
 rule refprep_epa_ng_model:
     input:
-        info="data/backbones/{backbone}/raxml-info.txt",
-        aln="data/backbones/{backbone}/aligned-dna-sequences.fasta",
+        info="data/{dataset}/{backbone}/raxml-info.txt",
+        aln="data/{dataset}/{backbone}/aligned-dna-sequences.fasta",
     output:
-        "results/ref-prep/{backbone}/epa-ng.model",
+        "results/ref-prep/{dataset}/{backbone}/epa-ng.model",
     log:
-        "logs/ref-prep/{backbone}/epa-ng-model.log",
+        "logs/ref-prep/{dataset}/{backbone}/epa-ng-model.log",
     conda:
         "../../envs/phylobench.yaml"
     shell:
@@ -21,18 +16,18 @@ rule refprep_epa_ng_model:
 
 rule refprep_me_tree:
     input:
-        tree="data/backbones/{backbone}/tree.nwk",
-        aln="data/backbones/{backbone}/aligned-dna-sequences.fasta",
+        tree="data/{dataset}/{backbone}/tree.nwk",
+        aln="data/{dataset}/{backbone}/aligned-dna-sequences.fasta",
     output:
-        tree="results/ref-prep/{backbone}/me-tree.nwk",
-        run_json="results/ref-prep/{backbone}/me-tree.run.json",
+        tree="results/ref-prep/{dataset}/{backbone}/me-tree.nwk",
+        run_json="results/ref-prep/{dataset}/{backbone}/me-tree.run.json",
     log:
-        "logs/ref-prep/{backbone}/me-tree.log",
+        "logs/ref-prep/{dataset}/{backbone}/me-tree.log",
     conda:
         "../../envs/fasttree.yaml"
     threads: config["threads"]
     params:
-        measure=REFPREP_MEASURE,
+        measure=MEASURE,
     shell:
         """
         OMP_NUM_THREADS={threads} {params.measure} --out {output.run_json} \
