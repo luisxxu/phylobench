@@ -1,0 +1,5 @@
+tool: sepp
+aligned: false
+phases:
+  align+place+convert: sepp.run.json
+smoke_min_exact: 8

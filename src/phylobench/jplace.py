@@ -122,3 +122,21 @@ def numbered_doc(backbone_newick: str, fields=None) -> dict:
         "tree": to_newick(tree, numbered=True),
         "placements": [],
     }
+
+
+_SEPP_EDGE_NUMBER = re.compile(r"(:[^,()\[\]{};]*)\[(\d+)\]")
+
+
+def from_sepp(doc: dict) -> dict:
+    """SEPP's jplace v1 (`:len[N]` edges) as v3 (`:len{N}`); everything else is kept."""
+    if doc.get("version") != 1:
+        raise ValueError(f"expected jplace version 1, got {doc.get('version')!r}")
+    missing = [f for f in REQUIRED_FIELDS if f not in doc["fields"]]
+    if missing:
+        raise ValueError(f"jplace fields missing: {missing}")
+    if "{" in doc["tree"]:
+        raise ValueError("jplace tree already has {edge} numbers")
+    tree, count = _SEPP_EDGE_NUMBER.subn(r"\1{\2}", doc["tree"])
+    if not count:
+        raise ValueError("no [edge] numbers found in jplace tree")
+    return {**doc, "version": 3, "tree": tree}

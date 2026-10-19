@@ -1,6 +1,6 @@
 # phylobench
 
-Benchmark of phylogenetic placement tools — pplacer (baseline), SEPP (current lab tool), pplacer-SCAMPP, EPA-ng-SCAMPP, BSCAMPP, APPLES-2, DIPPER, plus plain EPA-ng as a control — for **accuracy, runtime, and peak memory across a gradient of query-to-backbone similarity**. Goal: find a tool as accurate as the lab's **production SEPP** (q2-fragment-insertion + GG2 2022.10 reference) that is cheaper to run and suitable for eventual wide use in **Knight Lab infrastructure (Qiita / QIIME 2)**. Licenses are flagged in the report, never used to decide.
+Benchmark of phylogenetic placement tools — pplacer (baseline), SEPP (current lab tool), pplacer-SCAMPP, EPA-ng-SCAMPP, BSCAMPP, APPLES-2, DIPPER, plus plain EPA-ng as a control — for **accuracy, runtime, and peak memory across a gradient of query-to-backbone similarity**. Goal: find a tool as accurate as the lab's **production SEPP** (production `run-sepp.sh` settings and versions on the GG2 2022.10 reference, run standalone outside QIIME 2) that is cheaper to run and suitable for eventual wide use in **Knight Lab infrastructure (Qiita / QIIME 2)**. Licenses are flagged in the report, never used to decide.
 
 - **Design / rationale:** [`design.md`](design.md) — read the section a ticket cites before planning.
 - **Backlog:** [`TICKETS.md`](TICKETS.md) — source of truth for scope and dependencies. Mirrored as GitHub issues in the `phylobench` GitHub Project.
@@ -35,7 +35,7 @@ Benchmark of phylogenetic placement tools — pplacer (baseline), SEPP (current 
 These are what make results comparable. Violating one invalidates a run — raise it in plan review instead.
 
 - **Platform:** x86_64 Linux only (CI: GitHub Actions `ubuntu-latest`; production: HPC SLURM). No ARM/macOS-specific code paths; don't try to run tools natively on a Mac.
-- **Pinned versions:** every tool has one env YAML in `envs/` with an exact version (see `design.md` §1.1) and a lockfile. No `latest`, no floating tags, Docker/Apptainer images pinned by digest. One exception: `sepp-prod` runs in the locked production QIIME 2 env as shipped.
+- **Pinned versions:** every tool has one env YAML in `envs/` with an exact version (see `design.md` §1.1) and a lockfile. No `latest`, no floating tags, Docker/Apptainer images pinned by digest.
 - **No hidden binaries:** BSCAMPP/SCAMPP must use the pinned external `pplacer`/`epa-ng`, never their bundled copies, with an immutable per-env config written at env deploy (never `~/.bscampp`). All pplacer-based arms except `sepp-prod` share one pplacer binary. SEPP gets per-job working and temp dirs.
 - **Shared inputs:** two backbones (Bfull\*, B10k\*) pruned from the GG2 2022.10 SEPP reference, shared by all arms; model numbers are the shipped ones, never re-estimated (`design.md` §1.2, §2). All aligned-input arms get the same `hmmalign` alignment.
 - **Measure everything through the harness:** every tool call goes through `phylobench-measure` (T4). Peak memory = cgroup v2 `memory.peak` when readable, else psutil process-tree RSS sum; `mem_source` recorded on every row; `/usr/bin/time -v` RSS is never the primary. Phases (`ref-prep`, `align`, `place`, `convert`, `evaluate`) are measured separately.

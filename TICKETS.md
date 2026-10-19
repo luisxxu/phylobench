@@ -61,23 +61,6 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 ---
 
-### T26: sepp-prod wrapper (production baseline)
-**Week:** W2 (first wrapper)
-**Description:** Run SEPP exactly as q2-fragment-insertion does in production — the yardstick for every verdict.
-
-**Deliverables:**
-- [ ] Wrapper DoD (env = locked QIIME 2 distribution — the one pinned-env exception)
-- [ ] `run-sepp.sh <q> <name> -x {threads} -A 1000 -P 5000 -a -t -r` directly, per-job working dir and `-p`/`-d` temp dirs; single phase `align+place+convert`
-- [ ] q2-vs-direct equality check: on a small query set against the **as-shipped** reference, `qiime fragment-insertion sepp` and the direct call give identical placements
-
-**Acceptance:** Wrapper DoD; equality check passes in CI on the fixture-sized reference (and once on the shipped reference during T21).
-
-**Dependencies:** T2, T8
-
-**Agent notes:** design §2 SEPP row. Don't force our pinned pplacer here — production is what it is.
-
----
-
 ### Weeks 2–3 — Tool wrappers (parallel; add files only)
 
 ### T10: pplacer + sepp-pinned wrappers
@@ -140,7 +123,7 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 **Deliverables:**
 - [ ] `profiles/slurm/config.yaml`: exclusive nodes, 16 cpus/task, node memory, 72 h cap, GPU partition for DIPPER
-- [ ] Pilot at B10k\*: dipper-m (GPU, CPU) and sepp-prod first, then each merged arm; q2-vs-direct check on the shipped reference
+- [ ] Pilot at B10k\*: dipper-m (GPU, CPU) and sepp-prod first, then each merged arm
 - [ ] `docs/pilot.md`: per-arm runtime/memory at B10k\*, timing CV (3 repeats), go/no-go for Bfull\*
 
 **Acceptance:** pilot `runs.tsv` covers every merged arm at B10k\*; go/no-go table complete.
@@ -221,6 +204,14 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 ## Done
 
 <!-- Move tickets here once merged. Keep the T{N} prefix. -->
+
+### T26: sepp-prod wrapper (production baseline) — closes #26
+- [x] Run SEPP standalone with production's command and versions (QIIME 2 2026.7's sepp/pplacer/hmmer) on the GG2 reference, outside QIIME 2 — the yardstick for every verdict.
+- [x] Wrapper DoD (env = `envs/sepp-prod.yaml`: sepp 4.5.6, pplacer 1.1.alpha19, hmmer 3.4, openjdk 25.0.2 as shipped in QIIME 2 2026.7, own lockfile; no QIIME 2)
+- [x] `run-sepp.sh <q> <name> -x {threads} -A 1000 -P 5000 -a -t -r` directly, per-job working dir and temp dir; single phase `align+place+convert`
+- [x] SEPP's jplace (v1, `[N]` edges) normalized to v3 and scored by the shared `evaluate` rule
+- Scope change 2026-10-19 (user): no q2-fragment-insertion, no QIIME 2 env, no q2-vs-direct equality check.
+- Files: `workflow/rules/sepp-prod.smk`, `config/arms/sepp-prod.yaml`, `envs/sepp-prod.yaml`, `phylobench.jplace.from_sepp`, `docs/tools/sepp.md`
 
 ### T15: DIPPER wrapper — closes #15
 - [x] Arms `dipper-m` (CPU, `-i m -d 2 -T`), `dipper-r` (raw `-i r -T`, B10k\* only via run config), `dipper-m-gpu` (Apptainer `--nv`, harness `--gpu`, image pinned by digest; manual tier, verified on the cluster in T27)

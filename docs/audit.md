@@ -20,6 +20,7 @@ Evidence for the pins in `envs/`. Installs are proven in CI (`.github/workflows/
 - Rule: **"equal to our pins → no `sepp-pinned` arm"**.
 - Our pins: sepp 4.5.6, pplacer 1.1.alpha23, hmmer 3.4. pplacer alpha19 ≠ alpha23, so **`sepp-pinned` is REQUIRED**.
 - QIIME 2 2026.10 (dev) ships alpha23. Re-lock `envs/qiime2.yaml` when 2026.10 releases and re-evaluate this rule then (dated 2026-10-15).
+- 2026-10-19 (user): `sepp-prod` no longer runs in this env; `envs/sepp-prod.yaml` pins the sepp/pplacer/hmmer/openjdk versions above, standalone.
 
 ## 2. pplacer 1.1.alpha23 evidence
 
