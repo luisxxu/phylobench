@@ -113,23 +113,6 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 ---
 
-### T15: DIPPER wrapper
-**Week:** W2–W3
-**Description:** DIPPER `--add` in aligned (`-i m`) and raw (`-i r`, B10k\* only) modes, CPU and GPU builds.
-
-**Deliverables:**
-- [ ] Wrapper DoD for `dipper-m` (CPU + GPU) and `dipper-r`
-- [ ] CPU: bioconda `dipper`; GPU: Apptainer `.sif` pinned by digest, `--nv`, harness `--gpu`
-- [ ] Output through T25 adapter; native `-T {threads}` (0.1.5, TBB global_control), cgroup still bounds it
-
-**Acceptance:** Wrapper DoD (CPU in CI); adapter RF check passes on fixture output.
-
-**Dependencies:** T8, T25
-
-**Agent notes:** First in the T21 pilot (GPU is new for the lab). GPU path can only be verified on the cluster (manual tier).
-
----
-
 ### Week 3 — Real data and pilot
 
 ### T19: EMP V4 ASV query sets
@@ -237,13 +220,18 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 <!-- Move tickets here once merged. Keep the T{N} prefix. -->
 
-### T26: sepp-prod wrapper (production baseline)
+### T26: sepp-prod wrapper (production baseline) — closes #26
 - [x] Run SEPP standalone with production's command and versions (QIIME 2 2026.7's sepp/pplacer/hmmer) on the GG2 reference, outside QIIME 2 — the yardstick for every verdict.
 - [x] Wrapper DoD (env = `envs/sepp-prod.yaml`: sepp 4.5.6, pplacer 1.1.alpha19, hmmer 3.4, openjdk 25.0.2 as shipped in QIIME 2 2026.7, own lockfile; no QIIME 2)
 - [x] `run-sepp.sh <q> <name> -x {threads} -A 1000 -P 5000 -a -t -r` directly, per-job working dir and temp dir; single phase `align+place+convert`
 - [x] SEPP's jplace (v1, `[N]` edges) normalized to v3 and scored by the shared `evaluate` rule
 - Scope change 2026-10-19 (user): no q2-fragment-insertion, no QIIME 2 env, no q2-vs-direct equality check.
 - Files: `workflow/rules/sepp-prod.smk`, `config/arms/sepp-prod.yaml`, `envs/sepp-prod.yaml`, `phylobench.jplace.from_sepp`, `docs/tools/sepp.md`
+
+### T15: DIPPER wrapper — closes #15
+- [x] Arms `dipper-m` (CPU, `-i m -d 2 -T`), `dipper-r` (raw `-i r -T`, B10k\* only via run config), `dipper-m-gpu` (Apptainer `--nv`, harness `--gpu`, image pinned by digest; manual tier, verified on the cluster in T27)
+- [x] `workflow/rules/dipper.smk` → T25 adapter (`dipper_to_jplace.py`, fail-loud RF check) → T5 evaluate; CPU arms green in the CI smoke matrix
+- [x] `docs/tools/dipper.md`, `LICENSES.md`; CI smoke glob skips `*-gpu` arms
 
 ### T8: Tiny end-to-end smoke test — closes #8
 - [x] `config/smoke.yaml`, `config/arms/pplacer.yaml`, `workflow/rules/{pplacer,evaluate,smoke}.smk`; `phylobench.tables` + `check_smoke.py`

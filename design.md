@@ -50,7 +50,7 @@ Markers: **[V]** verified against upstream repo / GitHub API / bioconda / PyPI /
 | pplacer, pplacer-scampp | aligned (hmmalign; oracle at B10k\*) | shipped `raxml-info.txt` (what production pplacer reads via SEPP) |
 | epa-ng, epa-ng-scampp, bscampp | aligned | `GTR{rates}+FU{freqs}+G4m{1.0}` converted from the info file (T6) ⚑ |
 | apples2 | aligned | tree with ME branch lengths (FastTree `-nome -noml`, once per backbone) — required by APPLES [V] |
-| dipper-m / dipper-r | aligned / raw | none (JC, `-d 2` default [V]) |
+| dipper-m / dipper-r | aligned / raw | none (JC; CPU `dipper_cpu` defaults to `-d 1` despite its help text, so we pass `-d 2` explicitly) |
 
 ⚑ **Shipped model is GTRCAT with alpha=1.0 [V] — no fitted Γ.** Every likelihood arm gets the numbers production SEPP's pplacer gets. Deliberate deviation from per-family re-estimation; stated in the report. Alpha=1.0 handicaps *absolute* accuracy for all likelihood arms equally; the paired verdict vs. sepp-prod stays valid. **T6 must test** that the EPA-ng model string parses in raxml-ng/EPA-ng at the pinned versions and that the info-file rate order maps correctly to AC/AG/AT/CG/CT/GT — a silent permutation would corrupt every EPA-ng-family number.
 
@@ -74,7 +74,7 @@ Per user decision, the report lists each arm's own license and the license of th
 | Alignment | **Primary:** `hmmalign` against one `hmmbuild` profile of the backbone alignment, masked to backbone columns (the realistic deployable path); shared by every aligned-input arm (phase `align`, timed). **Diagnostic (B10k\* only):** oracle (region's own GG2 alignment columns). SEPP aligns internally. A poor single-profile alignment lowers challengers vs. SEPP — reported as a property of the alignment arm, not the tools; the oracle-vs-hmmalign gap at B10k\* is the evidence. ⚑ |
 | End-to-end cost | `sepp-prod` total vs. `align + place + convert` for each challenger. |
 | Regions | full-length, **V4-150**, **V3–V4**, **V1–V2**, **V1–V3**, **V4–V5**, **V5–V6**, **V6–V8**, **V7–V9**, cut by primer matching on ungapped GG2 sequences (V4-150: 515F Parada `GTGYCAGCMGCCGCGGTAA` / 806R Apprill `GGACTACNVGGGTWTCTAAT`, first 150 nt after 515F; V3–V4: 341F `CCTACGGGNGGCWGCAG` / 805R `GACTACHVGGGTATCTAATCC`; V1–V2: 27F `AGAGTTTGATCMTGGCTCAG` / 338R `GCTGCCTCCCGTAGGAGT`; V1–V3: 27F / 534R `ATTACCGCGGCTGCTGG`; V4–V5: 515F Parada / 926R Parada `CCGYCAATTYMTTTRAGTTT`; V5–V6: 784F `AGGATTAGATACCCTGGTA` / 1064R `CGACRRCCATGCANCACCT`; V6–V8: 926F `AAACTYAAAKGAATTGRCGG` / 1392R `ACGGGCGGTGTGTRC`; V7–V9: 1115F `CAACGAGCGCAACCCT` / 1492R `GGTTACCTTGTTACGACTT`; exact match, primers excluded from the amplicon) and projected onto alignment columns. Sequences without primer hits excluded and counted. |
-| Threads | 16/job (SLURM + each tool's flag). DIPPER native `-T {threads}` at 0.1.5 (TBB global_control); cgroup still bounds it. BSCAMPP `--threads 16 --cpus-per-job 2`. |
+| Threads | 16/job (SLURM + each tool's flag). DIPPER native `-T {threads}` at 0.1.5 (TBB global_control) is CPU only; the GPU build has no thread flag, so the harness records 16 and SLURM bounds it. BSCAMPP `--threads 16 --cpus-per-job 2`. |
 | SEPP | `run-sepp.sh <q> <name> -x 16 -A 1000 -P 5000 -a -t -r` [V], one working dir and `-p`/`-d` temp dirs per job. |
 | Placement scored | Top-LWR only. |
 
