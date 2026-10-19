@@ -53,7 +53,7 @@ T8 asserts that every non-forced row has `status == ok` and non-null `version` a
 
 ## 7. Arm contract (T8)
 
-Adding a tool arm means adding files only: `workflow/rules/<tool>.smk`, `config/arms/<arm>.yaml`, `envs/<tool>.yaml`, `docs/tools/<tool>.md`. T8's `Snakefile`, `evaluate.smk`, `smoke.smk`, `config/schema.yaml`, `config/smoke.yaml` and `ci.yml` are never edited. The template is `workflow/rules/pplacer.smk` and `config/arms/pplacer.yaml`.
+Adding a tool arm means adding files only: `workflow/rules/<tool>.smk`, `config/arms/<arm>.yaml`, `envs/<tool>.yaml`, `docs/tools/<tool>.md`. T8's `Snakefile`, `evaluate.smk`, `smoke.smk`, `config/schema.yaml`, `config/smoke.yaml` and `ci.yml` are never edited. The template is `workflow/rules/pplacer.smk` and `config/arms/pplacer.yaml`. `*-gpu` arms are manual tier, excluded from the smoke matrix.
 
 **Arm YAML** (strict, validated by `config/schema.yaml`; the file stem is the arm name):
 
