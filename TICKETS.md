@@ -80,24 +80,6 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 ---
 
-### T12: bscampp family + EPA-ng control
-**Week:** W2–W3
-**Description:** `pplacer-scampp`, `epa-ng-scampp`, `bscampp`, and plain `epa-ng` from one pinned `bscampp` install.
-
-**Deliverables:**
-- [ ] Wrapper DoD for each of the four arms
-- [ ] External pinned `pplacer`/`epa-ng` (never bundled `bscampp/tools/*`), per-env config written at env deploy (never `~/.bscampp`)
-- [ ] `bscampp`: `--threads {threads} --cpus-per-job 2`, subtree 2000, votes 5 recorded explicitly
-- [ ] `epa-ng` control configured for B10k\* only
-
-**Acceptance:** Wrapper DoD; no run writes config; `~/.bscampp` absent; provenance shows external binary paths.
-
-**Dependencies:** T8
-
-**Agent notes:** MIT wrapper, GPL-3 / AGPL-3 engines — `docs/tools/` must say which.
-
----
-
 ### Week 3 — Real data and pilot
 
 ### T19: EMP V4 ASV query sets
@@ -168,7 +150,7 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 **Dependencies:** T21, T18, T19, T10, T12, T14, T15, T26
 
-**Agent notes:** Deployer owns submission; two-failed-attempt rule per job class. Optional T17-lite only if B10k\* is done by W4 day 2.
+**Agent notes:** Deployer owns submission; two-failed-attempt rule per job class. B10k\*-only arms (`pplacer`, `epa-ng`, `dipper-r` per `design.md` §5) cannot be expressed in arm config (`config/schema.yaml` has `additionalProperties: false` and `plan_cells` runs every arm on every backbone), so drop them at Bfull\* with a staged `config/full.yaml` or a separate `--configfile`. Optional T17-lite only if B10k\* is done by W4 day 2.
 
 ---
 
@@ -204,6 +186,12 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 ## Done
 
 <!-- Move tickets here once merged. Keep the T{N} prefix. -->
+
+### T12: bscampp family + EPA-ng control — closes #12
+- [x] Wrapper DoD for `pplacer-scampp`, `epa-ng-scampp`, `bscampp`, `epa-ng`: `workflow/rules/{bscampp,epa-ng}.smk`, `config/arms/*.yaml`, `docs/tools/{bscampp,epa-ng}.md`
+- [x] External pinned `pplacer`/`epa-ng`, per-env config from `envs/bscampp.post-deploy.sh`; rules check `place.log` for the env config paths and fail if `~/.bscampp` is initialized
+- [x] `bscampp`: `--threads {threads} --cpus-per-job 2`, subtree 2000, votes 5 explicit
+- [x] `epa-ng` control is B10k\*-only by design; not expressible in arm config, so T22 drops it at Bfull\*
 
 ### T26: sepp-prod wrapper (production baseline) — closes #26
 - [x] Run SEPP standalone with production's command and versions (QIIME 2 2026.7's sepp/pplacer/hmmer) on the GG2 reference, outside QIIME 2 — the yardstick for every verdict.
