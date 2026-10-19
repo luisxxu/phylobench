@@ -1,7 +1,7 @@
 # phylobench — Design
 
 **Status:** v1 — Planner ⇄ SWE **reconciled** (2 rounds); all user decisions resolved (§9), 2026-10-14.
-**Goal:** Find a phylogenetic placement tool that is **at least as accurate as the lab's production SEPP** (q2-fragment-insertion + GG2), cheaper in **runtime and/or peak memory**, for eventual wide use across **Knight Lab infrastructure (Qiita / QIIME 2)**. Licenses are **reported, not used as a decision criterion**. Report accuracy, runtime, memory per tool across a **gradient of query-to-backbone similarity**.
+**Goal:** Find a phylogenetic placement tool that is **at least as accurate as the lab's production SEPP** (production SEPP settings + GG2, run standalone), cheaper in **runtime and/or peak memory**, for eventual wide use across **Knight Lab infrastructure (Qiita / QIIME 2)**. Licenses are **reported, not used as a decision criterion**. Report accuracy, runtime, memory per tool across a **gradient of query-to-backbone similarity**.
 
 Markers: **[V]** verified against upstream repo / GitHub API / bioconda / PyPI / GG2 or EMP FTP (2026-10-13/14). **[UNVERIFIED]** must be confirmed in T2 or T27. **⚑** deliberate deviation or open reconciliation point.
 
@@ -25,7 +25,7 @@ Markers: **[V]** verified against upstream repo / GitHub API / bioconda / PyPI /
 
 | Arm | Upstream | Install (linux-64) | Pin | Own license | Engine executed |
 |---|---|---|---|---|---|
-| `sepp-prod` | q2-fragment-insertion (BSD-3 [V]) → `run-sepp.sh` | Lab's QIIME 2 amplicon distribution env (version per U3), locked | as shipped | GPL-3 (SEPP) | SEPP → pplacer + HMMER; `guppy tog` inside run [V] |
+| `sepp-prod` | github.com/smirarab/sepp `run-sepp.sh` with production flags (as q2-fragment-insertion calls it) | bioconda sepp/pplacer/hmmer at QIIME 2 2026.7 versions, own locked env (not QIIME 2) | 4.5.6; pplacer 1.1.alpha19 | GPL-3 | SEPP → pplacer alpha19 + HMMER; `guppy tog` inside run |
 | `sepp-pinned` (conditional ⚑) | github.com/smirarab/sepp | bioconda `sepp` (uses conda pplacer/hmmer, not bundled [V]) | 4.5.6 [V] | GPL-3 | SEPP → shared pinned pplacer |
 | `pplacer` | github.com/matsen/pplacer | bioconda | **1.1.alpha23** (alpha20 has OCaml-5 `-j` deadlock [V]; alpha22→23 is build-only) | GPL-3 [V] | itself |
 | `pplacer-scampp` | github.com/ewedell/BSCAMPP `run_scampp.py --placement-method pplacer` [V] | PyPI `bscampp` | 1.0.8 [V] | MIT [V] | pplacer (GPL-3) |
@@ -69,13 +69,13 @@ Per user decision, the report lists each arm's own license and the license of th
 
 | Decision | Choice |
 |---|---|
-| Backbone | **Bfull\*** = shipped GG2 2022.10 SEPP reference minus held-out queries (~3% smaller); **B10k\*** = uniform 10k subsample of Bfull\*. Tree and alignment pruned, never re-estimated; pruning suppresses degree-2 nodes and keeps branch lengths additive. The pruned reference's checksum is recorded in the dataset manifest so all arms provably share it. As-shipped reference used only for the q2-vs-direct SEPP equality check. ⚑ |
+| Backbone | **Bfull\*** = shipped GG2 2022.10 SEPP reference minus held-out queries (~3% smaller); **B10k\*** = uniform 10k subsample of Bfull\*. Tree and alignment pruned, never re-estimated; pruning suppresses degree-2 nodes and keeps branch lengths additive. The pruned reference's checksum is recorded in the dataset manifest so all arms provably share it. ⚑ |
 | Model params | Shipped numbers for every likelihood arm (§1.2); ME branch lengths for APPLES-2 only. Ref-prep timed as a one-time cost. |
 | Alignment | **Primary:** `hmmalign` against one `hmmbuild` profile of the backbone alignment, masked to backbone columns (the realistic deployable path); shared by every aligned-input arm (phase `align`, timed). **Diagnostic (B10k\* only):** oracle (region's own GG2 alignment columns). SEPP aligns internally. A poor single-profile alignment lowers challengers vs. SEPP — reported as a property of the alignment arm, not the tools; the oracle-vs-hmmalign gap at B10k\* is the evidence. ⚑ |
 | End-to-end cost | `sepp-prod` total vs. `align + place + convert` for each challenger. |
 | Regions | full-length, **V4-150**, **V3–V4**, **V1–V2**, **V1–V3**, **V4–V5**, **V5–V6**, **V6–V8**, **V7–V9**, cut by primer matching on ungapped GG2 sequences (V4-150: 515F Parada `GTGYCAGCMGCCGCGGTAA` / 806R Apprill `GGACTACNVGGGTWTCTAAT`, first 150 nt after 515F; V3–V4: 341F `CCTACGGGNGGCWGCAG` / 805R `GACTACHVGGGTATCTAATCC`; V1–V2: 27F `AGAGTTTGATCMTGGCTCAG` / 338R `GCTGCCTCCCGTAGGAGT`; V1–V3: 27F / 534R `ATTACCGCGGCTGCTGG`; V4–V5: 515F Parada / 926R Parada `CCGYCAATTYMTTTRAGTTT`; V5–V6: 784F `AGGATTAGATACCCTGGTA` / 1064R `CGACRRCCATGCANCACCT`; V6–V8: 926F `AAACTYAAAKGAATTGRCGG` / 1392R `ACGGGCGGTGTGTRC`; V7–V9: 1115F `CAACGAGCGCAACCCT` / 1492R `GGTTACCTTGTTACGACTT`; exact match, primers excluded from the amplicon) and projected onto alignment columns. Sequences without primer hits excluded and counted. |
 | Threads | 16/job (SLURM + each tool's flag). DIPPER native `-T {threads}` at 0.1.5 (TBB global_control); cgroup still bounds it. BSCAMPP `--threads 16 --cpus-per-job 2`. |
-| SEPP | `run-sepp.sh <q> <name> -x 16 -A 1000 -P 5000 -a -t -r` [V], one working dir and `-p`/`-d` temp dirs per job. q2-vs-direct equality check on the shipped reference. |
+| SEPP | `run-sepp.sh <q> <name> -x 16 -A 1000 -P 5000 -a -t -r` [V], one working dir and `-p`/`-d` temp dirs per job. |
 | Placement scored | Top-LWR only. |
 
 ---
@@ -152,7 +152,7 @@ Tests skip explicitly when cgroups are absent — never pass vacuously.
 | Concern | Choice |
 |---|---|
 | Workflow | Snakemake; Snakefile includes `rules/*.smk` and loads `config/arms/*.yaml` by glob (pre-registered in T8) so wrappers only add files |
-| Environments | One pinned env + lockfile per tool in `envs/`; `sepp-prod` uses the locked QIIME 2 distribution env; DIPPER GPU as digest-pinned Apptainer `.sif` |
+| Environments | One pinned env + lockfile per tool in `envs/`; `sepp-prod` pins QIIME 2 2026.7's sepp/pplacer/hmmer/openjdk versions in its own env, without QIIME 2; DIPPER GPU as digest-pinned Apptainer `.sif` |
 | Code | `src/phylobench/` pure modules: `measure`, `jplace`, `accuracy`, `similarity`, `regions`, `heldout`, `dipper_adapter`, `models`. Snakemake rules do I/O. |
 | Gates | Local (darwin agents): `pytest`, `ruff check`, `ruff format --check`, `snakemake --lint`. CI (`ubuntu-latest`): same + smoke test with every arm (`dipper_cpu`). Unit tests need no tool binaries. |
 | Compute | SLURM x86 exclusive nodes; one RTX 3090 GPU node type; job submission needs explicit user confirmation |
@@ -179,7 +179,7 @@ Tests skip explicitly when cgroups are absent — never pass vacuously.
 ## 9. Resolved decisions (user, 2026-10-13/14)
 
 1. **Licenses** are flagged in the report only; no license analysis and no decisions based on license (§1.4).
-2. **Production SEPP** = q2-fragment-insertion + GG2 → `sepp-prod` on the 2022.10 SEPP reference (only GG2 SEPP reference; 2024.09 has none [V]); `-A 1000 -P 5000` [V]; env = **latest QIIME 2 amplicon distribution**, sepp/pplacer/hmmer versions recorded (T2).
+2. **Production SEPP** = q2-fragment-insertion + GG2 → `sepp-prod` on the 2022.10 SEPP reference (only GG2 SEPP reference; 2024.09 has none [V]); `-A 1000 -P 5000` [V]; env = **latest QIIME 2 amplicon distribution**, sepp/pplacer/hmmer versions recorded (T2). Amended 2026-10-19 (user): standalone run-sepp.sh, not q2-fragment-insertion/QIIME 2 env; versions mirror QIIME 2 2026.7.
 3. **Compute:** SLURM x86, ≥16 cores, >256 GB/node, 72 h; RTX 3090 24 GB. cgroup support unknown → T27 + psutil fallback.
 4. **Regions:** full-length, V4-150, V3–V4, V1–V2, V1–V3, V4–V5, V5–V6, V6–V8, V7–V9 (the last five added 2026-10-16).
 5. **Defaults accepted:** 10k-ASV scaling (to 100k); GG2 backbone; EPA-ng control; 0.25-edge margin (per region × size, pooled); DEPP out of scope; GPU shown separately, CPU ranks; inserted tree needed downstream (→ T25 via `guppy tog`).
@@ -194,7 +194,7 @@ Tests skip explicitly when cgroups are absent — never pass vacuously.
 | Risk | Mitigation |
 |---|---|
 | 5-week schedule; cluster surprises (cgroups, Apptainer, CUDA on 3090) | T27 day 0; staged runs; cut list |
-| Pruned Bfull\* ≠ shipped production reference | ~3% smaller; equality check on shipped reference; stated |
+| Pruned Bfull\* ≠ shipped production reference | ~3% smaller; stated |
 | Shipped model GTRCAT alpha=1.0 (no fitted Γ) | Same numbers for all arms (matches production); stated |
 | GG2 truth seeded by APPLES-2 (uDance) | Report caveat; 10k simulated true-tree cross-check (T16); optional RNAsim-lite |
 | Single-HMM alignment poor on V1–V2 / divergent clades | Penalizes all challengers equally; oracle diagnostic separates alignment- from placement-limited error |

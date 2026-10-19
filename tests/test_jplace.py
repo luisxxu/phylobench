@@ -1,6 +1,7 @@
 import pytest
 
-from phylobench.jplace import Placement, edge_numbered_tree, top_placements
+from phylobench.accuracy import jplace_edge_nodes, prepare_backbone, score_jplace
+from phylobench.jplace import Placement, edge_numbered_tree, from_sepp, top_placements
 
 PPLACER_FIELDS = ["distal_length", "edge_num", "like_weight_ratio", "pendant_length"]
 EPA_FIELDS = [
@@ -129,3 +130,85 @@ def test_unnumbered_label_with_at_sign_is_kept():
     tree, nodes = edge_numbered_tree("(a:1{0},b:1{1})foo@bar;")
     assert set(nodes) == {0, 1}
     assert tree.root.label == "foo@bar"
+
+
+SEPP_FIELDS = EPA_FIELDS
+SEPP_TREE = (
+    "((a:0.11[0],b:0.09[1])UQrYOlnDN0000020_995:0.05[2],"
+    "(c:0.13[3],(d:0.08[4],e:0.15[5])UQrYOlnDN0000011_000:0.1[6]):0.0[7]);"
+)
+
+
+def sepp_doc(**overrides):
+    return {
+        "version": 1,
+        "metadata": {"invocation": "run-sepp.sh"},
+        "fields": SEPP_FIELDS,
+        "tree": SEPP_TREE,
+        "placements": [
+            {
+                "p": [[6, -633.4, 0.73, 0.06, 0.21], [3, -635.5, 0.09, 0.12, 0.25]],
+                "nm": [["q1", 1]],
+            },
+            {"p": [[2, -620.0, 1.0, 0.02, 0.12]], "nm": [["q2", 1]]},
+            {"p": [[7, -621.0, 1.0, 0.0, 0.12]], "nm": [["q3", 1]]},
+        ],
+    } | overrides
+
+
+def test_from_sepp_gives_v3_with_braced_edge_numbers():
+    converted = from_sepp(sepp_doc())
+    assert converted["version"] == 3
+    assert converted["tree"] == SEPP_TREE.replace("[", "{").replace("]", "}")
+    for key in ("metadata", "fields", "placements"):
+        assert converted[key] == sepp_doc()[key]
+
+
+def test_from_sepp_does_not_mutate_input():
+    original = sepp_doc()
+    from_sepp(original)
+    assert original == sepp_doc()
+
+
+def test_converted_top_placements():
+    result = top_placements(from_sepp(sepp_doc()))
+    assert result[0] == Placement("q1", 6, 0.73, 0.06, 0.21)
+    assert [p.edge_num for p in result] == [6, 2, 7]
+
+
+def test_converted_doc_numbers_internal_labels():
+    _, nodes = edge_numbered_tree(from_sepp(sepp_doc())["tree"])
+    assert set(nodes) == set(range(8))
+    assert nodes[2].label == "UQrYOlnDN0000020_995"
+
+
+BACKBONE = "((a:1,b:1)X:1,(c:1,(d:1,e:1)Y:1)Z:0.5)R;"
+
+
+def test_converted_doc_scores_against_truth():
+    reference = "((a:1,b:1,q2:1)X:1,(c:1,(d:1,e:1,q1:1)Y:1)Z:0.5,q3:1)R;"
+    rows = score_jplace(from_sepp(sepp_doc()), BACKBONE, reference, ["q1", "q2", "q3"])
+    assert [r["edge_dist"] for r in rows] == [0, 0, 0]
+
+
+def test_converted_root_edges_map_to_one_backbone_edge():
+    mapping = jplace_edge_nodes(
+        from_sepp(sepp_doc())["tree"], prepare_backbone(BACKBONE)
+    )
+    assert mapping[2] == mapping[7]
+    assert mapping[6] != mapping[2]
+
+
+@pytest.mark.parametrize(
+    "bad, match",
+    [
+        ({"version": 3}, "version"),
+        ({"version": 2}, "version"),
+        ({"tree": "(a:1,b:1);"}, "numbers found"),
+        ({"tree": "(a:1{0},b:1[1]);"}, "already"),
+        ({"fields": ["edge_num", "like_weight_ratio"]}, "missing"),
+    ],
+)
+def test_from_sepp_rejects(bad, match):
+    with pytest.raises(ValueError, match=match):
+        from_sepp(sepp_doc(**bad))
