@@ -1,0 +1,5 @@
+tool: apples2
+aligned: true
+phases:
+  place: place.run.json
+  convert: placements.tog.run.json

@@ -115,21 +115,6 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 ---
 
-### T14: APPLES-2 wrapper
-**Week:** W2–W3
-**Description:** APPLES-2 on hmmalign-aligned queries against the ME-branch-length backbone.
-
-**Deliverables:**
-- [ ] Wrapper DoD; consumes T6 ME tree (no per-job FastTree)
-
-**Acceptance:** Wrapper DoD.
-
-**Dependencies:** T8
-
-**Agent notes:** Results carry the uDance-bias caveat. Not expected to be a strong contender — keep the wrapper minimal.
-
----
-
 ### Week 3 — Real data and pilot
 
 ### T19: EMP V4 ASV query sets
@@ -247,6 +232,10 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 - [x] `results/runs.tsv` (design §6 columns + `run_id`, `dnf_reason`, `env_lock_sha256`; non-ok → `status=DNF`) and `results/accuracy.tsv`
 - [x] CI `arms` → `smoke-arm` matrix (one job per `config/arms/*.yaml`) → `smoke` aggregate; asserts backbone-width aligned queries, forced-DNF row, ok + provenance on every other row, no conda pin-file fallback
 - [x] Arm contract for wrappers: `docs/harness.md` §7; `docs/tools/pplacer.md`; guppy layout `{cell}/placements.tog.*`
+
+### T14: APPLES-2 wrapper — closes #14
+- [x] `workflow/rules/apples.smk` (`apples2_place`, `run_apples.py -D` on the T6 `me-tree.nwk`, no per-job FastTree), `config/arms/apples2.yaml`
+- [x] `docs/tools/apples.md`: output numbering, uDance-bias caveat, known unplaceable-query issue (T22)
 
 ### T7: Regions and query alignment — merged in #41 (2026-10-16)
 `phylobench.regions` (IUPAC primer matching for V4-150, V3-V4, V1-V2, V1-V3, V4-V5, V5-V6, V6-V8, V7-V9 with exclusion counts) and `workflow/rules/align.smk` (backbone `hmmbuild` + `hmmalign`, masked to backbone columns, timed `align` phase, oracle passthrough for B10k\*). Notes in `docs/tools/hmmer.md`.
