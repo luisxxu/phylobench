@@ -28,9 +28,6 @@ Rules: `workflow/rules/dipper.smk`. Each measured `place` phase writes `dipper.n
 - `dipper-r` runs at B10k\* only, selected by the run config (T21/T22), not by the arm file.
 - The adapter step is unmeasured (it is evaluation plumbing, not placement cost).
 
-# DIPPER
-
-
 ## Adapter: `phylobench.dipper_adapter.dipper_to_jplace`
 
 `dipper_to_jplace(dipper_newick, backbone_newick, queries) -> dict` turns DIPPER's backbone-plus-queries Newick into a jplace doc (version 3) that `phylobench.accuracy.score_jplace` scores like any other arm.
