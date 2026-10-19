@@ -38,4 +38,4 @@ Rules: `workflow/rules/dipper.smk`. Each measured `place` phase writes `dipper.n
 - A query attached at a backbone vertex is placed on the edge above that vertex (the first child edge for the root vertex). Against a truth on a child edge of that vertex this scores edge distance 1 (pessimistic by up to 1).
 - A query absent from DIPPER's output gets no record, so `score_jplace` returns a NaN row for it. Count NaN as missing; do not `skipna`.
 - Cost: about 30 s for 100k queries on a 330k-leaf backbone (`tests/test_dipper_adapter_perf.py`, limit 60 s).
-- Topology preservation under `--add` is verified by the CI smoke (pending the first green run); the RF check is the guard.
+- Topology preservation under `--add` is verified by the CI smoke (`dipper-m` and `dipper-r` green on the tiny fixture, PR #43); the RF check is the guard.

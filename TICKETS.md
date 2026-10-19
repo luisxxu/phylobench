@@ -130,25 +130,6 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 ---
 
-### T15: DIPPER wrapper
-**Week:** W2–W3
-**Description:** DIPPER `--add` in aligned (`-i m`) and raw (`-i r`, B10k\* only) modes, CPU and GPU builds.
-
-**Deliverables:**
-- [ ] Wrapper DoD for `dipper-m` (CPU + GPU) and `dipper-r`
-- [ ] CPU: bioconda `dipper`; GPU: Apptainer `.sif` pinned by digest, `--nv`, harness `--gpu`
-- [ ] Output through T25 adapter; native `-T {threads}` (0.1.5, TBB global_control), cgroup still bounds it
-
-**Acceptance:** Wrapper DoD (CPU in CI); adapter RF check passes on fixture output.
-
-**Note:** GPU arm (`dipper-m-gpu`) is manual tier, excluded from the CI smoke matrix; its smoke is verified on the cluster in T27.
-
-**Dependencies:** T8, T25
-
-**Agent notes:** First in the T21 pilot (GPU is new for the lab). GPU path can only be verified on the cluster (manual tier).
-
----
-
 ### Week 3 — Real data and pilot
 
 ### T19: EMP V4 ASV query sets
@@ -255,6 +236,11 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 ## Done
 
 <!-- Move tickets here once merged. Keep the T{N} prefix. -->
+
+### T15: DIPPER wrapper — closes #15
+- [x] Arms `dipper-m` (CPU, `-i m -d 2 -T`), `dipper-r` (raw `-i r -T`, B10k\* only via run config), `dipper-m-gpu` (Apptainer `--nv`, harness `--gpu`, image pinned by digest; manual tier, verified on the cluster in T27)
+- [x] `workflow/rules/dipper.smk` → T25 adapter (`dipper_to_jplace.py`, fail-loud RF check) → T5 evaluate; CPU arms green in the CI smoke matrix
+- [x] `docs/tools/dipper.md`, `LICENSES.md`; CI smoke glob skips `*-gpu` arms
 
 ### T8: Tiny end-to-end smoke test — closes #8
 - [x] `config/smoke.yaml`, `config/arms/pplacer.yaml`, `workflow/rules/{pplacer,evaluate,smoke}.smk`; `phylobench.tables` + `check_smoke.py`
