@@ -1,0 +1,8 @@
+# design.md section 5: one capped pplacer attempt at Bfull* with 1k V4 queries. The 24 h
+# cap is the harness --timeout in workflow/rules/pplacer.smk; no retry.
+# The dataset is a placeholder for the 1k-V4 query set produced by T16/T21 data prep.
+arm: pplacer
+datasets: [gg2-v4-1k]
+backbones: [Bfull]
+regions: [V4-150]
+alns: [hmmalign]

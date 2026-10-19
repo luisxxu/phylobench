@@ -22,7 +22,7 @@ rule pplacer_place:
         "../../envs/pplacer.yaml"
     shell:
         """
-        {params.measure} --out {output.run_json} --threads {threads} \
+        {params.measure} --out {output.run_json} --threads {threads} --timeout 86400 \
             --tool-version '{params.version}' --env-lock {input.env_lock} -- \
             pplacer -j {threads} -t {input.tree} -s {input.info} -r {input.ref} \
             -o {output.jplace} {input.queries} &> {log}
