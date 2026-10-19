@@ -39,7 +39,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - id: glob
         run: |
-          arms=$(python3 -c 'import json, pathlib; print(json.dumps(sorted(p.stem for p in pathlib.Path("config/arms").glob("*.yaml"))))')
+          arms=$(python3 -c 'import json, pathlib; print(json.dumps(sorted(p.stem for p in pathlib.Path("config/arms").glob("*.yaml") if not p.stem.endswith("-gpu"))))')
           echo "arms=$arms" >> "$GITHUB_OUTPUT"
 
   smoke-arm:

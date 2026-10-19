@@ -1,7 +1,7 @@
 """Turn DIPPER's backbone-plus-queries Newick into a jplace doc for `score_jplace`.
 
-The doc is NaN-bearing (lengths are unknown): score it in memory only. Never write it
-for guppy or any strict-JSON consumer.
+The doc is NaN-bearing (lengths are unknown): written to disk only for evaluation.
+Never feed it to guppy or any strict-JSON consumer.
 
 Edges are matched by canonical splits, so DIPPER's rooting is irrelevant. Caveats:
 - Joint placement is documented, not fixed: a query-only clade maps to the backbone

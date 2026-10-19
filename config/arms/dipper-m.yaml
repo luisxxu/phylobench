@@ -1,0 +1,4 @@
+tool: dipper
+aligned: true
+phases:
+  place: place.run.json
