@@ -1,0 +1,6 @@
+tool: epa-ng
+aligned: true
+phases:
+  place: place.run.json
+  convert: placements.tog.run.json
+smoke_min_exact: 8
