@@ -36,7 +36,9 @@ rule bscampp_place:
             grep -qF "main.config: $CONDA_PREFIX/share/bscampp/main.config" {log}
             grep -qF "Configs.epang_path: $CONDA_PREFIX/bin/epa-ng" {log}
         fi
-        ! grep -Eq 'Cannot find home.path|Cannot find main.config|Initializing the config file' {log}
+        if grep -Eq 'Cannot find home.path|Cannot find main.config|Initializing the config file' {log}; then
+            exit 1
+        fi
         """
 
 
@@ -75,7 +77,9 @@ rule epa_ng_scampp_place:
             grep -qF "main.config: $CONDA_PREFIX/share/bscampp/main.config" {log}
             grep -qF "Configs.epang_path: $CONDA_PREFIX/bin/epa-ng" {log}
         fi
-        ! grep -Eq 'Cannot find home.path|Cannot find main.config|Initializing the config file' {log}
+        if grep -Eq 'Cannot find home.path|Cannot find main.config|Initializing the config file' {log}; then
+            exit 1
+        fi
         """
 
 
@@ -115,5 +119,7 @@ rule pplacer_scampp_place:
             grep -qF "Configs.pplacer_path: $CONDA_PREFIX/bin/pplacer" {log}
             grep -qF "Configs.taxit_path: $CONDA_PREFIX/bin/taxit" {log}
         fi
-        ! grep -Eq 'Cannot find home.path|Cannot find main.config|Initializing the config file' {log}
+        if grep -Eq 'Cannot find home.path|Cannot find main.config|Initializing the config file' {log}; then
+            exit 1
+        fi
         """
