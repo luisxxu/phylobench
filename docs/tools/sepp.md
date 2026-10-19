@@ -45,6 +45,6 @@ SEPP GPL-3, pplacer GPL-3 (including `guppy`), HMMER BSD-3, OpenJDK (GPLv2 with 
 - SEPP writes jplace version 1 with `:len[N]` edge numbers; `from_sepp` rewrites them to version 3 `{N}` and fails if there is no number, a `{` already present, or a missing required field. Internal nodes are renamed by SEPP; scoring maps edges by splits.
 - SEPP resolves polytomies in the backbone, so the GG2 backbone must be binary (T18).
 - Fragments SEPP cannot score are dropped with only a log line; they surface as unplaced queries in `evaluate`.
-- Fixed seed 297834 (set in `run-sepp.sh`).
+- SEPP's default seed 297834 (`sepp/config.py`); `run-sepp.sh` doesn't pass `-seed`.
 - `guppy tog` runs inside the phase, as in production; the single phase covers alignment, placement and conversion.
 - The benchmarked cell uses the pruned backbone (Bfull\*/B10k\*), not the as-shipped reference.
