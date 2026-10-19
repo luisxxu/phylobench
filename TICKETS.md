@@ -141,6 +141,8 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 **Acceptance:** Wrapper DoD (CPU in CI); adapter RF check passes on fixture output.
 
+**Note:** GPU arm (`dipper-m-gpu`) is manual tier, excluded from the CI smoke matrix; its smoke is verified on the cluster in T27.
+
 **Dependencies:** T8, T25
 
 **Agent notes:** First in the T21 pilot (GPU is new for the lab). GPU path can only be verified on the cluster (manual tier).

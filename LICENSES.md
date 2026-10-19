@@ -15,6 +15,7 @@ Licenses are flagged only. This is not legal analysis and is not used for any sc
 | `epa-ng` (control) | 0.3.8 | AGPL-3 | itself | AGPL-3 | https://github.com/pierrebarbera/epa-ng/tree/v0.3.8 |
 | `apples2` | 2.0.11 | GPL-3 | itself, TreeCluster 1.0.5 (GPL-3); bundled FastTree is not run when `-D` is passed; ME branch lengths from pinned FastTree 2.2.0 (`FastTreeMP`) in the `ref-prep` phase | GPL-3 | https://github.com/balabanmetin/apples/tree/v2.0.11 |
 | `dipper-m` | 0.1.5 | MIT | itself | none flagged | https://github.com/TurakhiaLab/DIPPER/tree/v0.1.5 |
+| `dipper-m-gpu` | image `swalia14/dipper@sha256:0b1fba6eef8651a7c9caaed5d07dbc0b57703824f40d6d0e1ad930fbc8d08fa2` (built from upstream main) | MIT | DIPPER itself; CUDA runtime in the image [UNVERIFIED] | none flagged (CUDA runtime license [UNVERIFIED]) | https://github.com/TurakhiaLab/DIPPER |
 | `dipper-r` | 0.1.5 | MIT | itself | none flagged | https://github.com/TurakhiaLab/DIPPER/tree/v0.1.5 |
 | HMMER | 3.4 | BSD-3 | itself | none flagged | https://github.com/EddyRivasLab/hmmer/tree/hmmer-3.4 |
 | FastTree | 2.2.0 | source header says GPL-2+, repo `LICENSE` says GPL-3, bioconda says GPL-2.0-or-later | itself (`FastTree`, `FastTreeMP`) | GPL | https://github.com/morgannprice/fasttree/tree/v2.2.0 |
