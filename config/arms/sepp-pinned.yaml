@@ -1,0 +1,5 @@
+tool: sepp
+aligned: false
+phases:
+  align+place: align+place.run.json
+  convert: placements.tog.run.json

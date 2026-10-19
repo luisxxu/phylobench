@@ -63,23 +63,6 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 ### Weeks 2–3 — Tool wrappers (parallel; add files only)
 
-### T10: pplacer + sepp-pinned wrappers
-**Week:** W2–W3
-**Description:** pplacer baseline arm on the shared pinned binary, plus the conditional `sepp-pinned` arm.
-
-**Deliverables:**
-- [ ] Wrapper DoD for `pplacer` (`-j {threads}`, shipped `raxml-info.txt`)
-- [ ] `sepp-pinned` only if `docs/audit.md` (T2) says the QIIME 2 versions differ from pins; otherwise document "not needed" and stop
-- [ ] Capped Bfull\* pplacer config: 1k V4 queries, harness `--timeout 86400`
-
-**Acceptance:** Wrapper DoD; provenance shows the same pplacer binary hash as other pinned arms.
-
-**Dependencies:** T8
-
-**Agent notes:** alpha23 pin (alpha20 deadlocks with `-j`; alpha22→23 build-only).
-
----
-
 ### T12: bscampp family + EPA-ng control
 **Week:** W2–W3
 **Description:** `pplacer-scampp`, `epa-ng-scampp`, `bscampp`, and plain `epa-ng` from one pinned `bscampp` install.
@@ -204,6 +187,14 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 ## Done
 
 <!-- Move tickets here once merged. Keep the T{N} prefix. -->
+
+### T10: pplacer + sepp-pinned wrappers — closes #10
+- [x] `pplacer` arm at Wrapper DoD (`-j {threads}`, shipped `raxml-info.txt`); harness `--timeout 86400` on every pplacer cell (deviation from design.md §5: global, not Bfull\*-only)
+- [x] `sepp-pinned` arm (required: QIIME 2 2026.7 ships pplacer alpha19, pin is alpha23): `workflow/rules/sepp-pinned.smk`, `config/arms/sepp-pinned.yaml` — `run_sepp.py -A 1000 -P 5000 -x {threads}`, cell-local `-d`/`-p`, unaligned queries, phases `align+place` + shared `convert`; `smoke_min_exact` to be set once CI reports it
+- [x] Capped Bfull\* overlay `config/pplacer-bfull-cap.yaml` (placeholder dataset `gg2-v4-1k`, produced by T16/T21 data prep)
+- [x] SEPP's jplace v1 normalized to v3 by T26's `sepp_jplace.py` (`phylobench.jplace.from_sepp`) after an ok run
+- [x] Provenance: identical pplacer url#md5 lock line across pplacer/sepp/bscampp locks, enforced by `envs.yml` lock-guard; `env_lock_sha256` on every row
+- [x] `docs/tools/pplacer.md`, `docs/tools/sepp-pinned.md`; `LICENSES.md` unchanged
 
 ### T26: sepp-prod wrapper (production baseline) — closes #26
 - [x] Run SEPP standalone with production's command and versions (QIIME 2 2026.7's sepp/pplacer/hmmer) on the GG2 reference, outside QIIME 2 — the yardstick for every verdict.
