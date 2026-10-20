@@ -44,7 +44,7 @@ A job step can read its own task cgroup's `memory.peak`, so `mem_source=cgroup` 
 
 | Item | Value |
 |---|---|
-| GPU on `b-gpu-23` | **Tesla V100-PCIE-32GB** (not an RTX 3090 as design §5 assumed) |
+| GPU nodes | `b-gpu-21`, `b-gpu-22`: **RTX 3090**; `b-gpu-23`, `b-gpu-24`: **Tesla V100-PCIE-32GB** (user-reported; probe ran on `b-gpu-23`) |
 | NVIDIA driver / CUDA | 580.126.20 / 13.0 |
 | Apptainer | 1.5.0-1.el10_2 |
 | DIPPER GPU image | `docker://swalia14/dipper@sha256:0b1fba6e…08fa2` (`envs/dipper-gpu.image.txt`) pulls and `apptainer exec --nv dipper-gpu.sif dipper --help` runs |
@@ -60,6 +60,6 @@ A job step can read its own task cgroup's `memory.peak`, so `mem_source=cgroup` 
 
 ## Open for T21
 
-- Which `gpu` node class (if any) has an RTX 3090; the probed node is a V100 32 GB, which also relaxes design §5's 24 GB GPU-memory concern for DIPPER at Bfull\*.
+- Which card the GPU arm runs on: the RTX 3090 nodes (`b-gpu-21`/`-22`, 24 GB, design §5) or the V100 nodes (`b-gpu-23`/`-24`, 32 GB, more headroom at Bfull\* but Volta kernel support unverified). Pin it with `--nodelist` in the T21 profile; compare GPU runtimes only within one card. The 3090 nodes' CPU/RAM and the Apptainer image check there are not probed yet.
 - 16 threads/job fits the `gpu:3` nodes only as a whole node (16 CPUs).
 - `--force-binary` (or not) for the DIPPER GPU arm, and dropping `-T` there.

@@ -150,7 +150,7 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 ### T27: Day-0 cluster capability check — closes #27
 - [x] `docs/cluster.md`: Barnacle nodes (GPU node `b-gpu-23`: 2× Xeon Silver 4110, 16 CPUs, 93 GiB, kernel 6.12 EL10), account `knightlab`, partitions and wall limits, scratch `/ddn_scratch/$USER` (no quota)
 - [x] cgroup v2 `memory.peak` readable from a job step → `mem_source=cgroup` primary
-- [x] Apptainer 1.5.0, driver 580.126.20 / CUDA 13.0; GPU is a **Tesla V100 32 GB**, not an RTX 3090; pinned DIPPER image runs `--help` with `--nv` (no `-T` in the GPU build)
+- [x] Apptainer 1.5.0, driver 580.126.20 / CUDA 13.0; RTX 3090 on `b-gpu-21`/`-22`, Tesla V100 32 GB on `b-gpu-23`/`-24` (probed); pinned DIPPER image runs `--help` with `--nv` (no `-T` in the GPU build)
 - [x] `snakemake-executor-plugin-slurm` 2.8.0 (+ jobstep 0.6.1) resolves against Snakemake 9.27.0; pinning is T21
 - [x] Memory sections of `deployer.md` / `diagnostics.md`
 
