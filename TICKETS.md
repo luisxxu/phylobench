@@ -19,27 +19,6 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 ## Open
 
-### Week 1 — Foundations
-
-### T27: Day-0 cluster capability check
-**Week:** W1 (day 0) · **Owner:** human + Deployer (needs cluster access)
-**Description:** Confirm the HPC environment supports the measurement and GPU plan before code depends on it.
-
-**Deliverables:**
-- [ ] `docs/cluster.md`: node CPU model/cores/RAM, kernel version, SLURM account/partition, scratch quota, wall limit
-- [ ] Whether a SLURM job can read its own cgroup v2 `memory.peak` (`srun cat /sys/fs/cgroup/$(...)/memory.peak`)
-- [ ] `apptainer --version`; NVIDIA driver/CUDA version on the RTX 3090 node; pinned DIPPER image runs `--help` under Apptainer with `--nv`
-- [ ] Snakemake SLURM executor plugin availability
-- [ ] Fill `diagnostics.md` / `deployer.md` Memory with hostnames and access pattern
-
-**Acceptance:** each item answered yes/no with command output pasted (no secrets).
-
-**Dependencies:** none
-
-**Agent notes:** No job submission beyond trivial `srun` probes. Decides T4's primary memory source.
-
----
-
 ### Week 2 — Ref-prep, alignment, smoke test, datasets
 
 ---
@@ -150,6 +129,13 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 ## Done
 
 <!-- Move tickets here once merged. Keep the T{N} prefix. -->
+
+### T27: Day-0 cluster capability check — closes #27
+- [x] `docs/cluster.md`: Barnacle nodes (GPU node `b-gpu-23`: 2× Xeon Silver 4110, 16 CPUs, 93 GiB, kernel 6.12 EL10), account `knightlab`, partitions and wall limits, scratch `/ddn_scratch/$USER` (no quota)
+- [x] cgroup v2 `memory.peak` readable from a job step → `mem_source=cgroup` primary
+- [x] Apptainer 1.5.0, driver 580.126.20 / CUDA 13.0; RTX 3090 on `b-gpu-21`/`-22`, Tesla V100 32 GB on `b-gpu-23`/`-24` (probed); pinned DIPPER image runs a fixture `--add` with `--nv` on both cards (no `-T` in the GPU build)
+- [x] `snakemake-executor-plugin-slurm` 2.8.0 (+ jobstep 0.6.1) resolves against Snakemake 9.27.0; pinning is T21
+- [x] Memory sections of `deployer.md` / `diagnostics.md`
 
 ### T18: GG2 16S dataset — closes #18
 - [x] Checksummed download via `workflow/scripts/fetch.sh` (shared with T19); both `.qza` sha256 pinned in `workflow/rules/gg2.smk`; `.qza` unzipped with stdlib `zipfile` (`unzip_qza.py`)

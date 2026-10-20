@@ -38,6 +38,8 @@ Execute releases against a target environment — full deploy, incremental updat
 - Never submit to SLURM without the user confirming the account/partition and the expected node-hours for that config.
 - Snakemake is the idempotent recovery path: rerun with `--rerun-incomplete` rather than deleting `results/`.
 - Rollback = results are versioned by config hash; a bad run is discarded by moving its `results/<run>/` aside, never by editing TSVs.
+- Cluster = Barnacle (`docs/cluster.md`): submit from `barnacle-login`, account `knightlab`. CPU arms → `short`/`long` (64 CPUs, ~500 GB); GPU arm → `gpu` (14-day wall). Data, results and `.sif` images live on `/ddn_scratch/$USER` (`$SCRATCH` is unset by default), never `/home`.
+- Pull Apptainer images inside a job with ≥32 GB memory and `APPTAINER_TMPDIR`/`APPTAINER_CACHEDIR` on scratch; with less the extract step is OOM-killed.
 - A tool OOM/timeout is a DNF data point, not a deploy failure — do not "fix" it by raising limits beyond `design.md` §5 (exclusive node, >256 GB, 72 h; capped pplacer attempt 24 h via harness) without user approval.
 
 ## Output Contract
