@@ -50,6 +50,7 @@ A job step can read its own task cgroup's `memory.peak`, so `mem_source=cgroup` 
 | DIPPER GPU image | `docker://swalia14/dipper@sha256:0b1fba6e…08fa2` (`envs/dipper-gpu.image.txt`) pulls and `apptainer exec --nv dipper-gpu.sif dipper --help` runs |
 
 - Pulling the image needs ~32 GB job memory and `APPTAINER_TMPDIR`/`APPTAINER_CACHEDIR` on scratch; with less memory the extract step is OOM-killed. Compressed layers ≈ 4.3 GB.
+- `--help` never touches the GPU. Whether the image runs kernels on the V100 is UNVERIFIED: CUDA 13 dropped Volta (sm_70) from the toolkit, so an image built with CUDA 13 and no sm_70 code fails on its first GPU call. T21 checks the image's CUDA version and does one real `--add` on the V100 before the pilot.
 - The image's `--help` has no `-T/--threads` option (the CPU bioconda 0.1.5 build has it). The GPU arm must not pass `-T`.
 - The image defaults to collapsing near-zero internal edges into multifurcations on output; `--force-binary` keeps a binary tree with `:0` branches. Relevant to the T25 RF check and GG2 backbone polytomies — decide in T21 pilot.
 
