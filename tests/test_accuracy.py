@@ -10,6 +10,7 @@ from phylobench.accuracy import (
     edge_distance,
     jplace_edge_nodes,
     leaf_hashes,
+    placed_nodes,
     prepare_backbone,
     score_jplace,
     true_positions,
@@ -508,3 +509,29 @@ def test_edge_distance_and_delta_error_match_oracles(seed):
                 )
             )
             assert delta[j] == len(truth_bips - estimate)
+
+
+def test_placed_nodes_returns_rows_and_backbone_nodes_of_placed_queries():
+    backbone = prepare_backbone(BINARY)
+    doc = numbered_doc(BINARY)
+    numbers = edge_numbers(doc)
+    place(doc, "r", numbers["a"])
+    place(doc, "p", numbers["c"])
+    rows, nodes = placed_nodes(doc, backbone, ["p", "q", "r"])
+    assert rows.tolist() == [2, 0]
+    assert nodes.tolist() == [node_of(backbone, "a"), node_of(backbone, "c")]
+
+
+def test_placed_nodes_unplaced_queries_are_absent():
+    rows, nodes = placed_nodes(numbered_doc(BINARY), prepare_backbone(BINARY), ["q"])
+    assert rows.size == 0 and nodes.size == 0
+
+
+def test_placed_nodes_rejects_unknown_and_duplicate_queries():
+    backbone = prepare_backbone(BINARY)
+    doc = numbered_doc(BINARY)
+    place(doc, "q", edge_numbers(doc)["a"])
+    with pytest.raises(ValueError, match="not requested"):
+        placed_nodes(doc, backbone, ["r"])
+    with pytest.raises(ValueError, match="duplicate"):
+        placed_nodes(doc, backbone, ["q", "q"])

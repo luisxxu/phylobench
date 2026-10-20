@@ -25,23 +25,6 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 ### Week 3 — Real data and pilot
 
-### T19: EMP V4 ASV query sets
-**Week:** W3
-**Description:** Real EMP Deblur V4 ASVs for runtime/memory scaling and concordance with sepp-prod.
-
-**Deliverables:**
-- [ ] Scripted checksummed download of `ftp.microbio.me/emp/release1/otu_tables/deblur/emp_deblur_150bp.release1.biom`; verify observation IDs are sequences
-- [ ] Query sets of 10k and 100k unique ASVs; per-ASV `sim` vs. each backbone
-- [ ] Concordance = edge distance to `sepp-prod` placement on the same backbone, labeled `concordance`
-
-**Acceptance:** manifest; no output column labels concordance as accuracy.
-
-**Dependencies:** T18, T26
-
-**Agent notes:** GG2 ASV positions came from DEPP — not truth.
-
----
-
 ### T21: HPC profile and pilot
 **Week:** W3
 **Description:** SLURM profile and a pilot run to calibrate resources and decide per-arm go/no-go at Bfull\*.
@@ -93,7 +76,7 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 **Dependencies:** T21, T18, T19, T10, T12, T14, T15, T26
 
-**Agent notes:** Deployer owns submission; two-failed-attempt rule per job class. B10k\*-only arms (`pplacer`, `epa-ng`, `dipper-r` per `design.md` §5) cannot be expressed in arm config (`config/schema.yaml` has `additionalProperties: false` and `plan_cells` runs every arm on every backbone), so drop them at Bfull\* with a staged `config/full.yaml` or a separate `--configfile`. Optional T17-lite only if B10k\* is done by W4 day 2.
+**Agent notes:** `config/emp.yaml` is the EMP stage (T19) and runs after the gg2 stage (it links GG2's backbone, ref-prep and HMM). Deployer owns submission; two-failed-attempt rule per job class. B10k\*-only arms (`pplacer`, `epa-ng`, `dipper-r` per `design.md` §5) cannot be expressed in arm config (`config/schema.yaml` has `additionalProperties: false` and `plan_cells` runs every arm on every backbone), so drop them at Bfull\* with a staged `config/full.yaml` or a separate `--configfile`. Optional T17-lite only if B10k\* is done by W4 day 2.
 
 ---
 
@@ -143,6 +126,12 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 - [x] 1,000 held-out queries × 9 regions; ≥99.9 seeding by replacement; `data/gg2/MANIFEST.tsv` (`kind backbone region bin path n sha256 flagged`), bins < 100 flagged; L = 1,598, R = 331,269 (`docs/gg2.md`)
 - [x] `accuracy.true_positions` accepts extra non-backbone reference leaves (primer exclusions)
 - [ ] Full build on HPC (user-confirmed): `snakemake --use-conda -c 16 data/gg2/MANIFEST.tsv`
+
+### T19: EMP V4 ASV query sets — closes #19
+- [x] Checksummed BIOM download (`emp_download` via T18's `fetch.sh`; sha256 pinned on first download, none published); all 197,711 observation IDs verified unique 150-bp ACGT
+- [x] Nested `emp-10k` / `emp-100k` query sets (seed 0), region `V4-150`, `alns: [hmmalign]`; `sim` per ASV vs each backbone; `data/emp/MANIFEST.tsv` (T18 columns + `dataset`)
+- [x] Concordance = edge distance to the `sepp-prod` placement on the same backbone (`phylobench.concordance`, `concordance` rule) into `results/concordance.tsv`, `label=concordance`; `accuracy.tsv` carries accuracy only
+- [x] EMP links GG2's backbone, ref-prep and HMM (one per backbone); `config/emp.yaml`; `docs/datasets/emp.md`; `h5py` added to `envs/phylobench.yaml`
 
 ### T12: bscampp family + EPA-ng control — closes #12
 - [x] Wrapper DoD for `pplacer-scampp`, `epa-ng-scampp`, `bscampp`, `epa-ng`: `workflow/rules/{bscampp,epa-ng}.smk`, `config/arms/*.yaml`, `docs/tools/{bscampp,epa-ng}.md`

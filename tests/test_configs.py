@@ -4,6 +4,7 @@ import pytest
 import yaml
 from snakemake.utils import validate
 
+from phylobench.emp import EMP_QUERY_N
 from phylobench.regions import REGIONS
 
 ROOT = Path(__file__).parents[1]
@@ -48,3 +49,11 @@ def test_arm_rejects_unknown_keys():
     }
     with pytest.raises(Exception, match="skip_backbones"):
         validate({"arms": {"x": arm}}, str(SCHEMA))
+
+
+def test_emp_config_validates_and_is_emp_only():
+    config = load(ROOT / "config" / "emp.yaml")
+    config["arms"] = {path.stem: load(path) for path in ARM_FILES}
+    validate(config, str(SCHEMA))
+    assert set(config["datasets"]) == set(EMP_QUERY_N)
+    assert config["regions"] == ["V4-150"] and config["alns"] == ["hmmalign"]

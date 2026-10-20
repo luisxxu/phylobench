@@ -24,6 +24,12 @@ Licenses are flagged only. This is not legal analysis and is not used for any sc
 | TreeCluster | 1.0.5 | GPL-3 | itself | GPL-3 | https://github.com/niemasd/TreeCluster/tree/1.0.5 |
 | raxml-ng | 2.0.3 | AGPL-3 | itself (CI model-parse check only; not in any arm's run path) | AGPL-3 | https://github.com/amkozlov/raxml-ng/tree/2.0.3 |
 
+## Datasets (flag only)
+
+| Dataset | Source | Terms | Notes |
+|---|---|---|---|
+| EMP release1 Deblur 150 bp BIOM | https://ftp.microbio.me/emp/release1/otu_tables/deblur/emp_deblur_150bp.release1.biom | UNVERIFIED | Only observation IDs (ASV sequences) are used; not redistributed in git |
+
 ## Bundled-binary exception
 
 BSCAMPP/SCAMPP use the pinned external `pplacer`, `epa-ng`, and `taxit` (never their bundled copies), but the bundled `bscampp/tools/hamming_distance/{fragment_hamming,hamming,homology}` executables do run.

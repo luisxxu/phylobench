@@ -1,0 +1,98 @@
+"""Dry-run DAG checks. Only raw downloads exist; the gg2 rules are planned for real."""
+
+import os
+import re
+import subprocess
+import sys
+from collections import defaultdict
+
+import pytest
+from emp_helpers import ROOT
+
+LINKED = ("workflow", "envs", "config", "src", "tests")
+MIXED = """\
+datasets: [gg2, emp-10k]
+backbones: [B10k, Bfull]
+regions: [V4-150]
+alns: [hmmalign]
+"""
+
+
+@pytest.fixture
+def repo(tmp_path):
+    for name in LINKED:
+        (tmp_path / name).symlink_to(ROOT / name)
+    for name in (
+        "2022.10.backbone.sepp-reference.qza",
+        "2022.10.backbone.tax.qza",
+    ):
+        (tmp_path / "data" / "gg2" / "download" / name).parent.mkdir(
+            parents=True, exist_ok=True
+        )
+        (tmp_path / "data" / "gg2" / "download" / name).touch()
+    biom = tmp_path / "data" / "emp" / "emp_deblur_150bp.release1.biom"
+    biom.parent.mkdir(parents=True)
+    biom.touch()
+    (tmp_path / "mixed.yaml").write_text(MIXED)
+    return tmp_path
+
+
+def dry_run(repo, configfile) -> defaultdict[str, list[str]]:
+    result = subprocess.run(
+        [
+            sys.executable, "-m", "snakemake", "-n", "-p",
+            "--snakefile", "workflow/Snakefile", "--configfile", configfile,
+        ],
+        capture_output=True,
+        text=True,
+        cwd=repo,
+        env={**os.environ, "PYTHONPATH": str(ROOT / "src")},
+    )  # fmt: skip
+    assert result.returncode == 0, result.stderr[-3000:]
+    outputs = defaultdict(list)
+    rule = None
+    for line in result.stdout.splitlines():
+        if match := re.fullmatch(r"(?:localrule|rule) (\w+):", line):
+            rule = match[1]
+        elif rule and (match := re.match(r"\s+output: (.*)", line)):
+            outputs[rule].extend(match[1].split(", "))
+    return defaultdict(list, {r: sorted(p) for r, p in outputs.items()})
+
+
+@pytest.mark.parametrize(
+    "configfile", ["config/smoke.yaml", "config/emp.yaml", "mixed.yaml"]
+)
+def test_dry_run_is_stable(repo, configfile):
+    first = dry_run(repo, configfile)
+    assert first == dry_run(repo, configfile)
+
+
+def test_smoke_never_touches_emp(repo):
+    planned = dry_run(repo, "config/smoke.yaml")
+    assert not [r for r in planned if r.startswith("emp_") or r == "concordance"]
+    assert (
+        planned["evaluate"] and "results/concordance.tsv" in planned["collect_tables"]
+    )
+
+
+def test_emp_config_plans_concordance_not_evaluate(repo):
+    planned = dry_run(repo, "config/emp.yaml")
+    assert "evaluate" not in planned
+    arms = len(list((ROOT / "config" / "arms").glob("*.yaml")))
+    assert len(planned["concordance"]) == 2 * 2 * 2 * arms  # run.json + tsv per cell
+    assert all("/emp-" in p for p in planned["concordance"])
+    assert "data/emp/MANIFEST.tsv" in planned["emp_manifest"]
+    assert "emp_download" not in planned and "gg2_download" not in planned
+    assert planned["gg2_build"] and "data/gg2/MANIFEST.tsv" in planned["gg2_build"]
+    assert len(planned["emp_query_sets"]) == 2
+    assert len(planned["emp_hmm"]) == 4 and len(planned["emp_refprep"]) == 8
+    assert not [p for p in planned["refprep_me_tree"] if "/emp-" in p]
+    assert not [p for p in planned["hmmbuild"] if "/emp-" in p]
+    assert not [p for p in planned["extract_regions"] if "/emp-" in p]
+
+
+def test_mixed_config_keeps_evaluate_for_gg2_only(repo):
+    planned = dry_run(repo, "mixed.yaml")
+    assert planned["evaluate"]
+    assert not [p for p in planned["evaluate"] if "/emp-" in p]
+    assert not [p for p in planned["concordance"] if "/gg2/" in p]

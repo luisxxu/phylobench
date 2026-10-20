@@ -255,13 +255,13 @@ def edge_distance(
     return edge_dist, edge_dist == 0, delta_err
 
 
-def score_jplace(
-    doc: dict, backbone_newick: str, reference_newick: str, queries: list[str]
-) -> list[dict]:
-    """One row per requested query: {query, edge_dist, exact (1.0/0.0), delta_err}.
+def placed_nodes(
+    doc: dict, backbone: Backbone, queries: list[str]
+) -> tuple[np.ndarray, np.ndarray]:
+    """(row indices into queries, backbone nodes) of the placed queries.
 
-    Unplaced queries are all NaN. Consumers must not skipna: count NaN as missing and
-    report the count.
+    Unplaced queries are absent. Raises on duplicate requested queries, placements of
+    queries that were not requested, and jplace leaves that differ from the backbone.
     """
     if len(set(queries)) != len(queries):
         raise ValueError("duplicate entries in queries")
@@ -271,13 +271,24 @@ def score_jplace(
         raise ValueError(
             f"jplace places queries that were not requested: {sorted(unknown)}"
         )
-    backbone = prepare_backbone(backbone_newick)
     edge_nodes = jplace_edge_nodes(doc["tree"], backbone)
-    true_node, true_weight = true_positions(reference_newick, queries, backbone)
-
     position = {q: i for i, q in enumerate(queries)}
     rows = np.array([position[p.query] for p in placements], dtype=np.int64)
     placed = np.array([edge_nodes[p.edge_num] for p in placements], dtype=np.int64)
+    return rows, placed
+
+
+def score_jplace(
+    doc: dict, backbone_newick: str, reference_newick: str, queries: list[str]
+) -> list[dict]:
+    """One row per requested query: {query, edge_dist, exact (1.0/0.0), delta_err}.
+
+    Unplaced queries are all NaN. Consumers must not skipna: count NaN as missing and
+    report the count.
+    """
+    backbone = prepare_backbone(backbone_newick)
+    rows, placed = placed_nodes(doc, backbone, queries)
+    true_node, true_weight = true_positions(reference_newick, queries, backbone)
     edge_dist, exact, delta_err = edge_distance(
         backbone, placed, true_node[rows], true_weight[rows]
     )
