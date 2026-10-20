@@ -238,3 +238,43 @@ def test_prune_alignment_keeps_columns_and_rejects_missing():
     assert prune_alignment(seqs, {"b"}) == {"a": "AC-T", "c": "A--T"}
     with pytest.raises(ValueError, match="zz"):
         prune_alignment(seqs, {"zz"})
+
+
+def singleton_labels(groups):
+    return [g.members[0] for g in groups if g.group_type == "singleton"]
+
+
+def test_preferred_leaves_are_taken_first_without_rng():
+    tree, lineages = taxonomy_tree()
+    baseline = pick(tree, lineages)
+    free = singleton_labels(baseline)
+    wanted = [free[5], free[2]]
+    seeded = pick(tree, lineages, preferred=wanted, n_preferred=2)
+    assert singleton_labels(seeded)[:2] == wanted
+    assert len(singleton_labels(seeded)) == 10
+
+
+def test_non_free_preferred_leaf_is_skipped():
+    tree, lineages = taxonomy_tree()
+    baseline = pick(tree, lineages)
+    free = singleton_labels(baseline)
+    in_clade = next(g.members[0] for g in baseline if g.group_type == "clade")
+    seeded = pick(tree, lineages, preferred=[in_clade, free[5], free[2]], n_preferred=2)
+    assert singleton_labels(seeded)[:2] == [free[5], free[2]]
+    assert in_clade not in singleton_labels(seeded)
+
+
+def test_zero_preferred_is_identical_to_unseeded():
+    tree, lineages = taxonomy_tree()
+    baseline = pick(tree, lineages)
+    leaf = singleton_labels(baseline)[3]
+    assert pick(tree, lineages, preferred=[leaf], n_preferred=0) == baseline
+
+
+def test_clades_do_not_depend_on_preferred():
+    tree, lineages = taxonomy_tree()
+    baseline = pick(tree, lineages)
+    wanted = singleton_labels(baseline)[:3]
+    seeded = pick(tree, lineages, preferred=wanted, n_preferred=3)
+    clades = [g for g in baseline if g.group_type == "clade"]
+    assert [g for g in seeded if g.group_type == "clade"] == clades

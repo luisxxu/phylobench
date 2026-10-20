@@ -23,23 +23,6 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 ---
 
-### T18: GG2 16S dataset
-**Week:** W2
-**Description:** Download the GG2 2022.10 SEPP reference + taxonomy and build Bfull\*, B10k\*, and the held-out query sets for all nine regions.
-
-**Deliverables:**
-- [ ] Scripted checksummed download of `2022.10.backbone.sepp-reference.qza` and `2022.10.backbone.tax.qza`; unzip `.qza` without needing QIIME 2
-- [ ] Bfull\* (shipped minus held-out, via T16) and B10k\* (uniform subsample of Bfull\*); **pruned-reference checksums recorded** in `data/gg2/MANIFEST.tsv`
-- [ ] 1,000 held-out source sequences × {full-length, V4-150, V3–V4, V1–V2, V1–V3, V4–V5, V5–V6, V6–V8, V7–V9}; per-size bin counts; ≥99.9 seeding applied
-
-**Acceptance:** manifest lists counts per backbone × region × bin and checksums; no held-out leaf in either backbone (test); bins < 100 flagged.
-
-**Dependencies:** T7, T16
-
-**Agent notes:** design §3–§4. `data/` never committed. ≥99.9 seeding (design §4 step 2) built here from similarity() + heldout.choose_groups; moved from T16. Similarity memory ≈16·R·L bytes (R reference leaves, L alignment columns); check against GG2 alignment width.
-
----
-
 ### Week 3 — Real data and pilot
 
 ### T19: EMP V4 ASV query sets
@@ -153,6 +136,13 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 - [x] Apptainer 1.5.0, driver 580.126.20 / CUDA 13.0; RTX 3090 on `b-gpu-21`/`-22`, Tesla V100 32 GB on `b-gpu-23`/`-24` (probed); pinned DIPPER image runs a fixture `--add` with `--nv` on both cards (no `-T` in the GPU build)
 - [x] `snakemake-executor-plugin-slurm` 2.8.0 (+ jobstep 0.6.1) resolves against Snakemake 9.27.0; pinning is T21
 - [x] Memory sections of `deployer.md` / `diagnostics.md`
+
+### T18: GG2 16S dataset — closes #18
+- [x] Checksummed download via `workflow/scripts/fetch.sh` (shared with T19); both `.qza` sha256 pinned in `workflow/rules/gg2.smk`; `.qza` unzipped with stdlib `zipfile` (`unzip_qza.py`)
+- [x] Bfull\* = shipped minus held-out minus exact duplicate rows (0 on GG2 2022.10); B10k\* = seeded uniform subsample; `check_backbone` enforces bifurcation, no held-out leaf, no duplicates (`src/phylobench/gg2.py`)
+- [x] 1,000 held-out queries × 9 regions; ≥99.9 seeding by replacement; `data/gg2/MANIFEST.tsv` (`kind backbone region bin path n sha256 flagged`), bins < 100 flagged; L = 1,598, R = 331,269 (`docs/gg2.md`)
+- [x] `accuracy.true_positions` accepts extra non-backbone reference leaves (primer exclusions)
+- [ ] Full build on HPC (user-confirmed): `snakemake --use-conda -c 16 data/gg2/MANIFEST.tsv`
 
 ### T12: bscampp family + EPA-ng control — closes #12
 - [x] Wrapper DoD for `pplacer-scampp`, `epa-ng-scampp`, `bscampp`, `epa-ng`: `workflow/rules/{bscampp,epa-ng}.smk`, `config/arms/*.yaml`, `docs/tools/{bscampp,epa-ng}.md`

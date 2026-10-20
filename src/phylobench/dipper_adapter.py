@@ -39,6 +39,8 @@ def dipper_to_jplace(
         for leaf in treeswift.read_tree_newick(dipper_newick).traverse_leaves()
     }
     present = [q for q in queries if q in dipper_leaves]
+    if dipper_leaves != backbone.hashes.keys() | set(present):
+        raise ValueError("DIPPER leaves are not exactly the backbone plus the queries")
     nodes, _ = true_positions(dipper_newick, present, backbone)
 
     doc = numbered_doc(backbone_newick)
