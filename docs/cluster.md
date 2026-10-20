@@ -40,7 +40,7 @@ $ cat /sys/fs/cgroup$(cut -d: -f3 /proc/self/cgroup | head -1)/memory.peak
 
 A job step can read its own task cgroup's `memory.peak`, so `mem_source=cgroup` is the primary source on Barnacle (T4, `docs/harness.md` §memory). It holds only with one rule per SLURM job (T21 profile).
 
-## 3. GPU and Apptainer — yes, with one design correction
+## 3. GPU and Apptainer — yes
 
 | Item | Value |
 |---|---|
