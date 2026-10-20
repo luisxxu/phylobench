@@ -14,4 +14,4 @@ OMP_NUM_THREADS={threads} FastTreeMP -nosupport -nt -nome -noml -intree {tree} {
 - `FastTreeMP` takes its thread count from `OMP_NUM_THREADS` (set from the rule's threads).
 - `-gtr` is omitted: with `-noml` the branch lengths are ME-only, and the fixed model is not used.
 - Whether the output is identical across thread counts is unverified.
-- Input: `data/{dataset}/{backbone}/{tree.nwk,aligned-dna-sequences.fasta}`. The backbone must be strictly bifurcating with no duplicate aligned rows; T16/T18 must guarantee this.
+- Input: `data/{dataset}/{backbone}/{tree.nwk,aligned-dna-sequences.fasta}`. The backbone must be strictly bifurcating with no duplicate aligned rows; T18 guarantees this: `gg2.check_backbone` rejects duplicate rows and non-bifurcating trees (`docs/gg2.md`).

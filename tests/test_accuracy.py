@@ -240,9 +240,24 @@ def test_reference_with_different_backbone_splits_raises():
         run(BINARY, reference, ["q"], {"q": "a"})
 
 
-def test_reference_leaves_must_be_backbone_plus_queries():
-    with pytest.raises(ValueError, match="exactly"):
+def test_reference_must_contain_backbone_and_queries():
+    with pytest.raises(ValueError, match="backbone leaves and the queries"):
         true_positions(BINARY, ["q"], prepare_backbone(BINARY))
+
+
+def test_extra_reference_leaves_leave_positions_unchanged():
+    exact = "((a:1,b:1)X:1,((c:1,d:1)Y:1,e:1)Z:1,f:1,q:1)R;"
+    extra = "((a:1,b:1)X:1,((c:1,d:1)Y:1,e:1)Z:1,f:1,q:1,spare:1)R;"
+    backbone = prepare_backbone(BINARY)
+    nodes, weights = true_positions(exact, ["q"], backbone)
+    extra_nodes, extra_weights = true_positions(extra, ["q"], backbone)
+    assert list(extra_nodes) == list(nodes)
+    assert list(extra_weights) == list(weights)
+
+
+def test_query_that_is_a_backbone_leaf_raises():
+    with pytest.raises(ValueError, match="backbone leaves and the queries"):
+        true_positions(BINARY, ["a"], prepare_backbone(BINARY))
 
 
 def test_jplace_leaf_mismatch_raises():

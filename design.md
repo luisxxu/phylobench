@@ -106,9 +106,9 @@ Edge distance is counted in the backbone with zero-length edges contracted: a tr
 
 **Held-out construction (one pass, one pruned backbone per size):**
 1. Using GG2 backbone taxonomy (`2022.10.backbone.tax.qza` [V]), remove disjoint clades from the shipped tree + alignment: ~6 genera, 6 families, 4 orders, 3 classes, 2 small phyla, each ≤2k leaves. Higher ranks → lower-similarity queries.
-2. Remove **~500 singleton leaves** outside those clades. In a 331k backbone singletons usually keep a near-identical neighbor (operon copies, strains, sister species) — this fills **99–99.9 and ≥99.9 on 16S** without SARS-CoV-2. If ≥99.9 at Bfull\* has <100 queries, seed extra singletons whose nearest remaining neighbor is ≥99.9%. V4-150 fragments push identity further up.
+2. Remove **~500 singleton leaves** outside those clades. In a 331k backbone singletons usually keep a near-identical neighbor (operon copies, strains, sister species) — this fills **99–99.9 and ≥99.9 on 16S** without SARS-CoV-2. If ≥99.9 at Bfull\* has <100 queries, replace trailing singletons with leaves whose nearest remaining neighbor is ≥99.9%, keeping the query count at 1,000 (`docs/gg2.md`). V4-150 fragments push identity further up.
 3. Queries = 1,000 held-out sequences (~500 singletons + ~500 clade members, ≤25 per clade), same sources for every region.
-4. **Bfull\*** ≈ 320k leaves; **B10k\*** = uniform subsample of Bfull\*. At B10k\* the same queries shift to lower bins (sparser neighborhoods) — expected, reported per size.
+4. **Bfull\*** ≈ 320k leaves (exact duplicate aligned rows removed after hold-out — FastTree needs none); **B10k\*** = uniform subsample of Bfull\*. At B10k\* the same queries shift to lower bins (sparser neighborhoods) — expected, reported per size.
 
 **Confounds reported:** per-bin lineage composition; per-bin query length (regions); bins with <100 queries flagged, not padded.
 
