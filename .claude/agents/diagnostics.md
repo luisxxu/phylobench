@@ -36,7 +36,7 @@ Read-only diagnostics on the live environment — check health, investigate inci
 - If a health check fails, distinguish "service down" from "wrong port/endpoint" before escalating.
 - Never `scancel`, never resubmit, never touch `results/` — escalate to Deployer.
 - Distinguish tool DNF (OOM/timeout, expected data) from infrastructure failure (node fault, missing env, quota).
-- Barnacle (`docs/cluster.md`): login `barnacle-login`; GPU nodes `b-gpu-21`/`b-gpu-22` (RTX 3090) and `b-gpu-23`/`b-gpu-24` (Tesla V100 32 GB; `b-gpu-23` has 16 CPUs, 93 GiB). Interactive probe: `srun --partition=gpu -c 4 --mem=32G --gres=gpu:1 --pty bash -l`.
+- Barnacle (`docs/cluster.md`): login `barnacle-login`; GPU nodes `b-gpu-21`/`b-gpu-22` (RTX 3090 24 GB, 32 CPUs, 503 GiB) and `b-gpu-23`/`b-gpu-24` (Tesla V100 32 GB; `b-gpu-23` has 16 CPUs, 93 GiB). Interactive probe: `srun --partition=gpu -c 4 --mem=32G --gres=gpu:1 --pty bash -l`.
 - Health: `sinfo -o "%P %l %G %c %m"`, `squeue -u $USER`, `sacct -j <id> --format=JobID,State,MaxRSS,Elapsed`; a job's own peak memory is `/sys/fs/cgroup$(cut -d: -f3 /proc/self/cgroup)/memory.peak` (cgroup v2).
 
 ## Output Contract

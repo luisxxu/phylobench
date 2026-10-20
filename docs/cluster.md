@@ -7,9 +7,8 @@ Barnacle (Knight Lab, SDSC), probed 2026-10-20 from an interactive job (`srun --
 | Item | Value |
 |---|---|
 | Login node | `barnacle-login` |
-| GPU node probed | `b-gpu-23` |
-| CPU | 2 × Intel Xeon Silver 4110 @ 2.10 GHz, 8 cores/socket, 16 CPUs |
-| RAM | 93 GiB, no swap |
+| V100 node probed | `b-gpu-23`: 2 × Intel Xeon Silver 4110 @ 2.10 GHz, 16 CPUs, 93 GiB, no swap (`gpu:3` class) |
+| RTX 3090 node probed | `b-gpu-21`: AMD EPYC 7302 16-Core, 32 CPUs, 503 GiB, no swap; RTX 3090 24576 MiB (`gpu:1` class) |
 | Kernel | `6.12.0-124.56.1.el10_1.x86_64` (EL10) |
 | SLURM account | `knightlab` (QOS `normal`) |
 | Scratch | `/ddn_scratch/$USER` (Lustre). `$SCRATCH` is not set by default. No user quota (`lfs quota` limit 0); filesystem 80% full. `/home` is NFS, 88% full — keep `data/`, `results/` and `.sif` images on scratch. |
@@ -44,10 +43,10 @@ A job step can read its own task cgroup's `memory.peak`, so `mem_source=cgroup` 
 
 | Item | Value |
 |---|---|
-| GPU nodes | `b-gpu-21`, `b-gpu-22`: **RTX 3090**; `b-gpu-23`, `b-gpu-24`: **Tesla V100-PCIE-32GB** (user-reported; probe ran on `b-gpu-23`) |
+| GPU nodes | `b-gpu-21`, `b-gpu-22`: **RTX 3090 24 GB**; `b-gpu-23`, `b-gpu-24`: **Tesla V100-PCIE-32GB** (probed `b-gpu-21` and `b-gpu-23`) |
 | NVIDIA driver / CUDA | 580.126.20 / 13.0 |
 | Apptainer | 1.5.0-1.el10_2 |
-| DIPPER GPU image | `docker://swalia14/dipper@sha256:0b1fba6e…08fa2` (`envs/dipper-gpu.image.txt`) pulls and `apptainer exec --nv dipper-gpu.sif dipper --help` runs |
+| DIPPER GPU image | `docker://swalia14/dipper@sha256:0b1fba6e…08fa2` (`envs/dipper-gpu.image.txt`) pulls; `apptainer exec --nv dipper-gpu.sif dipper --help` runs on `b-gpu-21` and `b-gpu-23` |
 
 - Pulling the image needs ~32 GB job memory and `APPTAINER_TMPDIR`/`APPTAINER_CACHEDIR` on scratch; with less memory the extract step is OOM-killed. Compressed layers ≈ 4.3 GB.
 - `--help` never touches the GPU. Whether the image runs kernels on the V100 is UNVERIFIED: CUDA 13 dropped Volta (sm_70) from the toolkit, so an image built with CUDA 13 and no sm_70 code fails on its first GPU call. T21 checks the image's CUDA version and does one real `--add` on the V100 before the pilot.
@@ -60,6 +59,6 @@ A job step can read its own task cgroup's `memory.peak`, so `mem_source=cgroup` 
 
 ## Open for T21
 
-- Which card the GPU arm runs on: the RTX 3090 nodes (`b-gpu-21`/`-22`, 24 GB, design §5) or the V100 nodes (`b-gpu-23`/`-24`, 32 GB, more headroom at Bfull\* but Volta kernel support unverified). Pin it with `--nodelist` in the T21 profile; compare GPU runtimes only within one card. The 3090 nodes' CPU/RAM and the Apptainer image check there are not probed yet.
-- 16 threads/job fits the `gpu:3` nodes only as a whole node (16 CPUs).
+- Which card the GPU arm runs on: the RTX 3090 nodes (`b-gpu-21`/`-22`, 24 GB, design §5) or the V100 nodes (`b-gpu-23`/`-24`, 32 GB, more headroom at Bfull\* but Volta kernel support unverified). Pin it with `--nodelist` in the T21 profile; compare GPU runtimes only within one card. A real `--add` on the fixture has not yet run on either card.
+- 16 threads/job fits the V100 nodes only as a whole node (16 CPUs); the 3090 nodes have 32 CPUs.
 - `--force-binary` (or not) for the DIPPER GPU arm, and dropping `-T` there.
