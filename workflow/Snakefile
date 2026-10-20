@@ -3,6 +3,7 @@ from pathlib import Path
 
 from snakemake.utils import validate
 
+from phylobench.emp import EMP_QUERY_N
 from phylobench.tables import load_arms
 
 # Arms come only from config/arms/*.yaml (keyed by file stem); this overrides any `arms`
@@ -21,7 +22,14 @@ for smk in sorted(Path(workflow.basedir, "rules").glob("*.smk")):
     include: str(smk)
 
 
+ruleorder: emp_refprep > refprep_me_tree
+ruleorder: emp_refprep > refprep_epa_ng_model
+ruleorder: emp_hmm > hmmbuild
+
+
 rule all:
     input:
         "results/runs.tsv",
         "results/accuracy.tsv",
+        "results/concordance.tsv",
+        ["data/emp/MANIFEST.tsv"] if any(d in EMP_QUERY_N for d in config["datasets"]) else [],

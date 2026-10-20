@@ -7,16 +7,20 @@ from snakemake.exceptions import WorkflowError
 
 from phylobench.tables import (
     ACCURACY_COLUMNS,
+    CONCORDANCE_COLUMNS,
     FORCED_DNF,
     RUNS_COLUMNS,
     Cell,
     RunSpec,
     accuracy_rows,
+    concordance_rows,
     forced_dnf_cell,
     load_arms,
     plan_cells,
+    query_axes,
     run_row,
     run_specs,
+    score_table,
     smoke_failures,
     width_failures,
 )
@@ -224,3 +228,100 @@ def test_smoke_catches_exact_below_threshold_in_full_length_only():
     other = accuracy.copy()
     other.loc[other["run_id"] == "tiny/B100/V4-150/hmmalign/pplacer", "exact"] = 0.0
     assert failures(runs, other) == []
+
+
+SEPP_PROD = {
+    "tool": "sepp",
+    "aligned": False,
+    "phases": {"align+place+convert": "sepp.run.json"},
+}
+EMP_CONFIG = {
+    "datasets": ["tiny", "emp-10k"],
+    "backbones": ["B100"],
+    "regions": ["full-length", "V4-150"],
+    "alns": ["hmmalign", "oracle"],
+}
+EMP_ARMS = {"pplacer": PPLACER, "sepp-prod": SEPP_PROD}
+
+
+def test_query_axes_emp_is_v4_hmmalign_only():
+    assert query_axes(EMP_CONFIG, "emp-100k") == (["V4-150"], ["hmmalign"])
+    assert query_axes(EMP_CONFIG, "tiny") == (EMP_CONFIG["regions"], EMP_CONFIG["alns"])
+
+
+def test_plan_cells_emp_dataset_gets_one_region_and_aln():
+    cells = plan_cells(EMP_CONFIG, EMP_ARMS)
+    emp = [c for c in cells if c.dataset == "emp-10k"]
+    assert [(c.region, c.aln, c.arm) for c in emp] == [
+        ("V4-150", "hmmalign", "pplacer"),
+        ("V4-150", "raw", "sepp-prod"),
+    ]
+    assert len([c for c in cells if c.dataset == "tiny"]) == 2 * 2 + 2
+
+
+def test_plan_cells_non_emp_order_is_unchanged():
+    assert plan_cells(CONFIG, ARMS) == [
+        Cell("tiny", "B100", region, aln, "pplacer")
+        for region in CONFIG["regions"]
+        for aln in CONFIG["alns"]
+    ]
+
+
+def test_emp_run_specs_skip_refprep_and_hmmbuild_and_use_concordance():
+    specs = [s for s in run_specs(EMP_CONFIG, EMP_ARMS) if s.dataset == "emp-10k"]
+    assert {s.phase for s in specs} == {
+        "align",
+        "place",
+        "convert",
+        "align+place+convert",
+        "evaluate",
+    }
+    assert [s.run_json for s in specs if s.phase == "align"] == [
+        "results/emp-10k/B100/V4-150/align/hmmalign.run.json"
+    ]
+    evaluate = {s.run_json: s for s in specs if s.phase == "evaluate"}
+    assert set(evaluate) == {
+        "results/emp-10k/B100/V4-150/hmmalign/pplacer/concordance.run.json",
+        "results/emp-10k/B100/V4-150/raw/sepp-prod/concordance.run.json",
+    }
+    assert {s.tool for s in evaluate.values()} == {"phylobench"}
+
+
+def test_non_emp_specs_still_use_accuracy_evaluate():
+    specs = run_specs(EMP_CONFIG, EMP_ARMS)
+    tiny = [s for s in specs if s.dataset == "tiny" and s.phase == "evaluate"]
+    assert all(s.run_json.endswith("/evaluate.run.json") for s in tiny)
+    assert any(s.phase == "ref-prep" and s.dataset == "tiny" for s in specs)
+
+
+def test_emp_without_sepp_prod_raises():
+    with pytest.raises(WorkflowError, match="sepp-prod"):
+        run_specs(EMP_CONFIG, ARMS)
+
+
+def test_emp_single_arm_run_may_omit_sepp_prod():
+    assert run_specs({**EMP_CONFIG, "arm": "pplacer"}, ARMS)
+
+
+def test_gg2_without_sepp_prod_is_fine():
+    assert run_specs(CONFIG, ARMS)
+
+
+def test_score_table_follows_the_evaluate_run_json():
+    emp = RunSpec("d/c/concordance.run.json", "r", "evaluate", "t", *"dbraa")
+    acc = RunSpec("d/c/evaluate.run.json", "r", "evaluate", "t", *"dbraa")
+    assert score_table(emp) == "d/c/concordance.tsv"
+    assert score_table(acc) == "d/c/accuracy.tsv"
+
+
+def test_concordance_rows_label_and_nan():
+    scores = [
+        {"query": "a", "edge_dist": 2.0},
+        {"query": "b", "edge_dist": math.nan},
+    ]
+    sims = pd.DataFrame({"query": ["a", "b"], "sim": [0.9, 0.8], "bin": ["a", "b"]})
+    rows = concordance_rows("rid", "ref", scores, sims)
+    assert tuple(rows[0]) == CONCORDANCE_COLUMNS
+    assert {r["label"] for r in rows} == {"concordance"}
+    assert rows[0]["reference_run_id"] == "ref" and rows[0]["sim"] == 0.9
+    assert math.isnan(rows[1]["edge_dist"])

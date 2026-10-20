@@ -12,7 +12,7 @@ Markers: **[V]** verified against upstream repo / GitHub API / bioconda / PyPI /
 1. **Licenses are flagged, not decided on.** DIPPER is the only end-to-end MIT option; SCAMPP family = MIT wrapper over GPL-3 (pplacer) or AGPL-3 (EPA-ng) engines; APPLES-2, pplacer, SEPP are GPL-3 (§1.4). The recommendation is made on accuracy, runtime, and memory only.
 2. **Baseline = production SEPP exactly:** `run-sepp.sh -A 1000 -P 5000` on the **GG2 2022.10 SEPP reference** (331,269 leaves) [V]. All other tools get the same backbone tree, alignment, and model numbers.
 3. **Two backbones:** **Bfull\*** (production reference minus held-out queries) and **B10k\*** (10k subsample). Query-count scaling comes from real EMP ASVs.
-4. **Truth = held-out clades + singletons in the GG2 tree** — one pruned backbone, one ref-prep. EMP ASVs have no truth (GG2 placed them with DEPP [V]) → labeled *concordance with SEPP*.
+4. **Truth = held-out clades + singletons in the GG2 tree** — one pruned backbone, one ref-prep per backbone (EMP links GG2's backbone and ref-prep). EMP ASVs have no truth (GG2 placed them with DEPP [V]) → labeled *concordance with SEPP*.
 5. **Fair alignment:** challengers get a single-HMM `hmmalign` alignment (BSD, deployable); oracle alignment is a B10k\* diagnostic; SEPP aligns itself.
 6. **DIPPER emits Newick with joint placement** → scored via an O(N) adapter (T25). jplace arms are converted to inserted trees with `guppy tog` (T25), as production does.
 7. **Memory:** cgroup v2 `memory.peak` if available, else psutil process-tree RSS sum; source recorded per row.
@@ -143,7 +143,8 @@ Edge distance is counted in the backbone with zero-length edges contracted: a tr
 Tests skip explicitly when cgroups are absent — never pass vacuously.
 
 - `results/runs.tsv`: `dataset, backbone, region, query_n, tool, arm, aln, phase, wall_s, cpu_s, peak_mem_mb, mem_source, gpu_peak_mb, status, threads, node, cpu_model, version, run_id, dnf_reason, env_lock_sha256`; `status` ∈ {`ok`, `DNF`} (`dnf_reason` = the harness status: `oom|timeout|error`)
-- `results/accuracy.tsv`: `run_id, query, sim, bin, edge_dist, exact, delta_err, label(accuracy|concordance)`
+- `results/accuracy.tsv`: `run_id, query, sim, bin, edge_dist, exact, delta_err, label` (`label` = `accuracy` only; GG2 cells)
+- `results/concordance.tsv`: `run_id, reference_run_id, query, sim, bin, edge_dist, label` (`label` = `concordance` only; EMP cells vs `sepp-prod`)
 
 ---
 
@@ -202,4 +203,4 @@ Tests skip explicitly when cgroups are absent — never pass vacuously.
 | BSCAMPP bundled binaries / `~/.bscampp` | Immutable per-env config written at env deploy; provenance shows binary paths |
 | psutil fallback misses short spikes | `mem_source` column; caveat on memory panels |
 | Primer matching drops divergent-primer sequences | Count and report exclusions per region |
-| EMP biom observation IDs may not be sequences [UNVERIFIED] | T19 verifies first |
+| EMP biom observation IDs may not be sequences | Resolved (T19): all 197,711 IDs are unique `^[ACGT]{150}$`; `asv_failures` re-checks on every run |

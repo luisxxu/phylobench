@@ -4,7 +4,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from phylobench.similarity import bin_report, similarity, similarity_bin
+from phylobench.similarity import (
+    bin_report,
+    similarity,
+    similarity_bin,
+)
 
 FIXTURE = Path(__file__).parent / "fixtures" / "tiny"
 

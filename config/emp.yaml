@@ -1,0 +1,6 @@
+# EMP stage (T19, run after the gg2 stage): scaling and concordance with sepp-prod.
+# EMP has no truth and no oracle alignment, so regions/alns are fixed per dataset.
+datasets: [emp-10k, emp-100k]
+backbones: [B10k, Bfull]
+regions: [V4-150]
+alns: [hmmalign]

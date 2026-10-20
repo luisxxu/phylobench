@@ -9,6 +9,8 @@ from typing import NamedTuple
 import yaml
 from snakemake.exceptions import WorkflowError
 
+from phylobench.emp import EMP_QUERY_N, EMP_REGION, REFERENCE_ARM
+
 RUNS_COLUMNS = (
     "dataset",
     "backbone",
@@ -42,6 +44,16 @@ ACCURACY_COLUMNS = (
     "delta_err",
     "label",
 )
+CONCORDANCE_COLUMNS = (
+    "run_id",
+    "reference_run_id",
+    "query",
+    "sim",
+    "bin",
+    "edge_dist",
+    "label",
+)
+CONCORDANCE_RUN = "concordance.run.json"
 FORCED_DNF = "forced-dnf"
 RAW = "raw"
 FULL_LENGTH = "full-length"
@@ -85,13 +97,20 @@ def load_arms(arms_dir, only: str | None = None) -> dict[str, dict]:
     return arms if only is None else {only: arms[only]}
 
 
+def query_axes(config: dict, dataset: str) -> tuple[list[str], list[str]]:
+    """(regions, alns) a dataset runs over; EMP has one region and no oracle."""
+    if dataset in EMP_QUERY_N:
+        return [EMP_REGION], ["hmmalign"]
+    return config["regions"], config["alns"]
+
+
 def plan_cells(config: dict, arms: dict[str, dict]) -> list[Cell]:
     cells = []
-    for dataset, backbone, region, (name, arm) in product(
-        config["datasets"], config["backbones"], config["regions"], arms.items()
-    ):
-        for aln in config["alns"] if arm["aligned"] else [RAW]:
-            cells.append(Cell(dataset, backbone, region, aln, name))
+    for dataset, backbone in product(config["datasets"], config["backbones"]):
+        regions, alns = query_axes(config, dataset)
+        for region, (name, arm) in product(regions, arms.items()):
+            for aln in alns if arm["aligned"] else [RAW]:
+                cells.append(Cell(dataset, backbone, region, aln, name))
     return cells
 
 
@@ -111,37 +130,48 @@ def forced_dnf_cell(config: dict) -> list[Cell]:
 
 
 def run_specs(config: dict, arms: dict[str, dict]) -> list[RunSpec]:
+    # --config arm=X plans one arm; the concordance rule still builds sepp-prod itself.
+    if (
+        any(d in EMP_QUERY_N for d in config["datasets"])
+        and REFERENCE_ARM not in arms
+        and "arm" not in config
+    ):
+        raise WorkflowError(
+            f"EMP datasets need the {REFERENCE_ARM!r} arm as the concordance reference"
+        )
     specs = []
     for dataset, backbone in product(config["datasets"], config["backbones"]):
         base = f"results/{dataset}/{backbone}"
         shared = f"{dataset}/{backbone}"
-        specs.append(
-            RunSpec(
-                f"results/ref-prep/{shared}/me-tree.run.json",
-                shared,
-                "ref-prep",
-                "fasttree",
-                dataset,
-                backbone,
-                "",
-                "",
-                "",
+        regions, _ = query_axes(config, dataset)
+        if dataset not in EMP_QUERY_N:
+            specs.append(
+                RunSpec(
+                    f"results/ref-prep/{shared}/me-tree.run.json",
+                    shared,
+                    "ref-prep",
+                    "fasttree",
+                    dataset,
+                    backbone,
+                    "",
+                    "",
+                    "",
+                )
             )
-        )
-        specs.append(
-            RunSpec(
-                f"{base}/align/hmmbuild.run.json",
-                shared,
-                "align",
-                "hmmer",
-                dataset,
-                backbone,
-                "",
-                "",
-                "",
+            specs.append(
+                RunSpec(
+                    f"{base}/align/hmmbuild.run.json",
+                    shared,
+                    "align",
+                    "hmmer",
+                    dataset,
+                    backbone,
+                    "",
+                    "",
+                    "",
+                )
             )
-        )
-        for region in config["regions"]:
+        for region in regions:
             specs.append(
                 RunSpec(
                     f"{base}/{region}/align/hmmalign.run.json",
@@ -160,12 +190,23 @@ def run_specs(config: dict, arms: dict[str, dict]) -> list[RunSpec]:
         for phase, filename in arm["phases"].items():
             tool = "guppy" if phase == "convert" else arm["tool"]
             specs.append(cell_spec(cell, f"{cell.dir}/{filename}", phase, tool))
+        scorer = "concordance" if cell.dataset in EMP_QUERY_N else "evaluate"
         specs.append(
-            cell_spec(cell, f"{cell.dir}/evaluate.run.json", "evaluate", "phylobench")
+            cell_spec(cell, f"{cell.dir}/{scorer}.run.json", "evaluate", "phylobench")
         )
     for cell in forced_dnf_cell(config):
         specs.append(cell_spec(cell, f"{cell.dir}/place.run.json", "place", "sleep"))
     return specs
+
+
+def score_table(spec: RunSpec) -> str:
+    """The per-cell table written next to an evaluate-phase run.json."""
+    name = (
+        "concordance.tsv"
+        if Path(spec.run_json).name == CONCORDANCE_RUN
+        else "accuracy.tsv"
+    )
+    return str(Path(spec.run_json).with_name(name))
 
 
 def cell_spec(cell: Cell, run_json: str, phase: str, tool: str) -> RunSpec:
@@ -213,6 +254,26 @@ def accuracy_rows(run_id: str, scores: list[dict], sims, label: str) -> list[dic
             "exact": s["exact"],
             "delta_err": s["delta_err"],
             "label": label,
+        }
+        for s in scores
+    ]
+
+
+def concordance_rows(
+    run_id: str, reference_run_id: str, scores: list[dict], sims
+) -> list[dict]:
+    """Join per-query edge distances to the reference placement with similarity."""
+    sim_of = dict(zip(sims["query"], sims["sim"], strict=True))
+    bin_of = dict(zip(sims["query"], sims["bin"], strict=True))
+    return [
+        {
+            "run_id": run_id,
+            "reference_run_id": reference_run_id,
+            "query": s["query"],
+            "sim": sim_of.get(s["query"], math.nan),
+            "bin": bin_of.get(s["query"], ""),
+            "edge_dist": s["edge_dist"],
+            "label": "concordance",
         }
         for s in scores
     ]
