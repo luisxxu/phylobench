@@ -165,10 +165,12 @@ def true_positions(
     # Tree.label_to_node("leaves") wrongly includes an unlabelled root.
     leaves = {leaf.label: leaf for leaf in tree.traverse_leaves()}
     backbone_labels = backbone.hashes.keys()
-    expected_leaves = backbone_labels | set(queries)
-    if not backbone_labels.isdisjoint(queries) or set(leaves) != expected_leaves:
+    if not backbone_labels.isdisjoint(queries) or not (
+        backbone_labels | set(queries) <= leaves.keys()
+    ):
         raise ValueError(
-            "reference leaves must be exactly the backbone leaves plus the queries"
+            "reference leaves must include all backbone leaves and the queries, "
+            "which must not be backbone leaves"
         )
     sig = signatures(tree, backbone.hashes)
     total = backbone.total

@@ -5,6 +5,7 @@ on its own backbone bipartition. Taxonomy rank 0 is the highest rank in each lin
 """
 
 import warnings
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 import numpy as np
@@ -77,8 +78,14 @@ def choose_groups(
     max_leaves: int,
     rng: np.random.Generator,
     min_leaves: int = 25,
+    preferred: Sequence[str] = (),
+    n_preferred: int = 0,
 ) -> list[HeldOutGroup]:
     """Disjoint monophyletic clades (highest rank first) then singletons.
+
+    Up to `n_preferred` singletons come first from `preferred`, in order, skipping
+    leaves that are not eligible; they use no randomness, so the clades and the
+    remaining random singletons are drawn exactly as with no preference.
 
     A group is eligible only if its stem parent is not the root and the parent's
     subtree holds no other held-out leaf, and no earlier stem parent lies above it.
@@ -132,7 +139,16 @@ def choose_groups(
                 raise ValueError(f"no eligible clade left at rank {rank}")
 
     leaves = [node for node in order if node.is_leaf()]
-    for _ in range(n_singletons):
+    by_label = {leaf.label: leaf for leaf in leaves}
+    taken = 0
+    for label in preferred:
+        if taken == n_preferred:
+            break
+        if label in by_label and _is_free(by_label[label], has_heldout, stem_parents):
+            take(by_label[label], "singleton", None, label)
+            taken += 1
+
+    for _ in range(n_singletons - taken):
         for i in rng.permutation(len(leaves)):
             if _is_free(leaves[i], has_heldout, stem_parents):
                 take(leaves[i], "singleton", None, leaves[i].label)
