@@ -49,7 +49,8 @@ A job step can read its own task cgroup's `memory.peak`, so `mem_source=cgroup` 
 | DIPPER GPU image | `docker://swalia14/dipper@sha256:0b1fba6e…08fa2` (`envs/dipper-gpu.image.txt`) pulls; `apptainer exec --nv dipper-gpu.sif dipper --help` runs on `b-gpu-21` and `b-gpu-23` |
 
 - Pulling the image needs ~32 GB job memory and `APPTAINER_TMPDIR`/`APPTAINER_CACHEDIR` on scratch; with less memory the extract step is OOM-killed. Compressed layers ≈ 4.3 GB.
-- `--help` never touches the GPU. Whether the image runs kernels on the V100 is UNVERIFIED: CUDA 13 dropped Volta (sm_70) from the toolkit, so an image built with CUDA 13 and no sm_70 code fails on its first GPU call. T21 checks the image's CUDA version and does one real `--add` on the V100 before the pilot.
+- Fixture `--add` runs on both cards (2026-10-20): `apptainer exec --nv dipper-gpu.sif dipper --add -i m -d 2 -t tests/fixtures/tiny/tree.nwk -I tiny.in.fasta -O out.nwk` (backbone + aligned queries concatenated) → `Read 110 sequences`, `Tree loaded successfully with 199 nodes`, `exit=0`, 2615-byte Newick on `b-gpu-21` (RTX 3090) and `b-gpu-23` (V100). No CUDA "no kernel image" error on the V100 despite CUDA 13 dropping Volta from the toolkit.
+- The fixture is too small to show the GPU was used (`Distance Operation Time 0 ms`). The T21 pilot confirms it with `gpu_peak_mb` > 0 on a real backbone.
 - The image's `--help` has no `-T/--threads` option (the CPU bioconda 0.1.5 build has it). The GPU arm must not pass `-T`.
 - The image defaults to collapsing near-zero internal edges into multifurcations on output; `--force-binary` keeps a binary tree with `:0` branches. Relevant to the T25 RF check and GG2 backbone polytomies — decide in T21 pilot.
 
@@ -59,6 +60,6 @@ A job step can read its own task cgroup's `memory.peak`, so `mem_source=cgroup` 
 
 ## Open for T21
 
-- Which card the GPU arm runs on: the RTX 3090 nodes (`b-gpu-21`/`-22`, 24 GB, design §5) or the V100 nodes (`b-gpu-23`/`-24`, 32 GB, more headroom at Bfull\* but Volta kernel support unverified). Pin it with `--nodelist` in the T21 profile; compare GPU runtimes only within one card. A real `--add` on the fixture has not yet run on either card.
+- Which card the GPU arm runs on: the RTX 3090 nodes (`b-gpu-21`/`-22`, 24 GB, design §5) or the V100 nodes (`b-gpu-23`/`-24`, 32 GB, more headroom at Bfull\*). Both run the image. The 3090 nodes have 32 CPUs / 503 GiB vs 16 / 93 GiB, so a 16-thread job does not need the whole node. Pin it with `--nodelist` in the T21 profile; compare GPU runtimes only within one card.
 - 16 threads/job fits the V100 nodes only as a whole node (16 CPUs); the 3090 nodes have 32 CPUs.
 - `--force-binary` (or not) for the DIPPER GPU arm, and dropping `-T` there.
