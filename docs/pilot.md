@@ -86,16 +86,71 @@ About 60 node-hours by default; ceiling 150. Record actual node-hours below.
 
 | arm | dataset | region | wall_mean (s) | peak_mem_max (MB) |
 |---|---|---|---|---|
+| sepp-prod | gg2 | full-length |  |  |
+| sepp-prod | gg2 | V4-150 |  |  |
+| sepp-prod | emp-10k | V4-150 |  |  |
+| sepp-pinned | gg2 | full-length |  |  |
+| sepp-pinned | gg2 | V4-150 |  |  |
+| sepp-pinned | emp-10k | V4-150 |  |  |
+| pplacer | gg2 | full-length |  |  |
+| pplacer | gg2 | V4-150 |  |  |
+| pplacer | emp-10k | V4-150 |  |  |
+| pplacer-scampp | gg2 | full-length |  |  |
+| pplacer-scampp | gg2 | V4-150 |  |  |
+| pplacer-scampp | emp-10k | V4-150 |  |  |
+| epa-ng-scampp | gg2 | full-length |  |  |
+| epa-ng-scampp | gg2 | V4-150 |  |  |
+| epa-ng-scampp | emp-10k | V4-150 |  |  |
+| bscampp | gg2 | full-length |  |  |
+| bscampp | gg2 | V4-150 |  |  |
+| bscampp | emp-10k | V4-150 |  |  |
+| epa-ng | gg2 | full-length |  |  |
+| epa-ng | gg2 | V4-150 |  |  |
+| epa-ng | emp-10k | V4-150 |  |  |
+| apples2 | gg2 | full-length |  |  |
+| apples2 | gg2 | V4-150 |  |  |
+| apples2 | emp-10k | V4-150 |  |  |
+| dipper-m | gg2 | full-length |  |  |
+| dipper-m | gg2 | V4-150 |  |  |
+| dipper-m | emp-10k | V4-150 |  |  |
+| dipper-m-gpu | gg2 | full-length |  |  |
+| dipper-m-gpu | gg2 | V4-150 |  |  |
+| dipper-m-gpu | emp-10k | V4-150 |  |  |
+| dipper-r | gg2 | full-length |  |  |
+| dipper-r | gg2 | V4-150 |  |  |
+| dipper-r | emp-10k | V4-150 |  |  |
 
 ### Timing CV (3 runs, gg2 V4-150)
 
 | arm | n_ok | wall_mean (s) | wall_cv |
 |---|---|---|---|
+| sepp-prod |  |  |  |
+| sepp-pinned |  |  |  |
+| pplacer |  |  |  |
+| pplacer-scampp |  |  |  |
+| epa-ng-scampp |  |  |  |
+| bscampp |  |  |  |
+| epa-ng |  |  |  |
+| apples2 |  |  |  |
+| dipper-m |  |  |  |
+| dipper-m-gpu |  |  |  |
+| dipper-r |  |  |  |
 
 ### Bfull\* go/no-go
 
 | arm | projected emp-100k place wall (h) | projected peak (GB) | verdict |
 |---|---|---|---|
+| sepp-prod |  |  |  |
+| sepp-pinned |  |  |  |
+| pplacer |  |  |  |
+| pplacer-scampp |  |  |  |
+| epa-ng-scampp |  |  |  |
+| bscampp |  |  |  |
+| epa-ng |  |  |  |
+| apples2 |  |  |  |
+| dipper-m |  |  |  |
+| dipper-m-gpu |  |  |  |
+| dipper-r |  |  |  |
 
 ### Actual node-hours
 
