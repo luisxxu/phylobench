@@ -27,33 +27,107 @@ Pilot of every arm at B10k\* on Barnacle (SLURM, `knightlab`), plus a Bfull\* DI
 
 ## Staging
 
-Run from the activated `phylobench` env, in order. Do not start a stage until the previous stage's gates pass.
+Run from the activated `phylobench` env, in order. Do not start a stage until the previous stage's gates pass. The profile already sets `use-conda`, so `--use-conda` is not repeated. The archive directory is created first, and `results/runs.tsv` is regenerated on every invocation, so archive before each forced run.
 
 ```sh
-P="snakemake --use-conda --profile profiles/slurm"
-$P --configfile config/pilot.yaml --config arm=sepp-prod        # stage 1
-$P --configfile config/pilot.yaml --config arm=dipper-m-gpu     # stage 2
-$P --configfile config/pilot.yaml --config arm=dipper-m         # stage 3
-$P --configfile config/pilot.yaml                               # stage 4: all arms
+mkdir -p /ddn_scratch/lxxu/phylobench-archive
 ```
 
-Timing repeats (r2, r3) rerun the 11 place rules on the CV config. Archive first; `runs.tsv` is regenerated on every invocation.
+Dry run:
 
 ```sh
-cp results/runs.tsv results/pilot-r1.runs.tsv
-$P --configfile config/pilot-cv.yaml --forcerun pplacer_place sepp_prod sepp_pinned_place \
-    pplacer_scampp_place epa_ng_scampp_place bscampp_place epa_ng_place apples2_place \
-    dipper_m_place dipper_r_place dipper_m_gpu_place
-cp results/runs.tsv results/pilot-r2.runs.tsv     # then the same forced run, archive as r3
+snakemake all -n --profile profiles/slurm --configfile config/pilot.yaml
+```
+
+Stage 1:
+
+```sh
+snakemake all --profile profiles/slurm --config arm=sepp-prod --configfile config/pilot.yaml
+```
+
+```sh
+tar czf /ddn_scratch/lxxu/phylobench-archive/pilot-s1.tgz results
+```
+
+Stage 2:
+
+```sh
+snakemake all --profile profiles/slurm --config arm=dipper-m-gpu --configfile config/pilot.yaml
+```
+
+```sh
+tar czf /ddn_scratch/lxxu/phylobench-archive/pilot-s2.tgz results
+```
+
+Stage 3:
+
+```sh
+snakemake all --profile profiles/slurm --config arm=dipper-m --configfile config/pilot.yaml
+```
+
+```sh
+tar czf /ddn_scratch/lxxu/phylobench-archive/pilot-s3.tgz results
+```
+
+Stage 4 (all arms, timing run r1):
+
+```sh
+snakemake all --profile profiles/slurm --configfile config/pilot.yaml
+```
+
+```sh
+tar czf /ddn_scratch/lxxu/phylobench-archive/pilot-r1.tgz results
+```
+
+```sh
+cp results/runs.tsv /ddn_scratch/lxxu/phylobench-archive/runs-r1.tsv
+```
+
+Timing repeat r2 (the 11 place rules on the CV config):
+
+```sh
+snakemake all --profile profiles/slurm --forcerun sepp_prod pplacer_place epa_ng_place bscampp_place epa_ng_scampp_place pplacer_scampp_place apples2_place dipper_m_place dipper_r_place dipper_m_gpu_place sepp_pinned_place --configfile config/pilot-cv.yaml
+```
+
+```sh
+tar czf /ddn_scratch/lxxu/phylobench-archive/pilot-r2.tgz results
+```
+
+```sh
+cp results/runs.tsv /ddn_scratch/lxxu/phylobench-archive/runs-r2.tsv
+```
+
+Timing repeat r3 (the 11 place rules on the CV config):
+
+```sh
+snakemake all --profile profiles/slurm --forcerun sepp_prod pplacer_place epa_ng_place bscampp_place epa_ng_scampp_place pplacer_scampp_place apples2_place dipper_m_place dipper_r_place dipper_m_gpu_place sepp_pinned_place --configfile config/pilot-cv.yaml
+```
+
+```sh
+tar czf /ddn_scratch/lxxu/phylobench-archive/pilot-r3.tgz results
+```
+
+```sh
+cp results/runs.tsv /ddn_scratch/lxxu/phylobench-archive/runs-r3.tsv
 ```
 
 Bfull\* GPU probe (Option A; Option B is off):
 
 ```sh
-$P --configfile config/pilot-bfull-probe.yaml --config arm=dipper-m-gpu
+snakemake all --profile profiles/slurm --config arm=dipper-m-gpu --configfile config/pilot-bfull-probe.yaml
 ```
 
-Summary: `python workflow/scripts/pilot_summary.py results/pilot-r1.runs.tsv results/pilot-r2.runs.tsv results/pilot-r3.runs.tsv --out results/pilot-timing.tsv` (columns `dataset backbone region aln arm n n_ok wall_mean wall_cv peak_mem_max`, place phase only; CV is the sample SD over ok rows divided by the mean, NaN with fewer than two).
+```sh
+tar czf /ddn_scratch/lxxu/phylobench-archive/pilot-bfull-gpu-probe.tgz results
+```
+
+Summary:
+
+```sh
+python workflow/scripts/pilot_summary.py /ddn_scratch/lxxu/phylobench-archive/runs-r1.tsv /ddn_scratch/lxxu/phylobench-archive/runs-r2.tsv /ddn_scratch/lxxu/phylobench-archive/runs-r3.tsv --out results/pilot-timing.tsv
+```
+
+Columns: `dataset backbone region aln arm n n_ok wall_mean wall_cv peak_mem_max`, place phase only; CV is the sample SD over ok rows divided by the mean, NaN with fewer than two.
 
 ## Stage gates
 
