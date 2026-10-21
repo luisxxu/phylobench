@@ -14,7 +14,9 @@ Exit codes: `0` whenever `run.json` was written (whatever the tool's status); `2
 
 Rules call `f"{sys.executable} -m phylobench.measure"`, resolved once at Snakefile parse time. This is the absolute path of the phylobench env's Python, so it works under `--use-conda`; CMD itself is resolved on the tool env's PATH. For GPU tools on the host, CMD is `apptainer exec --nv ...`. T8 defines the harness invocation once as a Snakefile constant.
 
-Job-side Snakemake must run from the same env (UNVERIFIED, decided in T21).
+Job-side Snakemake runs under the submitting env's Python: the SLURM plugin launches it with `sys.executable` and `--export=ALL`, so submit from the activated `phylobench` env.
+
+`MEASURE` also passes `--timeout {timeout_s}` (`config/schema.yaml`, default 255600 s = 71 h). A later `--timeout` in a rule (pplacer 86400, smoke 1) overrides it because argparse keeps the last value.
 
 If the package or psutil is missing the job fails with `ModuleNotFoundError`, exit 1, no JSON. That is a loud job failure, never a DNF.
 
@@ -37,7 +39,7 @@ T8 asserts that every non-forced row has `status == ok` and non-null `version` a
 
 ## 4. Memory caveats
 
-- `memory.peak` of the harness's own cgroup includes the harness, the shell, and Snakemake ancestors (about 100-200 MiB) and page cache. It is meaningful only with one rule per SLURM job. T27/T21 decide which source is primary.
+- `memory.peak` of the harness's own cgroup includes the harness, the shell, and Snakemake ancestors (about 100-200 MiB) and page cache. It is meaningful only with one rule per SLURM job. On Barnacle `cgroup` is primary: the T21 profile submits one rule per sbatch with no `group` keys, and each job's own `srun` step cgroup is read.
 - The psutil RSS sum double-counts shared pages, and 0.5 s sampling misses short spikes.
 - Both values are always recorded; `peak_mem_mb` follows `mem_source`.
 - On Linux `ru_maxrss` (`maxrss_mb`) is inherited across fork/exec, so it is at least the harness's own RSS at spawn (small for the standalone CLI). Never call `run()` in-process from a large parent when `maxrss_mb` matters.

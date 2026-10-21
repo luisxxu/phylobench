@@ -9,13 +9,14 @@ Rules: `workflow/rules/dipper.smk`. Each measured `place` phase writes `dipper.n
 | Arm | Command | Input |
 |---|---|---|
 | `dipper-m` | `dipper_cpu --add -i m -d 2 -T {threads} -t tree.nwk -I in.fasta -O dipper.nwk` | backbone alignment + masked query alignment, concatenated (`awk 1`) |
-| `dipper-m-gpu` | `apptainer exec --nv dipper-gpu.sif dipper --add -i m -d 2 -t tree.nwk -I in.fasta -O dipper.nwk` | same file as `dipper-m` |
+| `dipper-m-gpu` | `apptainer exec --nv dipper-gpu.sif dipper --add -i m -d 2 --force-binary -t tree.nwk -I in.fasta -O dipper.nwk` | same file as `dipper-m` |
 | `dipper-r` | `dipper_cpu --add -i r -T {threads} -t tree.nwk -I in.fasta -O dipper.nwk` | backbone + raw queries, ungapped (`workflow/scripts/ungap_concat.awk`) |
 
 ## Threads and versions
 
 - CPU: native `-T {threads}`. GPU: the build has no thread flag; the harness records 16 and SLURM bounds it.
-- GPU version is the image digest in `envs/dipper-gpu.image.txt` (UNVERIFIED until T27). The image is built from upstream main, not the 0.1.5 tag. The `.sif` is pulled once to `data/images/dipper-gpu.sif` by the local rule `dipper_gpu_sif`.
+- GPU version is the image digest in `envs/dipper-gpu.image.txt` (verified in T27). The image is built from upstream main, not the 0.1.5 tag. The `.sif` is pulled once to `data/images/dipper-gpu.sif` by the local rule `dipper_gpu_sif`.
+- The GPU arm is pinned to `b-gpu-21` (RTX 3090) by the SLURM profile, so GPU runtimes are comparable only on that card. It passes `--force-binary` to keep a binary tree with `:0` branches; the CPU 0.1.5 build always collapses exact-zero internal edges and has no such flag (`docs/pilot.md`).
 - The GPU arm needs `apptainer` and an NVIDIA driver on the host (`--nv`). It is manual tier: cluster only, after T27, excluded from the CI smoke matrix.
 
 ## Quirks
