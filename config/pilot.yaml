@@ -1,0 +1,5 @@
+# T21 pilot (docs/pilot.md): B10k* only, all arms, gg2 (1k queries) and emp-10k.
+datasets: [gg2, emp-10k]
+backbones: [B10k]
+regions: [full-length, V4-150]
+alns: [hmmalign]

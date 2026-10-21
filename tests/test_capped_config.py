@@ -28,6 +28,6 @@ def test_overlay_validates_against_schema():
 def test_overlay_plans_exactly_one_pplacer_cell():
     config = capped_config()
     cells = plan_cells(config, config["arms"])
-    assert [(c.backbone, c.region, c.aln, c.arm) for c in cells] == [
-        ("Bfull", "V4-150", "hmmalign", "pplacer")
+    assert [tuple(c) for c in cells] == [
+        ("gg2", "Bfull", "V4-150", "hmmalign", "pplacer")
     ]
