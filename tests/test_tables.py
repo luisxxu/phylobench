@@ -22,6 +22,7 @@ from phylobench.tables import (
     run_specs,
     score_table,
     smoke_failures,
+    timing_summary,
     width_failures,
 )
 
@@ -325,3 +326,52 @@ def test_concordance_rows_label_and_nan():
     assert {r["label"] for r in rows} == {"concordance"}
     assert rows[0]["reference_run_id"] == "ref" and rows[0]["sim"] == 0.9
     assert math.isnan(rows[1]["edge_dist"])
+
+
+def timing_runs(*rows):
+    base = {
+        "dataset": "gg2",
+        "backbone": "B10k",
+        "region": "V4-150",
+        "aln": "hmmalign",
+        "arm": "pplacer",
+        "phase": "place",
+        "status": "ok",
+        "peak_mem_mb": 100.0,
+    }
+    return pd.DataFrame([base | row for row in rows])
+
+
+def test_timing_summary_mean_and_cv_over_ok_rows():
+    runs = timing_runs({"wall_s": 10.0}, {"wall_s": 12.0}, {"wall_s": 14.0})
+    row = timing_summary(runs).iloc[0]
+    assert (row["n"], row["n_ok"], row["wall_mean"]) == (3, 3, 12.0)
+    assert row["wall_cv"] == pytest.approx(1 / 6)
+    assert row["peak_mem_max"] == 100.0
+
+
+def test_timing_summary_counts_dnf_in_n_not_n_ok():
+    runs = timing_runs(
+        {"wall_s": 10.0},
+        {"wall_s": 14.0},
+        {"wall_s": 99.0, "status": "DNF", "peak_mem_mb": 300.0},
+    )
+    row = timing_summary(runs).iloc[0]
+    assert (row["n"], row["n_ok"], row["wall_mean"]) == (3, 2, 12.0)
+    assert row["peak_mem_max"] == 300.0
+
+
+def test_timing_summary_cv_is_nan_below_two_ok_rows():
+    runs = timing_runs({"wall_s": 10.0}, {"wall_s": 5.0, "status": "DNF"})
+    row = timing_summary(runs).iloc[0]
+    assert row["n_ok"] == 1 and math.isnan(row["wall_cv"])
+
+
+def test_timing_summary_keeps_all_dnf_cell_and_drops_other_phases():
+    runs = timing_runs(
+        {"wall_s": 5.0, "status": "DNF"},
+        {"wall_s": 1.0, "phase": "evaluate", "arm": "epa-ng"},
+    )
+    summary = timing_summary(runs)
+    assert list(summary["arm"]) == ["pplacer"]
+    assert summary.iloc[0]["n_ok"] == 0 and math.isnan(summary.iloc[0]["wall_mean"])
