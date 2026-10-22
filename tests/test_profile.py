@@ -7,10 +7,8 @@ from emp_helpers import ROOT
 from test_workflow_dag import planned_blocks, repo  # noqa: F401
 
 PROFILE = ROOT / "profiles" / "slurm" / "config.yaml"
-THREADED_TOOL_RULES = {
-    "hmmbuild",
-    "hmmalign",
-    "refprep_me_tree",
+PREP_RULES = {"hmmbuild", "hmmalign", "refprep_me_tree", "guppy_tog"}
+PLACE_RULES = {
     "sepp_prod",
     "sepp_pinned_place",
     "pplacer_place",
@@ -21,7 +19,6 @@ THREADED_TOOL_RULES = {
     "apples2_place",
     "dipper_m_place",
     "dipper_r_place",
-    "guppy_tog",
 }
 GPU_RULE = "dipper_m_gpu_place"
 NODE_MEM_MB = 514000
@@ -49,14 +46,14 @@ def test_slurm_resources_by_rule(repo):  # noqa: F811
         for rule, jobs in blocks.items()
         if any("--threads 2" in job for job in jobs)
     }
-    assert threaded == THREADED_TOOL_RULES | {GPU_RULE}
-    for rule in THREADED_TOOL_RULES:
+    assert threaded == PREP_RULES | PLACE_RULES | {GPU_RULE}
+    for rule in PREP_RULES | PLACE_RULES:
         for job in blocks[rule]:
             res = resources(job)
             assert res["slurm_partition"] == "long", rule
             assert res["runtime"] == "4320", rule
-            assert "--exclusive" in res["slurm_extra"], rule
             assert int(res["mem_mb"]) <= NODE_MEM_MB, rule
+            assert ("--exclusive" in res["slurm_extra"]) == (rule in PLACE_RULES), rule
     for job in blocks[GPU_RULE]:
         res = resources(job)
         assert res["slurm_partition"] == "gpu" and res["gpu"] == "1"

@@ -13,14 +13,22 @@ default-resources:
   mem_mb: 32000
   slurm_extra: "'--no-requeue'"
 set-resources:
-  hmmbuild: &tool_resources
+  # Place rules get whole nodes so wall time is free of neighbours. Prep and convert rules
+  # share nodes (task/cgroup pins their 16 cores); a whole-node wait per short job stalls
+  # the queue for days (pilot, 2026-10-22).
+  hmmbuild: &prep_resources
+    slurm_partition: long
+    runtime: 4320
+    mem_mb: 196608
+    slurm_extra: "'--no-requeue'"
+  hmmalign: *prep_resources
+  refprep_me_tree: *prep_resources
+  guppy_tog: *prep_resources
+  sepp_prod: &tool_resources
     slurm_partition: long
     runtime: 4320
     mem_mb: 500000
     slurm_extra: "'--exclusive --no-requeue'"
-  hmmalign: *tool_resources
-  refprep_me_tree: *tool_resources
-  sepp_prod: *tool_resources
   sepp_pinned_place: *tool_resources
   pplacer_place: *tool_resources
   pplacer_scampp_place: *tool_resources
@@ -30,7 +38,6 @@ set-resources:
   apples2_place: *tool_resources
   dipper_m_place: *tool_resources
   dipper_r_place: *tool_resources
-  guppy_tog: *tool_resources
   # gpu partition caps MaxMemPerCPU at 12288 MB; above 16 x 12288 SLURM raises the CPU
   # count past b-gpu-21's 32 and rejects the job ("CPU count per node can not be satisfied").
   dipper_m_gpu_place:
