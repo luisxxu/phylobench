@@ -31,9 +31,11 @@ set-resources:
   dipper_m_place: *tool_resources
   dipper_r_place: *tool_resources
   guppy_tog: *tool_resources
+  # gpu partition caps MaxMemPerCPU at 12288 MB; above 16 x 12288 SLURM raises the CPU
+  # count past b-gpu-21's 32 and rejects the job ("CPU count per node can not be satisfied").
   dipper_m_gpu_place:
     slurm_partition: gpu
     gpu: 1
     runtime: 4320
-    mem_mb: 500000
+    mem_mb: 196608
     slurm_extra: "'--exclusive --no-requeue --nodelist=b-gpu-21'"

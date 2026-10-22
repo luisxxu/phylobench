@@ -25,6 +25,7 @@ THREADED_TOOL_RULES = {
 }
 GPU_RULE = "dipper_m_gpu_place"
 NODE_MEM_MB = 514000
+GPU_MAX_MEM_MB = 16 * 12288  # gpu partition MaxMemPerCPU x 16 cpus/task
 
 
 def resources(block: str) -> dict[str, str]:
@@ -62,7 +63,7 @@ def test_slurm_resources_by_rule(repo):  # noqa: F811
         assert "--nodelist=b-gpu-21" in res["slurm_extra"]
         assert "--exclusive" in res["slurm_extra"]
         assert "gres" not in res
-        assert int(res["mem_mb"]) <= 508000
+        assert int(res["mem_mb"]) <= GPU_MAX_MEM_MB
     for rule in ("evaluate", "collect_tables"):
         for job in blocks[rule]:
             res = resources(job)
