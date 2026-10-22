@@ -9,6 +9,7 @@ Pilot of every arm at B10k\* on Barnacle (SLURM, `knightlab`), plus a Bfull\* DI
 - The 10 CPU place rules (`sepp_prod` and every `*_place`): `long`, 4320 min (72 h), 500000 MB, `--exclusive`. A 16-thread placement gets a whole node, so place timings are free of neighbours.
 - Prep and convert rules (`hmmbuild`, `hmmalign`, `refprep_me_tree`, `guppy_tog`): `long`, 4320 min, 196608 MB, shared nodes. Barnacle pins each job to its cores (`TaskPlugin=task/cgroup,task/affinity`, `CR_CORE_MEMORY`), but neighbours still share memory bandwidth, cache and Lustre, so these phases' wall times carry a shared-node caveat; memory stays exact (own cgroup). Changed mid-pilot (2026-10-22): with every prep and convert job waiting for a whole node, the r1 queue reached days. Stage 1's B10k\* `hmmbuild`/`hmmalign` rows ran exclusive. `sepp_prod` is one rule, so its align and convert stay exclusive while other arms' do not; end-to-end comparisons against sepp-prod carry this caveat.
 - `dipper_m_gpu_place`: `gpu` partition, `gpu: 1`, `--exclusive --nodelist=b-gpu-21`, 4320 min, 196608 MB. The `gpu` partition sets `MaxMemPerCPU=12288`, so 16 CPUs cap the request at 16 x 12288 MB; asking for more makes SLURM raise the CPU count past the node's 32 and reject the job (first stage-2 submission, 2026-10-22). The plugin's `gpu` resource is used instead of `gres` because `gres` is not propagated to the jobstep `srun`.
+- `profiles/slurm-pilot/config.yaml` (stage 4 and repeats r2/r3): identical except the exclusive place rules run on `short` with 1440 min. `short` has PriorityTier 3 and `long` 2 over the same nodes, so on a busy cluster an exclusive `long` job waited about 2 days while the same job on `short` was estimated within a day (2026-10-22, `sbatch --test-only`). The harness timeout stays 71 h (changing `timeout_s` changes every rule's shell and would rerun stages 1-2), so a B10k\* cell over 24 h would be killed by SLURM without a `run.json`; such a cell is recorded here as DNF by hand. The longest B10k\* place cell in stages 1-2 took 6 min. `--jobs 6` limits how many whole nodes the pilot holds at once.
 - `--no-requeue` is passed through `slurm_extra` rather than the plugin's `slurm-no-requeue` setting, so the profile has no plugin-specific keys and `snakemake --executor local --profile profiles/slurm` works without the plugin (used by `tests/test_profile.py`).
 - `envs/phylobench.yaml` pins `snakemake-executor-plugin-slurm=2.8.0` and `-jobstep=0.6.1`. Job-side Snakemake runs under the submitting env's Python (the plugin uses `sys.executable` and `--export=ALL`), so submit from the activated `phylobench` env.
 
@@ -73,7 +74,7 @@ tar czf /ddn_scratch/lxxu/phylobench-archive/pilot-s3.tgz results
 Stage 4 (all arms, timing run r1):
 
 ```sh
-snakemake all --profile profiles/slurm --configfile config/pilot.yaml
+snakemake all --profile profiles/slurm-pilot --jobs 6 --configfile config/pilot.yaml
 ```
 
 ```sh
@@ -87,7 +88,7 @@ cp results/runs.tsv /ddn_scratch/lxxu/phylobench-archive/runs-r1.tsv
 Timing repeat r2 (the 11 place rules on the CV config):
 
 ```sh
-snakemake all --profile profiles/slurm --forcerun sepp_prod pplacer_place epa_ng_place bscampp_place epa_ng_scampp_place pplacer_scampp_place apples2_place dipper_m_place dipper_r_place dipper_m_gpu_place sepp_pinned_place --configfile config/pilot-cv.yaml
+snakemake all --profile profiles/slurm-pilot --jobs 6 --forcerun sepp_prod pplacer_place epa_ng_place bscampp_place epa_ng_scampp_place pplacer_scampp_place apples2_place dipper_m_place dipper_r_place dipper_m_gpu_place sepp_pinned_place --configfile config/pilot-cv.yaml
 ```
 
 ```sh
@@ -101,7 +102,7 @@ cp results/runs.tsv /ddn_scratch/lxxu/phylobench-archive/runs-r2.tsv
 Timing repeat r3 (the 11 place rules on the CV config):
 
 ```sh
-snakemake all --profile profiles/slurm --forcerun sepp_prod pplacer_place epa_ng_place bscampp_place epa_ng_scampp_place pplacer_scampp_place apples2_place dipper_m_place dipper_r_place dipper_m_gpu_place sepp_pinned_place --configfile config/pilot-cv.yaml
+snakemake all --profile profiles/slurm-pilot --jobs 6 --forcerun sepp_prod pplacer_place epa_ng_place bscampp_place epa_ng_scampp_place pplacer_scampp_place apples2_place dipper_m_place dipper_r_place dipper_m_gpu_place sepp_pinned_place --configfile config/pilot-cv.yaml
 ```
 
 ```sh
