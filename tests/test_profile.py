@@ -70,10 +70,10 @@ def test_slurm_resources_by_rule(repo):  # noqa: F811
         assert all("--no-requeue" in resources(job)["slurm_extra"] for job in jobs)
 
 
-def test_pilot_profile_only_moves_place_rules_to_short():
+def test_pilot_profile_only_moves_long_rules_to_short():
     profile = yaml.safe_load(PROFILE.read_text())
     pilot = yaml.safe_load((ROOT / "profiles/slurm-pilot/config.yaml").read_text())
-    for rule in PLACE_RULES:
+    for rule in PREP_RULES | PLACE_RULES:
         res = pilot["set-resources"][rule]
         assert (res["slurm_partition"], res["runtime"]) == ("short", 1440), rule
         profile["set-resources"][rule] = res
