@@ -1,0 +1,51 @@
+# Pilot-only copy of profiles/slurm: every `long` rule goes to `short` (1440 min), whose
+# PriorityTier (3) outranks `long` (2) on the same nodes; on `long` even shared jobs
+# waited days (2026-10-23). B10k* cells take minutes; T22 keeps profiles/slurm.
+# Retries stay 0: a DNF is data (CLAUDE.md). No `group` keys: one rule per sbatch keeps
+# the srun step cgroup's memory.peak clean (docs/harness.md section 4).
+# --no-requeue lives in slurm_extra, not slurm-no-requeue, so `--executor local` works
+# without the SLURM plugin installed.
+executor: slurm
+jobs: 20
+retries: 0
+use-conda: true
+default-resources:
+  slurm_account: knightlab
+  slurm_partition: short
+  runtime: 1440
+  mem_mb: 32000
+  slurm_extra: "'--no-requeue'"
+set-resources:
+  # Place rules get whole nodes so wall time is free of neighbours. Prep and convert rules
+  # share nodes (task/cgroup pins their 16 cores); a whole-node wait per short job stalls
+  # the queue for days (pilot, 2026-10-22).
+  hmmbuild: &prep_resources
+    slurm_partition: short
+    runtime: 1440
+    mem_mb: 196608
+    slurm_extra: "'--no-requeue'"
+  hmmalign: *prep_resources
+  refprep_me_tree: *prep_resources
+  guppy_tog: *prep_resources
+  sepp_prod: &tool_resources
+    slurm_partition: short
+    runtime: 1440
+    mem_mb: 500000
+    slurm_extra: "'--exclusive --no-requeue'"
+  sepp_pinned_place: *tool_resources
+  pplacer_place: *tool_resources
+  pplacer_scampp_place: *tool_resources
+  epa_ng_scampp_place: *tool_resources
+  bscampp_place: *tool_resources
+  epa_ng_place: *tool_resources
+  apples2_place: *tool_resources
+  dipper_m_place: *tool_resources
+  dipper_r_place: *tool_resources
+  # gpu partition caps MaxMemPerCPU at 12288 MB; above 16 x 12288 SLURM raises the CPU
+  # count past b-gpu-21's 32 and rejects the job ("CPU count per node can not be satisfied").
+  dipper_m_gpu_place:
+    slurm_partition: gpu
+    gpu: 1
+    runtime: 4320
+    mem_mb: 196608
+    slurm_extra: "'--exclusive --no-requeue --nodelist=b-gpu-21'"
