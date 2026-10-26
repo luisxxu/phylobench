@@ -157,79 +157,86 @@ Zero-length internal edge pre-flight: count zero-length internal edges in the B1
 
 About 60 node-hours by default; ceiling 150. Record actual node-hours below.
 
-## Results (to be filled after the pilot)
+## Results
+
+Barnacle, 2026-10-22 to 2026-10-26. All 33 B10k\* place cells `ok` (acceptance met); every place row `mem_source=cgroup`; max `cpu_s / wall_s` 15.7. Archives: `/ddn_scratch/lxxu/phylobench-archive/` (`pilot-s1`, `pilot-s2`, `pilot-r1..r3` `.tgz`, `runs-r1..r3.tsv`).
 
 ### Per-arm runtime and memory at B10k\*
 
-| arm | dataset | region | wall_mean (s) | peak_mem_max (MB) |
-|---|---|---|---|---|
-| sepp-prod | gg2 | full-length |  |  |
-| sepp-prod | gg2 | V4-150 |  |  |
-| sepp-prod | emp-10k | V4-150 |  |  |
-| sepp-pinned | gg2 | full-length |  |  |
-| sepp-pinned | gg2 | V4-150 |  |  |
-| sepp-pinned | emp-10k | V4-150 |  |  |
-| pplacer | gg2 | full-length |  |  |
-| pplacer | gg2 | V4-150 |  |  |
-| pplacer | emp-10k | V4-150 |  |  |
-| pplacer-scampp | gg2 | full-length |  |  |
-| pplacer-scampp | gg2 | V4-150 |  |  |
-| pplacer-scampp | emp-10k | V4-150 |  |  |
-| epa-ng-scampp | gg2 | full-length |  |  |
-| epa-ng-scampp | gg2 | V4-150 |  |  |
-| epa-ng-scampp | emp-10k | V4-150 |  |  |
-| bscampp | gg2 | full-length |  |  |
-| bscampp | gg2 | V4-150 |  |  |
-| bscampp | emp-10k | V4-150 |  |  |
-| epa-ng | gg2 | full-length |  |  |
-| epa-ng | gg2 | V4-150 |  |  |
-| epa-ng | emp-10k | V4-150 |  |  |
-| apples2 | gg2 | full-length |  |  |
-| apples2 | gg2 | V4-150 |  |  |
-| apples2 | emp-10k | V4-150 |  |  |
-| dipper-m | gg2 | full-length |  |  |
-| dipper-m | gg2 | V4-150 |  |  |
-| dipper-m | emp-10k | V4-150 |  |  |
-| dipper-m-gpu | gg2 | full-length |  |  |
-| dipper-m-gpu | gg2 | V4-150 |  |  |
-| dipper-m-gpu | emp-10k | V4-150 |  |  |
-| dipper-r | gg2 | full-length |  |  |
-| dipper-r | gg2 | V4-150 |  |  |
-| dipper-r | emp-10k | V4-150 |  |  |
+Place phase (SEPP arms: their combined `align+place[+convert]` phase), r1; gg2 V4-150 is the mean of 3 runs.
+
+| arm | gg2 full-length wall (s) / peak (MB) | gg2 V4-150 | emp-10k V4-150 |
+|---|---|---|---|
+| sepp-prod | 337.6 / 102,337 | 68.9 / 11,613 | 242.6 / 12,212 |
+| sepp-pinned | 286.9 / 103,229 | 73.1 / 11,551 | 207.1 / 12,133 |
+| pplacer | 248.3 / 14,795 | 26.4 / 2,500 | 239.1 / 3,546 |
+| pplacer-scampp | 934 / 41,414 | 188.1 / 7,508 | 1153.3 / 25,535 |
+| epa-ng-scampp | 288.8 / 37,729 | 102.4 / 19,111 | 613.6 / 33,811 |
+| bscampp | 30.7 / 20,943 | 8.35 / 9,267 | 37.4 / 9,671 |
+| epa-ng | 23.1 / 15,811 | 10.5 / 6,220 | 22.8 / 6,290 |
+| apples2 | 26.1 / 737 | 7.27 / 603 | 42.1 / 885 |
+| dipper-m | 4.36 / 194 | 3.14 / 194 | 44.3 / 252 |
+| dipper-m-gpu | 4.78 / 585 | 4.27 / 590 | 11 / 631 |
+| dipper-r | 6.51 / 340 | 4.45 / 340 | 69.5 / 481 |
+
+`dipper-m-gpu` ran on `b-gpu-21` (RTX 3090) with `gpu_peak_mb` 336 (gg2) and 348 (emp-10k).
 
 ### Timing CV (3 runs, gg2 V4-150)
 
 | arm | n_ok | wall_mean (s) | wall_cv |
 |---|---|---|---|
-| sepp-prod |  |  |  |
-| sepp-pinned |  |  |  |
-| pplacer |  |  |  |
-| pplacer-scampp |  |  |  |
-| epa-ng-scampp |  |  |  |
-| bscampp |  |  |  |
-| epa-ng |  |  |  |
-| apples2 |  |  |  |
-| dipper-m |  |  |  |
-| dipper-m-gpu |  |  |  |
-| dipper-r |  |  |  |
+| sepp-prod | 3 | 68.9 | 11.3% (flag: >10%) |
+| sepp-pinned | 3 | 73.1 | 17.1% (flag: >10%) |
+| pplacer | 3 | 26.4 | 5.0% |
+| pplacer-scampp | 3 | 188.1 | 6.4% |
+| epa-ng-scampp | 3 | 102.4 | 6.9% |
+| bscampp | 3 | 8.35 | 5.3% |
+| epa-ng | 3 | 10.5 | 5.5% |
+| apples2 | 3 | 7.27 | 58.5% (flag: >10%) |
+| dipper-m | 3 | 3.14 | 0.6% |
+| dipper-m-gpu | 3 | 4.27 | 9.0% |
+| dipper-r | 3 | 4.45 | 11.8% (flag: >10%) |
+
+Every arm over ~10 s of non-SEPP placement stays under 7%. The flagged arms either run for a few seconds (apples2, dipper-r: startup and Lustre reads dominate; one apples2 run took twice the others) or are SEPP, which spawns many subprocesses and writes temp files. Flags are reported, not gated.
 
 ### Bfull\* go/no-go
 
-| arm | projected emp-100k place wall (h) | projected peak (GB) | verdict |
-|---|---|---|---|
-| sepp-prod |  |  |  |
-| sepp-pinned |  |  |  |
-| pplacer |  |  |  |
-| pplacer-scampp |  |  |  |
-| epa-ng-scampp |  |  |  |
-| bscampp |  |  |  |
-| epa-ng |  |  |  |
-| apples2 |  |  |  |
-| dipper-m |  |  |  |
-| dipper-m-gpu |  |  |  |
-| dipper-r |  |  |  |
+Projection as pre-registered: cost linear in backbone size (x32.7 = 327,078 / 10,000) and, for wall time, linear in query count fitted from gg2 V4-150 (1k) and emp-10k (10k) and extrapolated to emp-100k. Peak memory projects the largest B10k\* cell (gg2 full-length) and, separately, the largest V4-150 cell. Limit: 0.8 x 514,000 MB = 402 GB.
+
+| arm | projected emp-100k place wall (h) | projected peak, any region (GB) | projected peak, V4-150 (GB) | verdict (pre-registered rule) |
+|---|---|---|---|---|
+| sepp-prod | 18.0 | 3,269 | 390 | go on time; memory over 0.8 x node |
+| sepp-pinned | 14.1 | 3,297 | 388 | go on time; memory over 0.8 x node |
+| pplacer | 21.5 | 473 | 113 | capped attempt only (by design) |
+| pplacer-scampp | 98.2 | 1,323 | 816 | no-go on time; memory over 0.8 x node |
+| epa-ng-scampp | 52.0 | 1,205 | 1,080 | go, capped on time; memory over 0.8 x node |
+| bscampp | 3.0 | 669 | 309 | go on time; memory over 0.8 x node |
+| epa-ng | 1.3 | 505 | 201 | B10k\* only (by design) |
+| apples2 | 3.5 | 28 | 28 | go |
+| dipper-m | 4.1 | 8 | 8 | go |
+| dipper-m-gpu | 0.7 | 20 | 20 | go; GPU memory: see probe |
+| dipper-r | 6.5 | 15 | 15 | B10k\* only (by design) |
+
+Reading the table:
+
+- The linear-in-backbone memory assumption is known to overstate the decomposition arms: SEPP, pplacer-SCAMPP, EPA-ng-SCAMPP and BSCAMPP place into fixed-size subsets, and production SEPP already runs on the full GG2 reference. Their memory "over 0.8 x node" verdicts mean "may OOM", not "drop". `sepp-prod` is the reference arm and is never dropped.
+- Recommendation for T22 (user decision): keep every arm at Bfull\* except the by-design B10k\*-only ones (`epa-ng`, `dipper-r`) and the capped pplacer attempt; an OOM or timeout becomes a DNF row (failures are data). Send full-length cells of the memory-flagged arms to `highmem` (b-cn-25/26, 1.5 TB, 14 days, `AllowAccounts=ALL`; CPU model unchecked, so their wall times carry a hardware caveat).
+- `pplacer-scampp` projects 98 h for emp-100k, above the 71 h harness timeout: expect a DNF for that cell unless T22 caps it.
+- `epa-ng-scampp` projects 52 h: "go, capped" (a timeout is still a DNF row).
+
+### Findings
+
+- apples2 V4-150 `convert` is DNF on both datasets: `guppy tog` aborts with "Internal edge became -0.0021..." because apples2 writes a `distal_length` longer than the edge. `evaluate` reads the jplace, so accuracy is unaffected; only apples2's V4-150 end-to-end time is missing.
+- pplacer `cpu_s` is undercounted (emp-10k: 20 s CPU over 239 s wall): the harness takes CPU from `wait4` rusage, which misses `-j` workers that pplacer does not reap. Wall time and cgroup memory are unaffected.
+- Short prep and convert steps fall back to `psutil` when the tool never lifts the cgroup's `memory.peak` above the harness's own baseline (e.g. 13 MB `hmmalign`); all place rows are `cgroup`.
+- Zero-length internal edges: B10k\* 0, Bfull\* 1. CPU `dipper-m` passed the RF check at B10k\*; at Bfull\* it may fail (no `--force-binary` in 0.1.5). GPU image `--help` confirms `--force-binary` and no `-T`.
+- After `envs/phylobench.yaml` changed, Snakemake scheduled the whole GG2/EMP data build again (software-env provenance). Fixed by `snakemake --cleanup-metadata` on every existing file under `data/` plus `results/emp-*/regions/V4-150/queries.fasta`; T22 must do the same after any change to that env.
+- The rejected first stage-2 submissions (`MaxMemPerCPU`) never ran and left no rows.
+
+### Bfull\* DIPPER GPU probe
+
+Pending.
 
 ### Actual node-hours
 
-| stage | node-hours |
-|---|---|
+Pending (from `sacct`).
