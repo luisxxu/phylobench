@@ -50,7 +50,7 @@ These are what make results comparable. Violating one invalidates a run — rais
 
 ```
 workflow/Snakefile, workflow/rules/*.smk, workflow/scripts/   # orchestration (I/O)
-src/phylobench/                                                # pure Python: measure, jplace, accuracy, similarity, regions, heldout, dipper_adapter, models
+src/phylobench/                                                # pure Python: measure, jplace, accuracy, similarity, regions, heldout, dipper_adapter, models, gates
 envs/<tool>.yaml                                               # one pinned env per tool
 config/{schema,smoke,full}.yaml, config/arms/*.yaml           # run configs; one file per arm (wrappers add files only)
 profiles/slurm/                                                # HPC profile (T21)
@@ -65,7 +65,7 @@ mamba env create -f envs/phylobench.yaml && conda activate phylobench && pip ins
 pytest                                                                   # unit tests (local + CI)
 ruff check . && ruff format --check . && snakemake --lint                # lint (local + CI)
 snakemake --use-conda --configfile config/smoke.yaml -c 2                # smoke test — CI (linux) only; agents on macOS check it via gh pr checks
-snakemake --use-conda --profile profiles/slurm --configfile config/full.yaml   # full benchmark (HPC only, user-confirmed)
+# full benchmark (HPC only, user-confirmed): staged S1/S2/S3 per docs/runbook-t22.md (config/full.yaml + stage overlay)
 ```
 
 ## Agents

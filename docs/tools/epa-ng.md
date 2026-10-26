@@ -29,5 +29,5 @@ AGPL-3, and the engine executed is EPA-ng itself (see `LICENSES.md`).
 ## Quirks
 
 - `--model` is the T6 model string (`GTR{..}+FU{..}+G4m{1.0}`) with the shipped numbers, never re-estimated.
-- B10k\* only (`design.md` section 5). T12 does not restrict it: arm config cannot name backbones, so T22 drops it at Bfull\* (see `TICKETS.md` T22).
+- B10k\* only (`design.md` section 5). Arm config cannot name backbones, so `config/full.yaml` drops it at Bfull\* with its `exclude` list (`docs/harness.md` section 7).
 - `--redo` lets a rerun overwrite the previous output in the cell.

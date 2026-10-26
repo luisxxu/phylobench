@@ -18,8 +18,7 @@ alns: [hmmalign]
 """
 
 
-@pytest.fixture
-def repo(tmp_path):
+def build_repo(tmp_path):
     for name in LINKED:
         (tmp_path / name).symlink_to(ROOT / name)
     for name in (
@@ -34,6 +33,11 @@ def repo(tmp_path):
     biom.parent.mkdir(parents=True)
     biom.touch()
     (tmp_path / "mixed.yaml").write_text(MIXED)
+
+
+@pytest.fixture
+def repo(tmp_path):
+    build_repo(tmp_path)
     return tmp_path
 
 
@@ -132,3 +136,40 @@ def test_gpu_arm_forces_binary_and_cpu_dipper_does_not(repo):
     gpu, cpu = blocks["dipper_m_gpu_place"][0], blocks["dipper_m_place"][0]
     assert "--force-binary" in gpu and " -T " not in gpu
     assert "--force-binary" not in cpu and "-T 16" in cpu
+
+
+@pytest.fixture(scope="module")
+def full_blocks(tmp_path_factory):
+    repo_dir = tmp_path_factory.mktemp("full")
+    build_repo(repo_dir)
+    return repo_dir, planned_blocks(repo_dir, "--configfile", "config/full.yaml")
+
+
+def test_full_config_collect_command_stays_small_and_specs_are_a_file(full_blocks):
+    _, blocks = full_blocks
+    assert len(blocks["collect_tables"]) == 1
+    [command] = [
+        line for line in blocks["collect_tables"][0].splitlines() if "--specs" in line
+    ]
+    assert len(command.encode()) < 100_000
+    assert "--specs results/run_specs.json" in command
+    assert len(blocks["run_specs"]) == 1
+
+
+def test_full_config_plans_sim10k_panel_and_nothing_at_sim10k_bfull(full_blocks):
+    _, blocks = full_blocks
+    assert len(blocks["sim10k_panel"]) == 1
+    assert not [
+        b for rule_blocks in blocks.values() for b in rule_blocks if "sim10k/Bfull" in b
+    ]
+
+
+def test_bfull_stage_plans_one_pplacer_and_no_epa_ng_dipper_r_or_oracle(full_blocks):
+    repo_dir, _ = full_blocks
+    blocks = planned_blocks(
+        repo_dir,
+        "--configfile", "config/full.yaml", "config/full-bfull.yaml",
+    )  # fmt: skip
+    assert len(blocks["pplacer_place"]) == 1
+    for rule in ("epa_ng_place", "dipper_r_place", "oracle_region"):
+        assert rule not in blocks

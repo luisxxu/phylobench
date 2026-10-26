@@ -36,13 +36,15 @@ def write_scores(specs: list[RunSpec], columns, out: Path) -> None:
 
 def main():
     parser = argparse.ArgumentParser(description="Collect run.json files into TSVs.")
-    parser.add_argument("--specs", required=True, help="JSON list of RunSpec records")
+    parser.add_argument(
+        "--specs", type=Path, required=True, help="JSON file of RunSpec records"
+    )
     parser.add_argument("--out-runs", type=Path, required=True)
     parser.add_argument("--out-accuracy", type=Path, required=True)
     parser.add_argument("--out-concordance", type=Path, required=True)
     args = parser.parse_args()
 
-    specs = [RunSpec(**record) for record in json.loads(args.specs)]
+    specs = [RunSpec(**record) for record in json.loads(args.specs.read_text())]
     runs = [
         run_row(spec, json.loads(Path(spec.run_json).read_text()), query_count(spec))
         for spec in specs

@@ -8,19 +8,24 @@ from test_workflow_dag import planned_blocks, repo  # noqa: F401
 
 PROFILE = ROOT / "profiles" / "slurm" / "config.yaml"
 PREP_RULES = {"hmmbuild", "hmmalign", "refprep_me_tree", "guppy_tog"}
-PLACE_RULES = {
+HIGHMEM_RULES = {
     "sepp_prod",
     "sepp_pinned_place",
-    "pplacer_place",
     "pplacer_scampp_place",
     "epa_ng_scampp_place",
     "bscampp_place",
+}
+LONG_PLACE_RULES = {
+    "pplacer_place",
     "epa_ng_place",
     "apples2_place",
     "dipper_m_place",
     "dipper_r_place",
 }
+PLACE_RULES = HIGHMEM_RULES | LONG_PLACE_RULES
+POST_RULES = {"similarity", "evaluate", "concordance", "dipper_to_jplace"}
 GPU_RULE = "dipper_m_gpu_place"
+HIGHMEM_MEM_MB = 1_500_000
 NODE_MEM_MB = 514000
 GPU_MAX_MEM_MB = 16 * 12288  # gpu partition MaxMemPerCPU x 16 cpus/task
 
@@ -50,9 +55,13 @@ def test_slurm_resources_by_rule(repo):  # noqa: F811
     for rule in PREP_RULES | PLACE_RULES:
         for job in blocks[rule]:
             res = resources(job)
-            assert res["slurm_partition"] == "long", rule
             assert res["runtime"] == "4320", rule
-            assert int(res["mem_mb"]) <= NODE_MEM_MB, rule
+            if rule in HIGHMEM_RULES:
+                assert res["slurm_partition"] == "highmem", rule
+                assert int(res["mem_mb"]) == HIGHMEM_MEM_MB, rule
+            else:
+                assert res["slurm_partition"] == "long", rule
+                assert int(res["mem_mb"]) <= NODE_MEM_MB, rule
             assert ("--exclusive" in res["slurm_extra"]) == (rule in PLACE_RULES), rule
     for job in blocks[GPU_RULE]:
         res = resources(job)
@@ -66,11 +75,15 @@ def test_slurm_resources_by_rule(repo):  # noqa: F811
             res = resources(job)
             assert res["slurm_partition"] == "short"
             assert "--exclusive" not in res["slurm_extra"]
+    for rule in POST_RULES & blocks.keys():
+        assert all(int(resources(job)["mem_mb"]) == 128000 for job in blocks[rule]), (
+            rule
+        )
     for jobs in blocks.values():
         assert all("--no-requeue" in resources(job)["slurm_extra"] for job in jobs)
 
 
-def test_pilot_profile_only_moves_long_rules_to_short():
+def test_pilot_profile_only_moves_long_and_highmem_rules_to_short():
     profile = yaml.safe_load(PROFILE.read_text())
     pilot = yaml.safe_load((ROOT / "profiles/slurm-pilot/config.yaml").read_text())
     for rule in PREP_RULES | PLACE_RULES:

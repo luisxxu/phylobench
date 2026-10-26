@@ -1,0 +1,21 @@
+# T22 full benchmark (docs/runbook-t22.md): the whole matrix; stages overlay one backbone.
+# The exclude list is what is not run, with the reason (design.md section 5, pilot.md):
+#   - epa-ng and dipper-r at Bfull*: no tractable run (memory/time), B10k* only.
+#   - pplacer at Bfull*: one capped gg2 V4-150 attempt only (config/pplacer-bfull-cap.yaml
+#     is the same cell); no EMP, no other regions.
+#   - oracle alignments at Bfull*: B10k* only.
+#   - sim10k: one 8,975-leaf backbone (named B10k), full-length and V4-150, hmmalign only.
+datasets: [gg2, sim10k, emp-10k, emp-100k]
+backbones: [B10k, Bfull]
+regions: [full-length, V4-150, V3-V4, V1-V2, V1-V3, V4-V5, V5-V6, V6-V8, V7-V9]
+alns: [hmmalign, oracle]
+exclude:
+  - {backbone: [Bfull], arm: [epa-ng, dipper-r]}
+  - {backbone: [Bfull], arm: [pplacer], dataset: [emp-10k, emp-100k]}
+  - {backbone: [Bfull], arm: [pplacer], region: [full-length, V3-V4, V1-V2, V1-V3, V4-V5, V5-V6, V6-V8, V7-V9]}
+  - {backbone: [Bfull], aln: [oracle]}
+  - {dataset: [sim10k], backbone: [Bfull]}
+  - {dataset: [sim10k], region: [V3-V4, V1-V2, V1-V3, V4-V5, V5-V6, V6-V8, V7-V9]}
+  - {dataset: [sim10k], aln: [oracle]}
+# dipper-m at Bfull* stays planned until the P0 probe says otherwise; excluding it is one
+# more entry: {backbone: [Bfull], arm: [dipper-m, dipper-m-gpu]}.
