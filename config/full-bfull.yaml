@@ -1,0 +1,2 @@
+# T22 stage S2: overlay on config/full.yaml (all datasets at Bfull*, EMP included).
+backbones: [Bfull]

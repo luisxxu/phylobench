@@ -18,6 +18,7 @@ from phylobench.tables import (
     load_arms,
     plan_cells,
     query_axes,
+    row_count_failures,
     run_row,
     run_specs,
     score_table,
@@ -386,3 +387,63 @@ def test_timing_summary_includes_combined_place_phases():
     summary = timing_summary(runs).set_index("arm")
     assert summary.loc["sepp-prod", "wall_mean"] == 5.0
     assert summary.loc["sepp-pinned", "wall_mean"] == 6.0
+
+
+TWO_ARMS = {"pplacer": PPLACER, "rawtool": RAW_ARM}
+TWO_BACKBONES = {
+    **CONFIG,
+    "backbones": ["B10k", "Bfull"],
+    "regions": ["full-length", "V4-150"],
+}
+
+
+def planned_with(exclude, config=TWO_BACKBONES):
+    return plan_cells({**config, "exclude": exclude}, TWO_ARMS)
+
+
+def test_exclude_ands_keys_within_an_entry():
+    kept = planned_with([{"backbone": ["Bfull"], "arm": ["rawtool"]}])
+    assert Cell("tiny", "B10k", "V4-150", "raw", "rawtool") in kept
+    assert Cell("tiny", "Bfull", "V4-150", "raw", "rawtool") not in kept
+    assert Cell("tiny", "Bfull", "V4-150", "oracle", "pplacer") in kept
+
+
+def test_exclude_ors_values_within_a_key_and_across_entries():
+    kept = planned_with(
+        [{"region": ["full-length", "V4-150"], "arm": ["rawtool"]}, {"aln": ["oracle"]}]
+    )
+    assert {(c.arm, c.aln) for c in kept} == {("pplacer", "hmmalign")}
+
+
+def test_exclude_absent_changes_nothing():
+    assert planned_with([]) == plan_cells(TWO_BACKBONES, TWO_ARMS)
+
+
+def test_excluded_backbone_gets_no_shared_specs():
+    config = {**TWO_BACKBONES, "exclude": [{"backbone": ["Bfull"]}]}
+    specs = run_specs(config, TWO_ARMS)
+    assert {s.backbone for s in specs} == {"B10k"}
+
+
+def test_hmmalign_spec_only_for_planned_regions_and_kept_for_raw_only_arms():
+    config = {**TWO_BACKBONES, "exclude": [{"region": ["V4-150"], "arm": ["pplacer"]}]}
+    aligned = [s for s in run_specs(config, TWO_ARMS) if s.run_id.endswith("hmmalign")]
+    assert {s.region for s in aligned} == {"full-length", "V4-150"}
+    only_raw = {**TWO_BACKBONES, "exclude": [{"arm": ["pplacer"]}]}
+    assert {
+        s.region for s in run_specs(only_raw, TWO_ARMS) if s.run_id.endswith("hmmalign")
+    } == {"full-length", "V4-150"}
+
+
+def test_run_specs_without_exclude_keep_shared_specs_first_in_config_order():
+    specs = run_specs(TWO_BACKBONES, TWO_ARMS)
+    assert [(s.backbone, s.phase) for s in specs[:3]] == [("B10k", "ref-prep")] + [
+        ("B10k", "align")
+    ] * 2
+
+
+def test_row_count_failures():
+    assert row_count_failures("r", 3, 3, "accuracy") == []
+    assert row_count_failures("r", 2, 3, "accuracy") == [
+        "r: 2 accuracy rows, expected 3"
+    ]

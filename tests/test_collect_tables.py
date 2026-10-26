@@ -71,9 +71,12 @@ def stage(tmp_path):
 
 
 def collect(tmp_path, specs):
+    specs_file = write(
+        tmp_path / "results/run_specs.json", json.dumps([s._asdict() for s in specs])
+    )
     return run_script(
         "collect_tables.py",
-        "--specs", json.dumps([s._asdict() for s in specs]),
+        "--specs", specs_file,
         "--out-runs", tmp_path / "runs.tsv",
         "--out-accuracy", tmp_path / "accuracy.tsv",
         "--out-concordance", tmp_path / "concordance.tsv",

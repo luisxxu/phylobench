@@ -1,6 +1,6 @@
 from importlib.metadata import version as package_version
 import json
-import shlex
+from pathlib import Path
 
 from phylobench.tables import run_specs, score_table
 
@@ -115,9 +115,27 @@ rule concordance:
         """
 
 
+# The specs travel in params so an exclude or config change reruns this rule; a single
+# argv string holding them would exceed Linux's 128 KiB MAX_ARG_STRLEN at full scale.
+localrules:
+    run_specs,
+
+
+rule run_specs:
+    output:
+        "results/run_specs.json",
+    params:
+        specs=lambda wildcards: [s._asdict() for s in run_specs(config, config["arms"])],
+    log:
+        "results/run_specs.log",
+    run:
+        Path(output[0]).write_text(json.dumps(params.specs))
+
+
 rule collect_tables:
     input:
-        lambda wildcards: [
+        specs="results/run_specs.json",
+        run_jsons=lambda wildcards: [
             path
             for s in run_specs(config, config["arms"])
             for path in (
@@ -131,14 +149,11 @@ rule collect_tables:
     params:
         python=sys.executable,
         script=SCRIPTS / "collect_tables.py",
-        specs=lambda wildcards: shlex.quote(
-            json.dumps([s._asdict() for s in run_specs(config, config["arms"])])
-        ),
     log:
         "results/collect_tables.log",
     conda:
         "../../envs/phylobench.yaml"
     shell:
-        "{params.python} {params.script} --specs {params.specs} "
+        "{params.python} {params.script} --specs {input.specs} "
         "--out-runs {output.runs} --out-accuracy {output.accuracy} "
         "--out-concordance {output.concordance} &> {log}"

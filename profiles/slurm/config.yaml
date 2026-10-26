@@ -24,16 +24,22 @@ set-resources:
   hmmalign: *prep_resources
   refprep_me_tree: *prep_resources
   guppy_tog: *prep_resources
-  sepp_prod: &tool_resources
+  # Whole-node jobs for the tools whose Bfull* memory is projected past a standard node
+  # (design.md section 5): the 1.5 TB highmem nodes.
+  sepp_prod: &highmem_resources
+    slurm_partition: highmem
+    runtime: 4320
+    mem_mb: 1500000
+    slurm_extra: "'--exclusive --no-requeue'"
+  sepp_pinned_place: *highmem_resources
+  pplacer_scampp_place: *highmem_resources
+  epa_ng_scampp_place: *highmem_resources
+  bscampp_place: *highmem_resources
+  pplacer_place: &tool_resources
     slurm_partition: long
     runtime: 4320
     mem_mb: 500000
     slurm_extra: "'--exclusive --no-requeue'"
-  sepp_pinned_place: *tool_resources
-  pplacer_place: *tool_resources
-  pplacer_scampp_place: *tool_resources
-  epa_ng_scampp_place: *tool_resources
-  bscampp_place: *tool_resources
   epa_ng_place: *tool_resources
   apples2_place: *tool_resources
   dipper_m_place: *tool_resources
@@ -46,3 +52,10 @@ set-resources:
     runtime: 4320
     mem_mb: 196608
     slurm_extra: "'--exclusive --no-requeue --nodelist=b-gpu-21'"
+  # Post-processing holds full jplace/tree tables; 100k-query Bfull runs outgrow the 32 GB
+  # default.
+  similarity: &post_resources
+    mem_mb: 128000
+  evaluate: *post_resources
+  concordance: *post_resources
+  dipper_to_jplace: *post_resources

@@ -29,6 +29,8 @@ Rules: `workflow/rules/dipper.smk`. Each measured `place` phase writes `dipper.n
 - `dipper-r` runs at B10k\* only, selected by the run config (T21/T22), not by the arm file.
 - The adapter step is unmeasured (it is evaluation plumbing, not placement cost).
 
+`dipper-r` is B10k\* only (`config/full.yaml` `exclude`). `dipper-m` and `dipper-m-gpu` plan identical cells in every T22 stage; `dipper-m` at Bfull\* is dropped by one more `exclude` entry if the pilot's Bfull\* probe shows the CPU build cannot pass the adapter's RF check there (`docs/runbook-t22.md`).
+
 ## Adapter: `phylobench.dipper_adapter.dipper_to_jplace`
 
 `dipper_to_jplace(dipper_newick, backbone_newick, queries) -> dict` turns DIPPER's backbone-plus-queries Newick into a jplace doc (version 3) that `phylobench.accuracy.score_jplace` scores like any other arm.

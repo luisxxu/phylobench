@@ -30,6 +30,24 @@ properties:
     default: []
   arm:
     type: string
+  # A cell is dropped when it matches every key of any entry (value listed under that key).
+  exclude:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        dataset: &names
+          type: array
+          minItems: 1
+          items:
+            type: string
+        backbone: *names
+        region: *names
+        aln: *names
+        arm: *names
+    default: []
   forced_dnf:
     type: object
     additionalProperties: false

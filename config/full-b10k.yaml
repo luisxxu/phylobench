@@ -1,0 +1,2 @@
+# T22 stage S1: overlay on config/full.yaml.
+backbones: [B10k]

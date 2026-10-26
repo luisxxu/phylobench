@@ -106,13 +106,24 @@ def query_axes(config: dict, dataset: str) -> tuple[list[str], list[str]]:
     return config["regions"], config["alns"]
 
 
+def excluded(cell: Cell, patterns: list[dict]) -> bool:
+    """True when every key of some pattern lists the cell's value."""
+    return any(
+        all(getattr(cell, key) in values for key, values in pattern.items())
+        for pattern in patterns
+    )
+
+
 def plan_cells(config: dict, arms: dict[str, dict]) -> list[Cell]:
+    patterns = config.get("exclude", [])
     cells = []
     for dataset, backbone in product(config["datasets"], config["backbones"]):
         regions, alns = query_axes(config, dataset)
         for region, (name, arm) in product(regions, arms.items()):
             for aln in alns if arm["aligned"] else [RAW]:
-                cells.append(Cell(dataset, backbone, region, aln, name))
+                cell = Cell(dataset, backbone, region, aln, name)
+                if not excluded(cell, patterns):
+                    cells.append(cell)
     return cells
 
 
@@ -142,10 +153,16 @@ def run_specs(config: dict, arms: dict[str, dict]) -> list[RunSpec]:
             f"EMP datasets need the {REFERENCE_ARM!r} arm as the concordance reference"
         )
     specs = []
+    cells = plan_cells(config, arms)
     for dataset, backbone in product(config["datasets"], config["backbones"]):
         base = f"results/{dataset}/{backbone}"
         shared = f"{dataset}/{backbone}"
-        regions, _ = query_axes(config, dataset)
+        planned = {
+            c.region for c in cells if (c.dataset, c.backbone) == (dataset, backbone)
+        }
+        if not planned:
+            continue
+        regions = [r for r in query_axes(config, dataset)[0] if r in planned]
         if dataset not in EMP_QUERY_N:
             specs.append(
                 RunSpec(
@@ -187,7 +204,7 @@ def run_specs(config: dict, arms: dict[str, dict]) -> list[RunSpec]:
                     "",
                 )
             )
-    for cell in plan_cells(config, arms):
+    for cell in cells:
         arm = arms[cell.arm]
         for phase, filename in arm["phases"].items():
             tool = "guppy" if phase == "convert" else arm["tool"]
@@ -294,9 +311,15 @@ def width_failures(name: str, records, width: int) -> list[str]:
     ]
 
 
-def smoke_failures(runs, accuracy, config: dict, arms: dict, queries: list[str]):
+def row_count_failures(run_id: str, found: int, expected: int, table: str) -> list[str]:
+    if found == expected:
+        return []
+    return [f"{run_id}: {found} {table} rows, expected {expected}"]
+
+
+def row_presence_failures(runs, specs: list[RunSpec]) -> list[str]:
+    """Every planned (run_id, phase) exactly once in runs, and nothing else."""
     failures = []
-    specs = run_specs(config, arms)
     planned = {(s.run_id, s.phase) for s in specs}
     seen = Counter(zip(runs["run_id"], runs["phase"], strict=True))
     for key in sorted(planned):
@@ -304,6 +327,11 @@ def smoke_failures(runs, accuracy, config: dict, arms: dict, queries: list[str])
             failures.append(f"{key}: expected exactly one row, found {seen[key]}")
     for key in sorted(set(seen) - planned):
         failures.append(f"{key}: unplanned row")
+    return failures
+
+
+def smoke_failures(runs, accuracy, config: dict, arms: dict, queries: list[str]):
+    failures = row_presence_failures(runs, run_specs(config, arms))
 
     forced_ids = {c.run_id for c in forced_dnf_cell(config)}
     for row in runs.to_dict("records"):
@@ -324,11 +352,11 @@ def smoke_failures(runs, accuracy, config: dict, arms: dict, queries: list[str])
     wanted = sorted(queries)
     for cell in plan_cells(config, arms):
         scored = accuracy[accuracy["run_id"] == cell.run_id]
-        if sorted(scored["query"]) != wanted:
-            failures.append(
-                f"{cell.run_id}: {len(scored)} accuracy rows, queries differ from "
-                f"the {len(wanted)} fixture queries"
-            )
+        count = row_count_failures(cell.run_id, len(scored), len(wanted), "accuracy")
+        if count:
+            failures += count
+        elif sorted(scored["query"]) != wanted:
+            failures.append(f"{cell.run_id}: queries differ from the fixture queries")
         elif scored["edge_dist"].isna().any():
             failures.append(f"{cell.run_id}: NaN edge_dist")
     for run_id in sorted(forced_ids & set(accuracy["run_id"])):
