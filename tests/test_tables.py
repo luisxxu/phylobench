@@ -375,3 +375,14 @@ def test_timing_summary_keeps_all_dnf_cell_and_drops_other_phases():
     summary = timing_summary(runs)
     assert list(summary["arm"]) == ["pplacer"]
     assert summary.iloc[0]["n_ok"] == 0 and math.isnan(summary.iloc[0]["wall_mean"])
+
+
+def test_timing_summary_includes_combined_place_phases():
+    runs = timing_runs(
+        {"wall_s": 5.0, "phase": "align+place+convert", "arm": "sepp-prod"},
+        {"wall_s": 6.0, "phase": "align+place", "arm": "sepp-pinned"},
+        {"wall_s": 1.0, "phase": "convert", "arm": "sepp-pinned"},
+    )
+    summary = timing_summary(runs).set_index("arm")
+    assert summary.loc["sepp-prod", "wall_mean"] == 5.0
+    assert summary.loc["sepp-pinned", "wall_mean"] == 6.0

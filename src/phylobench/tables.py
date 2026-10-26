@@ -345,8 +345,11 @@ def smoke_failures(runs, accuracy, config: dict, arms: dict, queries: list[str])
 
 
 def timing_summary(runs: pd.DataFrame) -> pd.DataFrame:
-    """Place-phase wall time per cell over repeated runs; CV is over ok rows only."""
-    place = runs[runs["phase"] == "place"]
+    """Place-phase wall time per cell over repeated runs; CV is over ok rows only.
+
+    SEPP arms measure placement inside one combined phase (e.g. `align+place+convert`).
+    """
+    place = runs[runs["phase"].str.split("+").map(lambda parts: "place" in parts)]
     grouped = place.groupby(TIMING_KEYS)
     ok = place[place["status"] == "ok"].groupby(TIMING_KEYS)["wall_s"]
     summary = pd.DataFrame(
