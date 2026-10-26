@@ -214,7 +214,7 @@ Projection as pre-registered: cost linear in backbone size (x32.7 = 327,078 / 10
 | epa-ng | 1.3 | 505 | 201 | B10k\* only (by design) |
 | apples2 | 3.5 | 28 | 28 | go |
 | dipper-m | 4.1 | 8 | 8 | go |
-| dipper-m-gpu | 0.7 | 20 | 20 | go; GPU memory: see probe |
+| dipper-m-gpu | 0.7 | 20 | 20 | go (Bfull\* probe: GPU 780 MB) |
 | dipper-r | 6.5 | 15 | 15 | B10k\* only (by design) |
 
 Reading the table:
@@ -235,8 +235,18 @@ Reading the table:
 
 ### Bfull\* DIPPER GPU probe
 
-Pending.
+gg2 / Bfull\* / V4-150 / hmmalign, `dipper-m-gpu` on `b-gpu-21`, 2026-10-26: `ok`, place 215.7 s, host peak 2,915 MB (cgroup), `gpu_peak_mb` 780. `evaluate` passed, so the adapter's RF check held with `--force-binary` on the Bfull\* tree that has one zero-length internal edge.
+
+| | B10k\* (mean of 3) | Bfull\* | ratio | linear assumption |
+|---|---|---|---|---|
+| place wall (s) | 4.27 | 215.7 | 50.5x | 32.7x |
+| host peak (MB) | 590 | 2,915 | 4.9x | 32.7x |
+| GPU peak (MB) | 336 | 780 | 2.3x | 32.7x |
+
+- GPU memory is far below 0.8 x 24 GB = 19,660 MB: `dipper-m-gpu` is **go** at Bfull\*. With the measured 50.5x wall ratio, emp-100k projects to about 1.1 h.
+- This is the only measured B10k\* to Bfull\* point. For DIPPER, wall time grows faster than linear and memory much slower, so the linear projections above are too low on time and too high on memory, at least for this arm.
+- Bfull\* `hmmbuild`/ref-prep and `hmmalign` are now built and reusable by T22 (ref-prep 98 s / 10 GB, backbone align 32 s / 7.4 GB).
 
 ### Actual node-hours
 
-Pending (from `sacct`).
+From `sacct` (elapsed x allocated CPUs / 64), 2026-10-21 to 2026-10-26, before the Bfull\* probe: `short` 1.81, `long` 0.23, `gpu` 0.02 (GPU nodes have 16-32 CPUs, so this undercounts; every GPU job ran under 5 min). Total about 2.1 node-hours against an estimate of ~60 and a ceiling of 150; the probe added a few node-minutes.
