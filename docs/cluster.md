@@ -56,10 +56,8 @@ A job step can read its own task cgroup's `memory.peak`, so `mem_source=cgroup` 
 
 ## 4. Snakemake SLURM executor plugin — available, not yet installed
 
-`phylobench` env on Barnacle: `snakemake --version` → `9.27.0`; `pip show snakemake-executor-plugin-slurm` → not found. `mamba install -n phylobench --dry-run -c conda-forge -c bioconda snakemake-executor-plugin-slurm` resolves to `snakemake-executor-plugin-slurm 2.8.0 pyhdfd78af_0` + `snakemake-executor-plugin-slurm-jobstep 0.6.1 pyhdfd78af_0` (bioconda) without changing Snakemake. T21 pins these two in `envs/phylobench.yaml`.
+`phylobench` env on Barnacle: `snakemake --version` → `9.27.0`; `pip show snakemake-executor-plugin-slurm` → not found. `mamba install -n phylobench --dry-run -c conda-forge -c bioconda snakemake-executor-plugin-slurm` resolves to `snakemake-executor-plugin-slurm 2.8.0 pyhdfd78af_0` + `snakemake-executor-plugin-slurm-jobstep 0.6.1 pyhdfd78af_0` (bioconda) without changing Snakemake. T21 pinned these two in `envs/phylobench.yaml`.
 
-## Open for T21
+## Resolved in T21
 
-- Which card the GPU arm runs on: the RTX 3090 nodes (`b-gpu-21`/`-22`, 24 GB, design §5) or the V100 nodes (`b-gpu-23`/`-24`, 32 GB, more headroom at Bfull\*). Both run the image. The 3090 nodes have 32 CPUs / 503 GiB vs 16 / 93 GiB, so a 16-thread job does not need the whole node. Pin it with `--nodelist` in the T21 profile; compare GPU runtimes only within one card.
-- 16 threads/job fits the V100 nodes only as a whole node (16 CPUs); the 3090 nodes have 32 CPUs.
-- `--force-binary` (or not) for the DIPPER GPU arm, and dropping `-T` there.
+The three open questions (card, thread fit, `--force-binary`/`-T`) are resolved in [`docs/pilot.md`](pilot.md) and implemented in [`profiles/slurm/config.yaml`](../profiles/slurm/config.yaml): GPU arm on `b-gpu-21` (RTX 3090) with `--exclusive`, `--force-binary` on, no `-T`.

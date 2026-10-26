@@ -37,7 +37,7 @@ Design section 5 plans one capped pplacer attempt at Bfull\* (1k V4 queries, 24 
 snakemake --use-conda --profile profiles/slurm --configfile config/full.yaml config/pplacer-bfull-cap.yaml
 ```
 
-`config/pplacer-bfull-cap.yaml` names a placeholder dataset, `gg2-v4-1k`, that T16/T21 data prep must produce. There is no retry: the harness exits 0 on a DNF, and T21's profile must keep retries at 0. `runs.tsv` is regenerated on every invocation, so the final full run regenerates it.
+`config/pplacer-bfull-cap.yaml` selects the `gg2` dataset (V4-150 region, 1k queries) at Bfull\* for the single pplacer cell. There is no retry: the harness exits 0 on a DNF, and T21's profile must keep retries at 0. `runs.tsv` is regenerated on every invocation, so the final full run regenerates it.
 
 ## Provenance
 

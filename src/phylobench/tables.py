@@ -6,6 +6,7 @@ from itertools import product
 from pathlib import Path
 from typing import NamedTuple
 
+import pandas as pd
 import yaml
 from snakemake.exceptions import WorkflowError
 
@@ -57,6 +58,7 @@ CONCORDANCE_RUN = "concordance.run.json"
 FORCED_DNF = "forced-dnf"
 RAW = "raw"
 FULL_LENGTH = "full-length"
+TIMING_KEYS = ["dataset", "backbone", "region", "aln", "arm"]
 
 
 class Cell(NamedTuple):
@@ -340,3 +342,26 @@ def smoke_failures(runs, accuracy, config: dict, arms: dict, queries: list[str])
         if exact < floor:
             failures.append(f"{cell.run_id}: exact {exact:g} < {floor}")
     return failures
+
+
+def timing_summary(runs: pd.DataFrame) -> pd.DataFrame:
+    """Place-phase wall time per cell over repeated runs; CV is over ok rows only.
+
+    SEPP arms measure placement inside one combined phase (e.g. `align+place+convert`).
+    """
+    place = runs[runs["phase"].str.split("+").map(lambda parts: "place" in parts)]
+    grouped = place.groupby(TIMING_KEYS)
+    ok = place[place["status"] == "ok"].groupby(TIMING_KEYS)["wall_s"]
+    summary = pd.DataFrame(
+        {
+            "n": grouped.size(),
+            "n_ok": ok.size(),
+            "wall_mean": ok.mean(),
+            "wall_sd": ok.std(ddof=1),
+            "peak_mem_max": grouped["peak_mem_mb"].max(),
+        }
+    )
+    summary["n_ok"] = summary["n_ok"].fillna(0).astype(int)
+    summary["wall_cv"] = summary.pop("wall_sd") / summary["wall_mean"]
+    columns = ["n", "n_ok", "wall_mean", "wall_cv", "peak_mem_max"]
+    return summary[columns].reset_index()

@@ -130,7 +130,7 @@ rule dipper_m_gpu_place:
         """
         {params.measure} --gpu --out {output.run_json} --threads {threads} \
             --tool-version "$(cat {input.image})" --env-lock {input.image} -- \
-            apptainer exec --nv {input.sif} dipper --add -i m -d 2 \
+            apptainer exec --nv {input.sif} dipper --add -i m -d 2 --force-binary \
             -t {input.tree} -I {input.fasta} -O {output.nwk} &> {log}
         if [ -f {output.run_json} ] && ! grep -q '"status": "ok"' {output.run_json}; then
             [ -e {output.nwk} ] || : > {output.nwk}

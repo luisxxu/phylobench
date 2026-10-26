@@ -1,0 +1,5 @@
+# T21 timing-CV reruns (docs/pilot.md): one gg2 V4-150 cell per arm.
+datasets: [gg2]
+backbones: [B10k]
+regions: [V4-150]
+alns: [hmmalign]

@@ -59,6 +59,11 @@ properties:
         smoke_min_exact:
           type: integer
           minimum: 0
+  timeout_s:
+    type: integer
+    minimum: 1
+    # 71 h: fits the 72 h long-partition limit with room for the harness to record a DNF
+    default: 255600
   threads:
     type: integer
     minimum: 1

@@ -14,7 +14,8 @@ config["arms"] = load_arms(
 
 validate(config, "../config/schema.yaml")
 
-MEASURE = f"{sys.executable} -m phylobench.measure"
+# argparse keeps the last --timeout, so a rule's own later --timeout overrides this one.
+MEASURE = f'{sys.executable} -m phylobench.measure --timeout {config["timeout_s"]}'
 SCRIPTS = Path(workflow.basedir) / "scripts"
 
 for smk in sorted(Path(workflow.basedir, "rules").glob("*.smk")):

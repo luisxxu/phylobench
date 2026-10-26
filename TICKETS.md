@@ -25,23 +25,6 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 ### Week 3 — Real data and pilot
 
-### T21: HPC profile and pilot
-**Week:** W3
-**Description:** SLURM profile and a pilot run to calibrate resources and decide per-arm go/no-go at Bfull\*.
-
-**Deliverables:**
-- [ ] `profiles/slurm/config.yaml`: exclusive nodes, 16 cpus/task, node memory, 72 h cap, GPU partition for DIPPER
-- [ ] Pilot at B10k\*: dipper-m (GPU, CPU) and sepp-prod first, then each merged arm
-- [ ] `docs/pilot.md`: per-arm runtime/memory at B10k\*, timing CV (3 repeats), go/no-go for Bfull\*
-
-**Acceptance:** pilot `runs.tsv` covers every merged arm at B10k\*; go/no-go table complete.
-
-**Dependencies:** T8, T18, T26, T27
-
-**Agent notes:** Deployer submits only after the user confirms account and node-hours. Other wrappers join as they merge.
-
----
-
 ### T23: Benchmark plots
 **Week:** W3 (scripts) → W5 (final)
 **Description:** Figure scripts built against sample TSVs, then run on real results.
@@ -112,6 +95,11 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 ## Done
 
 <!-- Move tickets here once merged. Keep the T{N} prefix. -->
+
+### T21: HPC profile and pilot — closes #21
+- [x] `profiles/slurm/config.yaml`: one rule per sbatch (cgroup `memory.peak` primary), retries 0, 16 cpus/task, `--exclusive` place rules on `long` (72 h), shared prep/convert, DIPPER GPU on `gpu` / `b-gpu-21` (RTX 3090, `gpu: 1`, 196608 MB under `MaxMemPerCPU`); `profiles/slurm-pilot` moves `long` rules to `short` (higher PriorityTier); executor plugins 2.8.0 / jobstep 0.6.1 pinned; harness `timeout_s` 71 h
+- [x] Pilot at B10k\*: all 33 cells (11 arms x gg2 full-length, gg2 V4-150, emp-10k V4-150) `ok`, 3 repeats on gg2 V4-150 for timing CV, plus a Bfull\* `dipper-m-gpu` probe (GPU 780 MB); about 2.1 node-hours
+- [x] `docs/pilot.md`: per-arm runtime/memory, timing CV, pre-registered Bfull\* go/no-go with T22 recommendation (keep all arms, `highmem` for memory-flagged full-length cells), findings (apples2 `guppy tog` DNF, pplacer `cpu_s` undercount, env-provenance metadata cleanup)
 
 ### T27: Day-0 cluster capability check — closes #27
 - [x] `docs/cluster.md`: Barnacle nodes (GPU node `b-gpu-23`: 2× Xeon Silver 4110, 16 CPUs, 93 GiB, kernel 6.12 EL10), account `knightlab`, partitions and wall limits, scratch `/ddn_scratch/$USER` (no quota)

@@ -1,0 +1,5 @@
+# T21 Bfull GPU probe (docs/pilot.md): run with --config arm=dipper-m-gpu.
+datasets: [gg2]
+backbones: [Bfull]
+regions: [V4-150]
+alns: [hmmalign]

@@ -9,7 +9,7 @@ from collections import defaultdict
 import pytest
 from emp_helpers import ROOT
 
-LINKED = ("workflow", "envs", "config", "src", "tests")
+LINKED = ("workflow", "envs", "config", "src", "tests", "profiles")
 MIXED = """\
 datasets: [gg2, emp-10k]
 backbones: [B10k, Bfull]
@@ -35,6 +35,24 @@ def repo(tmp_path):
     biom.touch()
     (tmp_path / "mixed.yaml").write_text(MIXED)
     return tmp_path
+
+
+def planned_blocks(repo, *args) -> dict[str, list[str]]:
+    result = subprocess.run(
+        [
+            sys.executable, "-m", "snakemake", "all", "-n", "-p",
+            "--snakefile", "workflow/Snakefile", *args,
+        ],
+        capture_output=True,
+        text=True,
+        cwd=repo,
+        env={**os.environ, "PYTHONPATH": str(ROOT / "src")},
+    )  # fmt: skip
+    assert result.returncode == 0, result.stderr[-3000:]
+    blocks = defaultdict(list)
+    for block in re.split(r"\n(?=(?:local)?rule \w+:)", result.stdout)[1:]:
+        blocks[re.match(r"(?:local)?rule (\w+):", block)[1]].append(block)
+    return blocks
 
 
 def dry_run(repo, configfile) -> defaultdict[str, list[str]]:
@@ -96,3 +114,21 @@ def test_mixed_config_keeps_evaluate_for_gg2_only(repo):
     assert planned["evaluate"]
     assert not [p for p in planned["evaluate"] if "/emp-" in p]
     assert not [p for p in planned["concordance"] if "/gg2/" in p]
+
+
+def test_measure_commands_carry_global_and_per_rule_timeouts(repo):
+    blocks = planned_blocks(
+        repo, "-c", "16", "--configfile", "config/smoke.yaml", "--config", "threads=16"
+    )
+    assert "-m phylobench.measure --timeout 255600 --out" in blocks["sepp_prod"][0]
+    pplacer = blocks["pplacer_place"][0]
+    assert pplacer.rindex("--timeout 86400") > pplacer.index("--timeout 255600")
+
+
+def test_gpu_arm_forces_binary_and_cpu_dipper_does_not(repo):
+    blocks = planned_blocks(
+        repo, "-c", "16", "--configfile", "config/smoke.yaml", "--config", "threads=16"
+    )
+    gpu, cpu = blocks["dipper_m_gpu_place"][0], blocks["dipper_m_place"][0]
+    assert "--force-binary" in gpu and " -T " not in gpu
+    assert "--force-binary" not in cpu and "-T 16" in cpu
