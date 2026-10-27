@@ -24,22 +24,23 @@ set-resources:
   hmmalign: *prep_resources
   refprep_me_tree: *prep_resources
   guppy_tog: *prep_resources
-  # Whole-node jobs for the tools whose Bfull* memory is projected past a standard node
-  # (design.md section 5): the 1.5 TB highmem nodes.
+  # SEPP's gg2 full-length cell peaks at 103 GB on B10k* and scales ~2.9x to Bfull*
+  # (P0, 2026-10-26): too close to a 514 GB long node, so SEPP gets the 1.5 TB highmem
+  # nodes. The SCAMPP-family arms stay under ~250 GB at a 5x margin and stay on long.
   sepp_prod: &highmem_resources
     slurm_partition: highmem
     runtime: 4320
     mem_mb: 1500000
     slurm_extra: "'--exclusive --no-requeue'"
   sepp_pinned_place: *highmem_resources
-  pplacer_scampp_place: *highmem_resources
-  epa_ng_scampp_place: *highmem_resources
-  bscampp_place: *highmem_resources
   pplacer_place: &tool_resources
     slurm_partition: long
     runtime: 4320
     mem_mb: 500000
     slurm_extra: "'--exclusive --no-requeue'"
+  pplacer_scampp_place: *tool_resources
+  epa_ng_scampp_place: *tool_resources
+  bscampp_place: *tool_resources
   epa_ng_place: *tool_resources
   apples2_place: *tool_resources
   dipper_m_place: *tool_resources

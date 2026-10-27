@@ -30,7 +30,7 @@ New place-rule jobs per stage (the dry run may show fewer where a cell is alread
 | `dipper_m_gpu_place` | 19 | 11 |
 | `dipper_r_place` | 10 | 0 |
 
-S2 sends 55 jobs to `highmem` (`sepp_prod`, `sepp_pinned_place`, `pplacer_scampp_place`, `epa_ng_scampp_place`, `bscampp_place`, 11 each). S1 uses `profiles/slurm-pilot`, which keeps every rule on `short`.
+S2 sends 22 jobs to `highmem` (`sepp_prod`, `sepp_pinned_place`, 11 each); the other place rules run on whole `long` nodes. S1's B10k\* peaks set this split: SEPP full-length reaches 103 GB and scaled ~2.9x at Bfull\* in P0, too close to a 514 GB node; the SCAMPP-family arms peak at 49 GB or less. S1 uses `profiles/slurm-pilot`, which keeps every rule on `short`.
 
 Projected cost (pilot walls scaled): S1 about 17 node-hours (ceiling 30), S2 about 365 (ceiling 550). If S2's `sacct` total passes its ceiling, stop and paste.
 
@@ -280,7 +280,7 @@ Paste: the output. Expect `0` for `gg2_download`, `gg2_unzip`, `gg2_build`, `emp
 grep -c "slurm_partition=highmem" logs/t22-s2-dryrun.txt
 ```
 
-Paste: the number (expect 55, fewer only for finished cells).
+Paste: the number (expect 22, fewer only for finished cells).
 
 ```bash
 snakemake all --list-changes code --profile profiles/slurm --configfile config/full.yaml config/full-bfull.yaml

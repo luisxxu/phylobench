@@ -11,12 +11,12 @@ PREP_RULES = {"hmmbuild", "hmmalign", "refprep_me_tree", "guppy_tog"}
 HIGHMEM_RULES = {
     "sepp_prod",
     "sepp_pinned_place",
-    "pplacer_scampp_place",
-    "epa_ng_scampp_place",
-    "bscampp_place",
 }
 LONG_PLACE_RULES = {
     "pplacer_place",
+    "pplacer_scampp_place",
+    "epa_ng_scampp_place",
+    "bscampp_place",
     "epa_ng_place",
     "apples2_place",
     "dipper_m_place",
