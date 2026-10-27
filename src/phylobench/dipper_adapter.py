@@ -21,37 +21,18 @@ from phylobench.accuracy import (
     canonical,
     jplace_edge_nodes,
     prepare_backbone,
-    signatures,
     true_positions,
 )
 from phylobench.jplace import numbered_doc
 
 
-def _zero_length_splits(backbone: Backbone) -> set[int]:
+def _zero_length_splits(backbone: Backbone) -> frozenset[int]:
     leaf_sigs = set(backbone.hashes.values())
-    return {
+    return frozenset(
         canonical(sig, backbone.total)
         for sig, weight in zip(backbone.sig[1:], backbone.weight[1:], strict=True)
         if weight == 0 and sig not in leaf_sigs
-    }
-
-
-def _contract(newick: str, backbone: Backbone, splits: set[int]) -> str:
-    """Newick with each internal edge whose backbone split is in `splits` contracted."""
-    tree = treeswift.read_tree_newick(newick)
-    sig = signatures(tree, backbone.hashes)
-    for node in list(tree.traverse_preorder()):
-        if (
-            node is not tree.root
-            and not node.is_leaf()
-            and canonical(sig[node], backbone.total) in splits
-        ):
-            siblings = node.parent.children
-            at = siblings.index(node)
-            siblings[at : at + 1] = node.children
-            for child in node.children:
-                child.parent = node.parent
-    return tree.newick()
+    )
 
 
 def dipper_to_jplace(
@@ -77,19 +58,9 @@ def dipper_to_jplace(
     present = [q for q in queries if q in dipper_leaves]
     if dipper_leaves != backbone.hashes.keys() | set(present):
         raise ValueError("DIPPER leaves are not exactly the backbone plus the queries")
-    zero_splits = _zero_length_splits(backbone)
-    if zero_splits:
-        contracted = prepare_backbone(_contract(backbone_newick, backbone, zero_splits))
-        contracted_key = {i: k for k, i in contracted.key_to_node.items()}
-        contracted_nodes, _ = true_positions(
-            _contract(dipper_newick, backbone, zero_splits), present, contracted
-        )
-        nodes = [
-            backbone.key_to_node[contracted_key[i]] if i else 0
-            for i in contracted_nodes.tolist()
-        ]
-    else:
-        nodes = true_positions(dipper_newick, present, backbone)[0].tolist()
+    nodes = true_positions(
+        dipper_newick, present, backbone, _zero_length_splits(backbone)
+    )[0].tolist()
 
     doc = numbered_doc(backbone_newick)
     edge_of: dict[int, int] = {}
