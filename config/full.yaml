@@ -17,5 +17,3 @@ exclude:
   - {dataset: [sim10k], backbone: [Bfull]}
   - {dataset: [sim10k], region: [V3-V4, V1-V2, V1-V3, V4-V5, V5-V6, V6-V8, V7-V9]}
   - {dataset: [sim10k], aln: [oracle]}
-# dipper-m at Bfull* stays planned until the P0 probe says otherwise; excluding it is one
-# more entry: {backbone: [Bfull], arm: [dipper-m, dipper-m-gpu]}.
