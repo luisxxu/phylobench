@@ -5,7 +5,12 @@ from tree_helpers import edge_numbers
 
 from phylobench.accuracy import score_jplace
 from phylobench.dipper_adapter import dipper_to_jplace
-from phylobench.jplace import REQUIRED_FIELDS, edge_numbered_tree, top_placements
+from phylobench.jplace import (
+    REQUIRED_FIELDS,
+    edge_numbered_tree,
+    numbered_doc,
+    top_placements,
+)
 
 BACKBONE = "((a:1,b:1)X:1,((c:1,d:1)Y:1,e:1)Z:1,f:1)R;"
 
@@ -152,3 +157,34 @@ def test_output_shape():
     assert {leaf.label for leaf in tree.traverse_leaves()} == set("abcdef")
     assert [p.query for p in top_placements(doc)] == ["q"]
     assert "q" not in doc["tree"]
+
+
+ZERO_BACKBONE = "((a:1,b:1)X:1,((c:1,d:1)Y:0,e:1)Z:1,f:1)R;"
+COLLAPSED = "((a:1,b:1)X:1,((c:1,q3:0.1):0.5,d:1,(e:0.5,q1:0.1):0.5,q2:0.1)Z:1,f:1)R;"
+SPLIT_KEPT = (
+    "((a:1,b:1)X:1,(((c:1,q3:0.1):0.5,d:1,q2:0.1)Y:0,(e:0.5,q1:0.1):0.5)Z:1,f:1)R;"
+)
+ZERO_EXPECTED = {"q1": "e", "q2": "Z", "q3": "c"}
+
+
+def test_collapsed_zero_length_edge_is_contracted_before_matching():
+    doc = convert(COLLAPSED, ["q1", "q2", "q3"], ZERO_BACKBONE)
+    assert placed_labels(doc) == ZERO_EXPECTED
+    assert doc["tree"] == numbered_doc(ZERO_BACKBONE)["tree"]
+
+
+def test_split_kept_on_a_zero_length_edge_places_the_same():
+    doc = convert(SPLIT_KEPT, ["q1", "q2", "q3"], ZERO_BACKBONE)
+    assert placed_labels(doc) == ZERO_EXPECTED
+
+
+def test_query_on_the_zero_length_edge_lands_above_it():
+    dipper = "((a:1,b:1)X:1,(((c:1,d:1)Y:0,q:0.1):0,e:1)Z:1,f:1)R;"
+    doc = convert(dipper, ["q"], ZERO_BACKBONE)
+    assert placed_labels(doc) == {"q": "Z"}
+
+
+def test_topology_change_on_a_nonzero_edge_still_raises_with_zero_edges():
+    dipper = "((a:1,c:1)X:1,((b:1,d:1,q:0.1)Y:0,e:1)Z:1,f:1)R;"
+    with pytest.raises(ValueError, match="differs"):
+        convert(dipper, ["q"], ZERO_BACKBONE)

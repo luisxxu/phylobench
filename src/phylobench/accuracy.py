@@ -153,13 +153,18 @@ def jplace_edge_nodes(newick: str, backbone: Backbone) -> dict[int, int]:
 
 
 def true_positions(
-    reference_newick: str, queries: list[str], backbone: Backbone
+    reference_newick: str,
+    queries: list[str],
+    backbone: Backbone,
+    contracted: frozenset[int] = frozenset(),
 ) -> tuple[np.ndarray, np.ndarray]:
     """Where each query attaches in the reference restricted to the backbone.
 
     Returns (node, true_weight). An edge truth is the backbone node below that edge
     with its weight; a vertex truth (three or more backbone directions meet at the
-    attachment) is the vertex with weight 0.
+    attachment) is the vertex with weight 0. Backbone splits in `contracted` may be
+    missing from the reference; an attachment on or inside a contracted group is a
+    vertex truth at the group's top vertex.
     """
     tree = treeswift.read_tree_newick(reference_newick)
     # Tree.label_to_node("leaves") wrongly includes an unlabelled root.
@@ -175,7 +180,8 @@ def true_positions(
     sig = signatures(tree, backbone.hashes)
     total = backbone.total
     reference_keys = {canonical(s, total) for s in sig.values()} - {0}
-    if reference_keys != backbone.key_to_node.keys():
+    backbone_keys = backbone.key_to_node.keys()
+    if not backbone_keys - contracted <= reference_keys <= backbone_keys:
         raise ValueError(
             "reference restricted to the backbone differs from the backbone"
         )
@@ -186,6 +192,7 @@ def true_positions(
             node.parent if sig[node.parent] else nearest_carrier[node.parent]
         )
 
+    contracted_nodes = {backbone.key_to_node[key] for key in contracted}
     nodes, weights = [], []
     for query in queries:
         attach = nearest_carrier[leaves[query]]
@@ -197,10 +204,12 @@ def true_positions(
             attach = carriers[0]
         child = carriers[0]
         node = backbone.key_to_node[canonical(sig[child], total)]
-        if directions == 2:
+        if directions == 2 and node not in contracted_nodes:
             weights.append(backbone.weight[node])
         else:
-            if backbone.sig[node] == sig[child]:
+            if directions != 2 and backbone.sig[node] == sig[child]:
+                node = int(backbone.up[0][node])
+            while node in contracted_nodes:
                 node = int(backbone.up[0][node])
             weights.append(0)
         nodes.append(node)

@@ -8,14 +8,31 @@ Edges are matched by canonical splits, so DIPPER's rooting is irrelevant. Caveat
   edge where the clade attaches.
 - A query attached at a backbone vertex is placed on the edge above that vertex (the
   first child edge for the root), so it can score up to 1 against a child-edge truth.
+- Zero-length backbone internal edges are contracted for matching (CPU dipper-m always
+  collapses them); a query at such a merged vertex lands on the edge above it.
 """
 
 import math
 
 import treeswift
 
-from phylobench.accuracy import jplace_edge_nodes, prepare_backbone, true_positions
+from phylobench.accuracy import (
+    Backbone,
+    canonical,
+    jplace_edge_nodes,
+    prepare_backbone,
+    true_positions,
+)
 from phylobench.jplace import numbered_doc
+
+
+def _zero_length_splits(backbone: Backbone) -> frozenset[int]:
+    leaf_sigs = set(backbone.hashes.values())
+    return frozenset(
+        canonical(sig, backbone.total)
+        for sig, weight in zip(backbone.sig[1:], backbone.weight[1:], strict=True)
+        if weight == 0 and sig not in leaf_sigs
+    )
 
 
 def dipper_to_jplace(
@@ -41,7 +58,9 @@ def dipper_to_jplace(
     present = [q for q in queries if q in dipper_leaves]
     if dipper_leaves != backbone.hashes.keys() | set(present):
         raise ValueError("DIPPER leaves are not exactly the backbone plus the queries")
-    nodes, _ = true_positions(dipper_newick, present, backbone)
+    nodes = true_positions(
+        dipper_newick, present, backbone, _zero_length_splits(backbone)
+    )[0].tolist()
 
     doc = numbered_doc(backbone_newick)
     edge_of: dict[int, int] = {}
@@ -52,6 +71,6 @@ def dipper_to_jplace(
 
     doc["placements"] = [
         {"p": [[edge_of[node], 1.0, math.nan, math.nan]], "n": [query]}
-        for query, node in zip(present, nodes.tolist(), strict=True)
+        for query, node in zip(present, nodes, strict=True)
     ]
     return doc

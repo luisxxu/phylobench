@@ -34,7 +34,7 @@ S2 sends 22 jobs to `highmem` (`sepp_prod`, `sepp_pinned_place`, 11 each); the o
 
 Projected cost (pilot walls scaled): S1 about 17 node-hours (ceiling 30), S2 about 365 (ceiling 550). If S2's `sacct` total passes its ceiling, stop and paste.
 
-`dipper-m` at Bfull\* stays planned in `config/full.yaml` until the P0 probe says otherwise. To drop it, add `- {backbone: [Bfull], arm: [dipper-m, dipper-m-gpu]}` to `exclude` in `config/full.yaml` (the commented line at its end) and update the counts in `tests/test_full_config.py`; the stage tables above then lose the two dipper-m rows' S2 jobs.
+P0 (2026-10-26) confirmed the CPU `dipper-m` collapses the one zero-length internal edge of Bfull\*. The adapter now contracts zero-length backbone edges, so `dipper-m` stays planned at Bfull\*. The P0 cell's `dipper_to_jplace` reruns in S2 and is attempt 2 of (`dipper_to_jplace`, Bfull).
 
 ## Preflight
 
@@ -449,7 +449,7 @@ Paste: the output.
 Copy the three tables to the laptop (`concordance.tsv` is about 150 MB), from the repo root there, and verify.
 
 ```bash
-scp -r barnacle-login:/ddn_scratch/lxxu/phylobench-archive/t22-final results/
+scp -r lxxu@barnacle.ucsd.edu:/ddn_scratch/lxxu/phylobench-archive/t22-final results/
 ```
 
 Paste: nothing.
