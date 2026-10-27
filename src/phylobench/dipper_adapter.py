@@ -17,10 +17,8 @@ import math
 import treeswift
 
 from phylobench.accuracy import (
-    ZERO_LENGTH,
     Backbone,
     canonical,
-    contract_bifurcating_root,
     jplace_edge_nodes,
     prepare_backbone,
     signatures,
@@ -29,16 +27,12 @@ from phylobench.accuracy import (
 from phylobench.jplace import numbered_doc
 
 
-def _zero_length_splits(backbone_newick: str, backbone: Backbone) -> set[int]:
-    tree = treeswift.read_tree_newick(backbone_newick)
-    contract_bifurcating_root(tree.root)
-    sig = signatures(tree, backbone.hashes)
+def _zero_length_splits(backbone: Backbone) -> set[int]:
+    leaf_sigs = set(backbone.hashes.values())
     return {
-        canonical(sig[node], backbone.total)
-        for node in tree.traverse_internal()
-        if node is not tree.root
-        and node.edge_length is not None
-        and node.edge_length <= ZERO_LENGTH
+        canonical(sig, backbone.total)
+        for sig, weight in zip(backbone.sig[1:], backbone.weight[1:], strict=True)
+        if weight == 0 and sig not in leaf_sigs
     }
 
 
@@ -83,7 +77,7 @@ def dipper_to_jplace(
     present = [q for q in queries if q in dipper_leaves]
     if dipper_leaves != backbone.hashes.keys() | set(present):
         raise ValueError("DIPPER leaves are not exactly the backbone plus the queries")
-    zero_splits = _zero_length_splits(backbone_newick, backbone)
+    zero_splits = _zero_length_splits(backbone)
     if zero_splits:
         contracted = prepare_backbone(_contract(backbone_newick, backbone, zero_splits))
         contracted_key = {i: k for k, i in contracted.key_to_node.items()}
