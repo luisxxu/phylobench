@@ -1,3 +1,5 @@
+from phylobench.regions import COLUMN_REGIONS, REGIONS
+
 HMMER_VERSION = "hmmer 3.4"
 HMMER_ENV_LOCK = "envs/hmmer.linux-64.pin.txt"
 
@@ -5,7 +7,7 @@ HMMER_ENV_LOCK = "envs/hmmer.linux-64.pin.txt"
 wildcard_constraints:
     dataset="[^/]+",
     backbone="[^/]+",
-    region="full-length|V4-150|V3-V4|V1-V2|V1-V3|V4-V5|V5-V6|V6-V8|V7-V9",
+    region="|".join((*REGIONS, *COLUMN_REGIONS)),
 
 
 # Python rules call the phylobench env's interpreter by absolute path (as MEASURE does),
@@ -13,6 +15,11 @@ wildcard_constraints:
 rule extract_regions:
     input:
         queries="data/{dataset}/queries.fasta",
+        aligned=lambda w: (
+            f"data/{w.dataset}/queries.aligned.fasta"
+            if w.region in COLUMN_REGIONS
+            else []
+        ),
     output:
         fasta="results/{dataset}/regions/{region}/queries.fasta",
         exclusions="results/{dataset}/regions/{region}/exclusions.tsv",
@@ -20,13 +27,14 @@ rule extract_regions:
     params:
         python=sys.executable,
         script=SCRIPTS / "extract_regions.py",
+        aligned=lambda w, input: f"--aligned {input.aligned}" if input.aligned else "",
     log:
         "results/{dataset}/regions/{region}/extract_regions.log",
     conda:
         "../../envs/phylobench.yaml"
     shell:
         "{params.python} {params.script} --region {wildcards.region} "
-        "--queries {input.queries} --out-fasta {output.fasta} "
+        "--queries {input.queries} {params.aligned} --out-fasta {output.fasta} "
         "--out-exclusions {output.exclusions} --out-counts {output.counts} &> {log}"
 
 

@@ -2,6 +2,8 @@
 
 import re
 from collections import Counter
+from statistics import median_low
+from typing import NamedTuple
 
 GAPS = "-."
 IUPAC = {
@@ -25,6 +27,12 @@ PRIMERS = {
 # V4-150 is the first 150 nt after 515F, but 806R must still be present.
 TRIM = {"V4-150": 150}
 REGIONS = ("full-length", *PRIMERS)
+# Column-window variants ("V1-V2c") cut by alignment columns instead of primers (T28).
+COLUMN_SUFFIX = "c"
+COLUMN_REGIONS = tuple(f"{region}{COLUMN_SUFFIX}" for region in PRIMERS)
+# Pre-registered (TICKETS.md T28); constant across regions.
+COVERAGE_TOLERANCE = 0.9
+COVERAGE_EXCLUSION = "window coverage below tolerance"
 
 _DELETE_INSERTS = str.maketrans("", "", "abcdefghijklmnopqrstuvwxyz.")
 _DELETE_GAPS = str.maketrans("", "", GAPS)
@@ -126,3 +134,41 @@ def stockholm_lines(rows):
 def mask_inserts(row):
     """Drop hmmalign insert columns (lowercase residues and '.' gaps)."""
     return row.translate(_DELETE_INSERTS)
+
+
+class ColumnWindow(NamedTuple):
+    start: int
+    end: int
+    length: int
+
+
+def column_window(aligned_rows, region):
+    """Median primer-delimited amplicon columns over the rows that have primer hits."""
+    primed = region.removesuffix(COLUMN_SUFFIX)
+    starts, ends, hits = [], [], []
+    for row in aligned_rows.values():
+        span = amplicon_span(ungap(row), primed)
+        if not isinstance(span, str):
+            start, end = project(span, row)
+            starts.append(start)
+            ends.append(end)
+            hits.append(row)
+    if not hits:
+        raise ValueError(f"{region}: no row has both primers")
+    # median_low keeps integer columns; the median shrugs off indel-shifted outliers.
+    start, end = median_low(starts), median_low(ends)
+    lengths = [len(ungap(row[start:end])) for row in hits]
+    return ColumnWindow(start, end, median_low(lengths))
+
+
+def cut_column_window(aligned_rows, window):
+    """Return ({name: window sequence}, {name: exclusion reason}) for aligned rows."""
+    minimum = COVERAGE_TOLERANCE * window.length
+    kept, exclusions = {}, {}
+    for name, row in aligned_rows.items():
+        fragment = ungap(row[window.start : window.end]).upper()
+        if len(fragment) >= minimum:
+            kept[name] = fragment
+        else:
+            exclusions[name] = COVERAGE_EXCLUSION
+    return kept, exclusions

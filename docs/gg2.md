@@ -61,6 +61,17 @@ Bins are never pooled across backbones. These counts are advisory (window simila
 - D2: >=99.9 seeding replaces trailing singletons with candidates instead of adding extra ones, so the query count stays 1,000.
 - D6 (polytomies in the shipped tree) did not apply: the shipped tree is strictly bifurcating. D3: manifest bin counts come from the oracle (shipped) alignment and are advisory; `results/gg2/{backbone}/{region}/similarity.tsv` (hmmalign) is authoritative. D4: both qza sha256 values are pinned from a one-time download (no upstream checksums are published). D5: `accuracy.true_positions` accepts extra non-backbone, non-query leaves in the reference tree (needed when primer exclusions drop queries from a region).
 
+## Column-window regions (T28)
+
+`V4-150c`, `V3-V4c`, `V1-V2c`, `V1-V3c`, `V4-V5c`, `V5-V6c`, `V6-V8c`, `V7-V9c` cut a query by alignment columns instead of primer sites: the **column-window proxy** (real amplicons start and stop at primers, so these are not amplicons). The primer-matched regions are unchanged and never pooled with these.
+
+- Window: over the shipped aligned query rows that have both primer hits, the median start and median end column of the primer-delimited amplicon (`regions.column_window`; V4-150c is the first 150 nt after 515F expressed in columns). Windows come from the queries, not a backbone, because region query files are dataset-level.
+- Cut: the query's own shipped aligned row, columns `[start, end)`, gaps removed (`regions.cut_column_window`); `results/gg2/regions/<region>/queries.fasta` then goes through the same hmmalign, place and evaluate rules as any region.
+- Kept when its non-gap residues in the window are at least 0.9 x the window length (median residue count over the primer-hit rows); the fraction is `COVERAGE_TOLERANCE`, fixed before the run and the same for every region. The rest are listed in `exclusions.tsv` and counted in `exclusion_counts.tsv` as `window coverage below tolerance`.
+- A query without primers that covers the window is kept. That is the point: 711 of the 1,000 sources are MJ0* UMI amplicons, and V1-V2, V1-V3 and V7-V9 keep only 153, 144 and 46 queries by primers. Why those reads lack the primer sites (the UMI amplicons being primer-trimmed) is UNVERIFIED pending the `exclusion_counts.tsv` check in `docs/runbook-t28.md` stage S0.
+- A window is a position-based proxy: a query that starts or ends inside the window by a different amount than a real amplicon would is still cut at the same columns, so accuracy is comparable across arms, not to amplicon studies.
+- Not planned: the oracle alignment (it is defined from primer spans), and any EMP cell.
+
 ## Licenses
 
 GG2 data license: BSD-3 [UNVERIFIED], flagged only (`LICENSES.md` is unchanged).

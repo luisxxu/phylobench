@@ -1,0 +1,9 @@
+# T28 (docs/runbook-t28.md): column-window regions only. Reuses the T22 rows for
+# full-length and the primer-matched regions; plans no cell that T22 already ran.
+# Arms are sepp-prod, sepp-pinned and bscampp (hmmalign); the rest are excluded.
+datasets: [gg2]
+backbones: [B10k, Bfull]
+regions: [V4-150c, V3-V4c, V1-V2c, V1-V3c, V4-V5c, V5-V6c, V6-V8c, V7-V9c]
+alns: [hmmalign]
+exclude:
+  - {arm: [pplacer, pplacer-scampp, epa-ng, epa-ng-scampp, apples2, dipper-r, dipper-m, dipper-m-gpu]}
