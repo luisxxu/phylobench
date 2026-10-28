@@ -39,6 +39,8 @@ snakemake --use-conda --profile profiles/slurm --configfile config/full.yaml con
 
 `config/pplacer-bfull-cap.yaml` selects the `gg2` dataset (V4-150 region, 1k queries) at Bfull\* for the single pplacer cell. There is no retry: the harness exits 0 on a DNF, and T21's profile must keep retries at 0. `runs.tsv` is regenerated on every invocation, so the final full run regenerates it.
 
+Outcome (T22 S2, 2026-10-27): the run exited 0 within the cap (2.6 h, 74 GB peak), so its place row is `status=ok`, but its likelihoods underflowed on the 327k-leaf backbone. Every one of the 671 placed queries came back with `likelihood` `-inf` and `like_weight_ratio` `-nan` on every candidate edge, which are arbitrary edges in tree order with pendant length at pplacer's 2.0 cap. Scoring therefore counts those queries as unplaced (`NaN` accuracy rows): the cell reports 0 placed, not an accuracy for arbitrary edges.
+
 ## Provenance
 
 The pplacer `url#md5` line in `envs/pplacer.linux-64.pin.txt` is identical across the pplacer, sepp and bscampp locks (the lock-guard in `.github/workflows/envs.yml` enforces it), so all pplacer-based arms share one binary. Every `run.json` records `env_lock_sha256`.
@@ -47,4 +49,5 @@ The pplacer `url#md5` line in `envs/pplacer.linux-64.pin.txt` is identical acros
 
 - alpha20 deadlocks with `-j`; alpha23 is the pinned fix.
 - `-s` reads the RAxML-8 info file shipped with the reference (model numbers are the shipped ones, never re-estimated).
+- Floats are printed with C printf, so a jplace can hold bare `-nan` / `inf`, which strict JSON rejects. `parse_jplace` reads them, and `top_placements` ignores rows with a non-finite `like_weight_ratio`; a query with no finite row is unplaced.
 - Aligned arm: it places the `hmmalign` or `oracle` aligned queries, which have the backbone's column count (checked by `check_smoke.py`).

@@ -5,6 +5,7 @@ from pathlib import Path
 import pandas as pd
 
 from phylobench.accuracy import score_jplace
+from phylobench.jplace import parse_jplace
 from phylobench.regions import read_fasta
 from phylobench.tables import ACCURACY_COLUMNS, accuracy_rows
 
@@ -31,7 +32,7 @@ def main():
             raise SystemExit(f"{args.jplace}: empty jplace from an ok placement run")
         queries = [name for name, _ in read_fasta(args.region_queries)]
         scores = score_jplace(
-            json.loads(text),
+            parse_jplace(text),
             args.backbone_tree.read_text(),
             args.reference_tree.read_text(),
             queries,

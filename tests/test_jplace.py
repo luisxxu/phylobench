@@ -1,7 +1,15 @@
+import math
+
 import pytest
 
 from phylobench.accuracy import jplace_edge_nodes, prepare_backbone, score_jplace
-from phylobench.jplace import Placement, edge_numbered_tree, from_sepp, top_placements
+from phylobench.jplace import (
+    Placement,
+    edge_numbered_tree,
+    from_sepp,
+    parse_jplace,
+    top_placements,
+)
 
 PPLACER_FIELDS = ["distal_length", "edge_num", "like_weight_ratio", "pendant_length"]
 EPA_FIELDS = [
@@ -53,6 +61,29 @@ def test_nm_records():
 
 def test_empty_placement_list_is_skipped():
     assert top_placements(doc(PPLACER_FIELDS, [], n=["q"])) == []
+
+
+def test_all_non_finite_lwr_record_is_skipped():
+    rows = [[0.0, 1, math.nan, 2.0], [0.0, 2, math.nan, 2.0]]
+    assert top_placements(doc(PPLACER_FIELDS, rows, n=["q"])) == []
+
+
+def test_non_finite_lwr_rows_are_ignored():
+    rows = [[0.0, 1, math.nan, 0.0], [0.0, 2, 0.4, 0.0], [0.0, 3, -math.inf, 0.0]]
+    assert top_placements(doc(PPLACER_FIELDS, rows, n=["q"]))[0].edge_num == 2
+
+
+def test_parse_jplace_reads_pplacer_non_finite_numbers():
+    text = (
+        '{"fields": ["edge_num", "like_weight_ratio", "likelihood"],\n'
+        '  "metadata": {"invocation": "pplacer -s raxml-info.txt -nan"},\n'
+        '  "placements": [{"p": [[0, -nan, -inf], [1, nan,inf]]}]}'
+    )
+    parsed = parse_jplace(text)
+    first, second = parsed["placements"][0]["p"]
+    assert math.isnan(first[1]) and first[2] == -math.inf
+    assert math.isnan(second[1]) and second[2] == math.inf
+    assert parsed["metadata"]["invocation"] == "pplacer -s raxml-info.txt -nan"
 
 
 def test_missing_required_field_raises():

@@ -1,5 +1,7 @@
 """Minimal jplace reader and writer: top-LWR placement, edge-numbered trees."""
 
+import json
+import math
 import re
 from dataclasses import dataclass
 
@@ -11,6 +13,8 @@ REQUIRED_FIELDS = ("edge_num", "like_weight_ratio", "distal_length", "pendant_le
 # label (`name@3:0.1`) lets a plain Newick parser carry it.
 _EDGE_NUMBER = re.compile(r"(:[^,()\[\]{};]*)?\{(\d+)\}")
 _NUMBERED_LABEL = re.compile(r"(.*)@(\d+)")
+# pplacer prints floats with C printf (`-nan`, `inf`), which strict JSON rejects.
+_NON_FINITE = re.compile(r"(?<=[\[,\s])(-?)(nan|inf)(?=[\],\s])")
 
 
 @dataclass(frozen=True)
@@ -22,10 +26,19 @@ class Placement:
     pendant_length: float
 
 
+def parse_jplace(text: str) -> dict:
+    """json.loads that also reads pplacer's bare `nan` / `inf` numbers."""
+    return json.loads(
+        _NON_FINITE.sub(lambda m: "NaN" if m[2] == "nan" else f"{m[1]}Infinity", text)
+    )
+
+
 def top_placements(doc: dict) -> list[Placement]:
     """Highest-LWR placement per query; ties keep the first row (arbitrary but fixed).
 
-    Records with an empty placement list are skipped, so those queries are unplaced.
+    Rows with a non-finite LWR are ignored (pplacer's likelihoods underflow on very
+    large backbones), and a record left with no rows is skipped, so its queries are
+    unplaced.
     """
     if doc.get("version") != 3:
         raise ValueError(f"unsupported jplace version: {doc.get('version')!r}")
@@ -37,9 +50,10 @@ def top_placements(doc: dict) -> list[Placement]:
 
     placements: dict[str, Placement] = {}
     for record in doc["placements"]:
-        if not record["p"]:
+        rows = [r for r in record["p"] if math.isfinite(r[lwr])]
+        if not rows:
             continue
-        row = max(record["p"], key=lambda r: r[lwr])
+        row = max(rows, key=lambda r: r[lwr])
         names = record["n"] if "n" in record else [name for name, _ in record["nm"]]
         for name in names:
             if name in placements:
