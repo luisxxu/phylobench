@@ -473,3 +473,22 @@ A job class is `(rule, backbone)`, e.g. `(bscampp_place, Bfull)`. A failure is S
 - First failure of a class: paste the `Error in rule` block and its log; I diagnose and fix, then you resubmit the same stage command with `--rerun-incomplete` added.
 - Second failure of the same class: stop the stage and paste. No third attempt.
 - If the tmux session or the submitting Snakemake dies: do not restart; paste `squeue -u lxxu` first (running SLURM jobs keep running, and a restart would double-submit them).
+
+## Results (2026-10-28)
+
+| Stage | Cells | Wall | Node-hours | Notes |
+|---|---|---|---|---|
+| P0 probe | 4 Bfull\* cells | — | 0.44 | memory far below the linear projection; DIPPER zero-edge fix (#53) |
+| S1 B10k\* | 215 | 10.1 h | 8.13 | all gates PASS |
+| S2 Bfull\* | 89 | 15.7 h + rerun | 51.04 | one `evaluate` failure (pplacer `-nan`), fixed in #55, attempt 2 ok |
+| S3 collect | 304 | 2 min | local | acceptance PASS |
+
+DNFs: 29 apples2 `convert` (allow-listed `guppy tog` error) and 1 pplacer `convert` at gg2/Bfull\*/V4-150. No OOM or timeout. The capped pplacer Bfull\* cell finished in 2.6 h but every query's likelihood underflowed, so it scores 0 of 879 placed (`docs/tools/pplacer.md`). SEPP rows ran on `highmem` (Intel Xeon Gold 6242), all others on AMD EPYC 7302: compare SEPP wall times across arms with that caveat.
+
+Archive (git `8fb2ab8`): `/ddn_scratch/lxxu/phylobench-archive/t22-final.tgz`, sha256 `234bbbba27ab0b3d609e6690d24a95a4eb0acc31985ce7686a7ec4016128cb37`.
+
+| Table | sha256 |
+|---|---|
+| `runs.tsv` | `412956a6280818319a9067bb6275736e70557e835b1817aebc06276252b296b6` |
+| `accuracy.tsv` | `4fa33d9af2af14aae241363f56393957d289eeb9fed40f0849c1a4d65ae2638a` |
+| `concordance.tsv` | `fefde96905f81858711de247ba0d474b0deb72405ba1f384d4835a0d033b024b` |

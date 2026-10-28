@@ -43,26 +43,6 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 ---
 
-### Week 4 — Full runs
-
-### T22: Full benchmark execution
-**Week:** W4
-**Description:** Staged runs on HPC: B10k\* accuracy → Bfull\* accuracy → EMP scaling.
-
-**Deliverables:**
-- [ ] `config/full.yaml` from T21 go/no-go
-- [ ] Complete `results/runs.tsv` + `results/accuracy.tsv`, DNFs recorded
-- [ ] Archived results tarball with checksums and env locks
-- [ ] Accuracy arms on the T16 simulated 10k panel (data/sim10k) — uDance/APPLES-2 cross-check
-
-**Acceptance:** every planned (backbone, region, arm) cell has a row with status — no silent gaps.
-
-**Dependencies:** T21, T18, T19, T10, T12, T14, T15, T26
-
-**Agent notes:** `config/emp.yaml` is the EMP stage (T19) and runs after the gg2 stage (it links GG2's backbone, ref-prep and HMM). Deployer owns submission; two-failed-attempt rule per job class. B10k\*-only arms (`pplacer`, `epa-ng`, `dipper-r` per `design.md` §5) cannot be expressed in arm config (`config/schema.yaml` has `additionalProperties: false` and `plan_cells` runs every arm on every backbone), so drop them at Bfull\* with a staged `config/full.yaml` or a separate `--configfile`. Optional T17-lite only if B10k\* is done by W4 day 2.
-
----
-
 ### Week 5 — Report
 
 ### T24: Report and recommendation
@@ -95,6 +75,16 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 ## Done
 
 <!-- Move tickets here once merged. Keep the T{N} prefix. -->
+
+### T22: Full benchmark execution — closes #22
+- [x] `config/full.yaml` (304 cells; `exclude` key drops B10k\*-only arms, oracle and sim10k at Bfull\*, one capped pplacer Bfull\* cell) staged as S1 `full-b10k.yaml` (215 cells, `profiles/slurm-pilot`) and S2 `full-bfull.yaml` (89 cells, `profiles/slurm`); S3 collect with `full.yaml` alone; `check_stage.py` gates (#52)
+- [x] Routing from measured memory: SEPP place rules on `highmem` (Intel Xeon Gold 6242, hardware caveat), every other place rule on whole `long` nodes (AMD EPYC 7302) (#54)
+- [x] DIPPER adapter contracts zero-length backbone edges (CPU dipper-m scored at Bfull\*) (#53); pplacer `-nan`/`-inf` placements scored as unplaced (#55)
+- [x] sim10k panel: 11 arms x {full-length, V4-150}, hmmalign, B10k\* only; T17-lite skipped (user decision)
+- [x] Acceptance (`check_stage.py config/full.yaml`, 2026-10-28): coverage, mem_source, cpu_ratio, threads, gpu PASS; 839 `runs.tsv` rows over 304 cells; no OOM or timeout DNFs
+- [x] DNFs (all `convert`, data not failures): 29 apples2 `guppy tog` (allow-listed); 1 pplacer at gg2/Bfull\*/V4-150 (`guppy tog` cannot lex `-nan`). That pplacer cell placed ok in 2.6 h / 74 GB but its likelihoods underflowed: 0 of 879 queries scored
+- [x] Node-hours: P0 0.44, S1 8.13, S2 51.04 (highmem 22.41, long 28.03, gpu 0.51, short 0.09), S3 local; total about 60 against a 580 ceiling
+- [x] Archive at git `8fb2ab8`: `/ddn_scratch/lxxu/phylobench-archive/t22-final.tgz` (958 MB, 3,252 entries, sha256 `234bbbba27ab0b3d609e6690d24a95a4eb0acc31985ce7686a7ec4016128cb37`); tables in `t22-final/` with `SHA256SUMS`, copied to laptop `results/` and verified
 
 ### T21: HPC profile and pilot — closes #21
 - [x] `profiles/slurm/config.yaml`: one rule per sbatch (cgroup `memory.peak` primary), retries 0, 16 cpus/task, `--exclusive` place rules on `long` (72 h), shared prep/convert, DIPPER GPU on `gpu` / `b-gpu-21` (RTX 3090, `gpu: 1`, 196608 MB under `MaxMemPerCPU`); `profiles/slurm-pilot` moves `long` rules to `short` (higher PriorityTier); executor plugins 2.8.0 / jobstep 0.6.1 pinned; harness `timeout_s` 71 h

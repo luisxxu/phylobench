@@ -39,7 +39,7 @@ snakemake --use-conda --profile profiles/slurm --configfile config/full.yaml con
 
 `config/pplacer-bfull-cap.yaml` selects the `gg2` dataset (V4-150 region, 1k queries) at Bfull\* for the single pplacer cell. There is no retry: the harness exits 0 on a DNF, and T21's profile must keep retries at 0. `runs.tsv` is regenerated on every invocation, so the final full run regenerates it.
 
-Outcome (T22 S2, 2026-10-27): the run exited 0 within the cap (2.6 h, 74 GB peak), so its place row is `status=ok`, but its likelihoods underflowed on the 327k-leaf backbone. Every one of the 671 placed queries came back with `likelihood` `-inf` and `like_weight_ratio` `-nan` on every candidate edge, which are arbitrary edges in tree order with pendant length at pplacer's 2.0 cap. Scoring therefore counts those queries as unplaced (`NaN` accuracy rows): the cell reports 0 placed, not an accuracy for arbitrary edges.
+Outcome (T22 S2, 2026-10-27): the run exited 0 within the cap (2.6 h, 74 GB peak), so its place row is `status=ok`, but its likelihoods underflowed on the 327k-leaf backbone. Every one of the 671 records in its jplace came back with `likelihood` `-inf` and `like_weight_ratio` `-nan` on every candidate edge, which are arbitrary edges in tree order with pendant length at pplacer's 2.0 cap. Scoring therefore counts those queries as unplaced (`NaN` accuracy rows): the cell scores 0 of 879 queries placed, not an accuracy for arbitrary edges.
 
 ## Provenance
 
