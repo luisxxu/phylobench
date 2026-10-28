@@ -110,6 +110,23 @@ def verdict(accuracy: pd.DataFrame, margin: float = MARGIN) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def cell_distribution(accuracy: pd.DataFrame) -> pd.DataFrame:
+    """Per cell: queries, unplaced, mean, median, fraction of placed queries at 0."""
+    df = split_run_id(accuracy)
+    df["at_zero"] = df["edge_dist"].eq(0)
+    grouped = df.groupby(CELL_KEYS)
+    out = pd.DataFrame(
+        {
+            "n": grouped.size(),
+            "n_unplaced": grouped["edge_dist"].apply(lambda s: s.isna().sum()),
+            "mean": grouped["edge_dist"].mean(),
+            "median": grouped["edge_dist"].median(),
+            "frac_zero": grouped["at_zero"].sum() / grouped["edge_dist"].count(),
+        }
+    )
+    return out.reset_index()
+
+
 def oracle_gap(accuracy: pd.DataFrame) -> pd.DataFrame:
     """Oracle minus hmmalign edge_dist, same arm; negative means oracle is closer."""
     cells = scored_cells(accuracy)
