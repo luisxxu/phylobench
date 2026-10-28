@@ -87,3 +87,8 @@ properties:
     minimum: 1
     # default is filled into config in place by snakemake validate(); 16 = fixed per-job thread invariant
     default: 16
+  # Directory holding the runs.tsv/accuracy.tsv that `snakemake plots` reads; the sample tables
+  # keep the target independent of `all` (README plots real tables with the scripts directly).
+  plot_tables:
+    type: string
+    default: tests/fixtures/sample_results

@@ -173,3 +173,27 @@ def test_bfull_stage_plans_one_pplacer_and_no_epa_ng_dipper_r_or_oracle(full_blo
     assert len(blocks["pplacer_place"]) == 1
     for rule in ("epa_ng_place", "dipper_r_place", "oracle_region"):
         assert rule not in blocks
+
+
+def test_plots_target_plans_only_the_plot_rules(repo):
+    result = subprocess.run(
+        [
+            sys.executable, "-m", "snakemake", "plots", "-n", "-p",
+            "--snakefile", "workflow/Snakefile", "--configfile", "config/smoke.yaml",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=repo,
+        env={**os.environ, "PYTHONPATH": str(ROOT / "src")},
+    )  # fmt: skip
+    assert result.returncode == 0, result.stderr[-3000:]
+    rules = set(re.findall(r"^(?:local)?rule (\w+):", result.stdout, re.M))
+    assert rules == {"plots", "plot_accuracy", "plot_cost"}
+
+
+def test_plots_are_not_part_of_all(repo):
+    assert not [
+        r
+        for r in planned_blocks(repo, "--configfile", "config/smoke.yaml")
+        if "plot" in r
+    ]

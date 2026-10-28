@@ -17,4 +17,5 @@ pip install -e . --no-deps
 pytest
 ruff check . && ruff format --check . && snakemake --lint
 snakemake --use-conda --configfile config/smoke.yaml -c 2
+python workflow/scripts/plot_accuracy.py --accuracy results/accuracy.tsv --outdir results/figures && python workflow/scripts/plot_cost.py --runs results/runs.tsv --accuracy results/accuracy.tsv --outdir results/figures   # plot real tables; `snakemake plots -c 1` plots the sample tables
 ```
