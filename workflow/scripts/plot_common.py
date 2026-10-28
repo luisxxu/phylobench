@@ -94,14 +94,17 @@ def grid(row_keys, col_keys, *, panel=(3.0, 2.6)):
     }
 
 
-def region_grid(row_keys, regions, *, per_row=5, panel=(3.0, 2.6)):
-    chunks = [regions[i : i + per_row] for i in range(0, len(regions), per_row)]
-    rows = [(key, i) for key in row_keys for i in range(len(chunks))]
-    fig, panels = grid(rows, range(per_row), panel=panel)
+def region_grid(regions_by_key, *, per_row=5, panel=(3.0, 2.6)):
+    chunks = {
+        (key, i // per_row): regions[i : i + per_row]
+        for key, regions in regions_by_key.items()
+        for i in range(0, len(regions), per_row)
+    }
+    fig, panels = grid(list(chunks), range(per_row), panel=panel)
     axes = {}
     for ((key, i), j), ax in panels.items():
-        if j < len(chunks[i]):
-            axes[(key, chunks[i][j])] = ax
+        if j < len(chunks[(key, i)]):
+            axes[(key, chunks[(key, i)][j])] = ax
         else:
             ax.set_visible(False)
     return fig, axes

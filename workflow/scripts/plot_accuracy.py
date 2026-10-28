@@ -51,7 +51,7 @@ def metric_figure(summary, metric, ylabel, backbones):
     ]
     backbones = [b for b in backbones if b in set(df["backbone"])]
     regions = present_regions(df["region"])
-    fig, axes = region_grid(backbones, regions)
+    fig, axes = region_grid(dict.fromkeys(backbones, regions))
     for (backbone, region), ax in axes.items():
         cell = df[(df["backbone"] == backbone) & (df["region"] == region)]
         for arm, g in cell.groupby("arm"):
@@ -88,12 +88,15 @@ def metric_figure(summary, metric, ylabel, backbones):
 
 
 def interval_figure(df, keys, color_of, xlabel, notes, rule_lines=()):
-    regions = present_regions(df["region"])
-    keys = [
-        k for k in keys if k in set(zip(df["dataset"], df["backbone"], strict=True))
-    ]
+    regions_by_key = {
+        (dataset, backbone): present_regions(
+            df.loc[(df["dataset"] == dataset) & (df["backbone"] == backbone), "region"]
+        )
+        for dataset, backbone in keys
+    }
+    regions_by_key = {k: r for k, r in regions_by_key.items() if r}
     arms = present_arms(df["arm"])[::-1]
-    fig, axes = region_grid(keys, regions, panel=(3.2, 0.3 * len(arms) + 1.2))
+    fig, axes = region_grid(regions_by_key, panel=(3.2, 0.3 * len(arms) + 1.2))
     used = set()
     for ((dataset, backbone), region), ax in axes.items():
         cell = df[

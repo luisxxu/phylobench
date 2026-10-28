@@ -188,6 +188,7 @@ def gpu_memory(runs, cells):
             "query_n",
             metric,
             hollow_psutil=metric == "peak_mem_mb",
+            line=False,
         )
         ax.set_xscale("log")
         if metric != "gpu_peak_mb":
