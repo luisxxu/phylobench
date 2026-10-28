@@ -19,7 +19,10 @@ properties:
     type: array
     items:
       enum:
-        [full-length, V4-150, V3-V4, V1-V2, V1-V3, V4-V5, V5-V6, V6-V8, V7-V9]
+        [
+          full-length, V4-150, V3-V4, V1-V2, V1-V3, V4-V5, V5-V6, V6-V8, V7-V9,
+          V4-150c, V3-V4c, V1-V2c, V1-V3c, V4-V5c, V5-V6c, V6-V8c, V7-V9c,
+        ]
     uniqueItems: true
     default: []
   alns:

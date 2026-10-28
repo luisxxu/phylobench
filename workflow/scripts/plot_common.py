@@ -16,6 +16,19 @@ REGION_ORDER = [
     "V5-V6",
     "V6-V8",
     "V7-V9",
+    *(
+        f"{r}c"
+        for r in (
+            "V4-150",
+            "V3-V4",
+            "V1-V2",
+            "V1-V3",
+            "V4-V5",
+            "V5-V6",
+            "V6-V8",
+            "V7-V9",
+        )
+    ),
 ]
 ARM_ORDER = [
     REFERENCE_ARM,

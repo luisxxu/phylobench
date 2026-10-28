@@ -5,7 +5,7 @@ import yaml
 from snakemake.utils import validate
 
 from phylobench.emp import EMP_QUERY_N
-from phylobench.regions import REGIONS
+from phylobench.regions import COLUMN_REGIONS, REGIONS
 from phylobench.tables import plan_cells
 
 ROOT = Path(__file__).parents[1]
@@ -19,7 +19,7 @@ def load(path):
 
 def test_schema_regions_match_regions_module():
     enum = load(SCHEMA)["properties"]["regions"]["items"]["enum"]
-    assert tuple(enum) == REGIONS
+    assert tuple(enum) == (*REGIONS, *COLUMN_REGIONS)
 
 
 def test_smoke_config_validates_with_every_arm():

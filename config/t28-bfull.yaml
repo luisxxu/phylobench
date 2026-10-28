@@ -1,0 +1,2 @@
+# T28 stage S2: overlay on config/t28.yaml.
+backbones: [Bfull]

@@ -6,7 +6,7 @@ Pinned `hmmer=3.4` (`envs/hmmer.yaml`, lock `envs/hmmer.linux-64.pin.txt`). Rule
 
 1. `backbone_stockholm`: backbone alignment FASTA to one-block Stockholm with an all-`x` `#=GC RF` line.
 2. `hmmbuild --dna --hand --cpu {threads} backbone.hmm backbone.sto`. `--hand` takes the match columns from the RF line, so every backbone column becomes a match state and the profile has exactly the backbone's column count. Without `--hand` hmmbuild drops gappy columns and the masked width would not match.
-3. `extract_regions`: cut the ungapped full-length queries by primer matching (`src/phylobench/regions.py`); also writes `exclusions.tsv` and `exclusion_counts.tsv` per region.
+3. `extract_regions`: cut the ungapped full-length queries by primer matching (`src/phylobench/regions.py`), or for a `c` region (T28) by the median primer-amplicon alignment columns of the shipped aligned rows (`docs/gg2.md`); also writes `exclusions.tsv` and `exclusion_counts.tsv` per region.
 4. `hmmalign --dna --outformat afa -o hmmalign.afa backbone.hmm queries.fasta` (queries only; no `--mapali`).
 5. `mask_hmmalign`: delete insert columns (lowercase residues and `.` gaps) with `str.translate`, giving `hmmalign.aligned.fasta`. The script fails loudly if any masked row is not the backbone's width. T8 asserts the same end to end.
 
