@@ -51,7 +51,7 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 - [x] `tests/test_report.py`: unit tests on the sample tables plus a staleness test (checksums and table blocks vs `results/`), skipped with a reason when the real tables are absent (CI); run locally with `PHYLOBENCH_RESULTS`
 - [x] Caveats: alpha=1.0, pruned Bfull\*, uDance/APPLES-2 truth bias and the sim10k cross-check (B10k\* only), DIPPER joint placement and zero-length contraction, hmmalign arm (oracle gap), short window, `mem_source`, hardware split, DNFs, B10k\*-only arms, small regions
 - [x] Recommendation from accuracy, runtime and memory only: no arm passes the gate at Bfull\* (effect sizes, `sepp-pinned` as noise floor, no equivalence claim); B10k\* gate and cost ranking; GPU beside the CPU ranking; licenses flagged, not a factor
-- [ ] User sign-off (PR review)
+- [x] User sign-off (PR review, 2026-10-28)
 
 ### T23: Benchmark plots — closes #23
 - [x] `tests/fixtures/sample_results/{runs,accuracy}.tsv` (about 240 KB, synthetic, schema-exact; gg2 + sim10k, 11 arms, apples2 convert DNFs, all-unplaced pplacer at Bfull\*, a timeout DNF, psutil and Xeon rows, GPU memory)
