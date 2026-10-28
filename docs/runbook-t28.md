@@ -82,7 +82,7 @@ python -m pytest -q tests/test_column_regions.py tests/test_t28_config.py tests/
 
 Paste: the last line.
 
-Keep the T22 tables.
+Keep the T22 tables. The check block must print `T22 tables present`; if it prints `STOP`, do not continue and paste the output (a missing T22 table means the wrong directory or a lost result).
 
 ```bash
 mkdir -p /ddn_scratch/lxxu/phylobench-archive logs
@@ -91,22 +91,24 @@ mkdir -p /ddn_scratch/lxxu/phylobench-archive logs
 Paste: nothing.
 
 ```bash
-cp results/runs.tsv /ddn_scratch/lxxu/phylobench-archive/runs-t22-final.tsv
+for t in runs accuracy concordance; do test -s results/$t.tsv || echo "STOP: results/$t.tsv missing or empty"; done; test -s results/runs.tsv -a -s results/accuracy.tsv -a -s results/concordance.tsv && echo "T22 tables present: $(wc -l < results/runs.tsv) runs.tsv lines, $(grep -c -E '(V4-150|V3-V4|V1-V2|V1-V3|V4-V5|V5-V6|V6-V8|V7-V9)c' results/runs.tsv) lines with a c region"
+```
+
+Paste: the output (expect `T22 tables present` and 0 lines with a c region; a nonzero count means a T28 stage already rewrote the tables, so do not archive them as T22).
+
+`cp -n` never overwrites an existing archive file, so re-running this block after a stage or a tmux crash cannot replace the T22 copy with a T28 table.
+
+```bash
+cp -n results/runs.tsv /ddn_scratch/lxxu/phylobench-archive/runs-t22-final.tsv; cp -n results/accuracy.tsv /ddn_scratch/lxxu/phylobench-archive/accuracy-t22-final.tsv; cp -n results/concordance.tsv /ddn_scratch/lxxu/phylobench-archive/concordance-t22-final.tsv
 ```
 
 Paste: nothing.
 
 ```bash
-cp results/accuracy.tsv /ddn_scratch/lxxu/phylobench-archive/accuracy-t22-final.tsv
+ls -l /ddn_scratch/lxxu/phylobench-archive/*-t22-final.tsv; sha256sum /ddn_scratch/lxxu/phylobench-archive/*-t22-final.tsv
 ```
 
-Paste: nothing.
-
-```bash
-cp results/concordance.tsv /ddn_scratch/lxxu/phylobench-archive/concordance-t22-final.tsv
-```
-
-Paste: nothing.
+Paste: the output. If a T22 archive file already existed before this step, it is the T22 copy: keep it.
 
 ## S0: exclusion counts (no placement jobs)
 
@@ -346,7 +348,13 @@ cat SHA256SUMS
 
 Paste: the output.
 
-On the laptop, from the repo root:
+On the laptop, from the repo root. The T28 tables go to their own directory `results/t28-final`; the verified T22 tables and `SHA256SUMS` in `results/` (and `results/t22-final`) are never touched. The first command must print nothing.
+
+```bash
+test -e results/t28-final && echo "STOP: results/t28-final already exists"
+```
+
+Paste: the output.
 
 ```bash
 scp -r lxxu@barnacle.ucsd.edu:/ddn_scratch/lxxu/phylobench-archive/t28-final results/
