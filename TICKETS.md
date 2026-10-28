@@ -25,22 +25,6 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 ### Week 3 — Real data and pilot
 
-### T23: Benchmark plots
-**Week:** W3 (scripts) → W5 (final)
-**Description:** Figure scripts built against sample TSVs, then run on real results.
-
-**Deliverables:**
-- [ ] `tests/fixtures/sample_results/{runs,accuracy}.tsv` (small, synthetic, schema-exact)
-- [ ] Accuracy (edge distance, exact fraction, delta error) vs. similarity bin, faceted by backbone × region; verdict panel (paired difference vs. sepp-prod with CIs)
-- [ ] Runtime and peak memory vs. similarity bin, vs. backbone size, and vs. query count (log–log, DNF markers); end-to-end vs. placement-only; GPU memory panel; oracle-vs-hmmalign gap
-- [ ] `workflow/scripts/plot_*.py` driven only by `results/*.tsv`
-
-**Acceptance:** `snakemake plots` regenerates all figures from the sample TSVs in CI.
-
-**Dependencies:** T8 (scripts); T22 (final figures)
-
-**Agent notes:** Never pool bins across backbone sizes.
-
 ---
 
 ### Week 5 — Report
@@ -75,6 +59,13 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 ## Done
 
 <!-- Move tickets here once merged. Keep the T{N} prefix. -->
+
+### T23: Benchmark plots — closes #23
+- [x] `tests/fixtures/sample_results/{runs,accuracy}.tsv` (about 240 KB, synthetic, schema-exact; gg2 + sim10k, 11 arms, apples2 convert DNFs, all-unplaced pplacer at Bfull\*, a timeout DNF, psutil and Xeon rows, GPU memory)
+- [x] 10 PNGs: accuracy (edge distance, exact fraction, delta error) by similarity bin, backbone x region; verdict (paired difference vs sepp-prod, bootstrap 95% CI, pass margin 0.25, `unplaced`/`no-reference` states, sim10k cross-check); oracle-vs-hmmalign gap; runtime and peak memory vs similarity, backbone size and query count (log axes, DNF `x`, psutil hollow); end-to-end vs placement-only; GPU memory
+- [x] `src/phylobench/summaries.py` (pure, tested; reused by T24) and `workflow/scripts/plot_{accuracy,cost}.py` driven only by `runs.tsv`/`accuracy.tsv`
+- [x] Cost vs similarity uses each cell's median query similarity (captioned): runtime is measured per cell, not per bin
+- [x] `snakemake plots -c 1` regenerates all figures from the sample TSVs in CI; real tables are plotted with the scripts directly (README)
 
 ### T22: Full benchmark execution — closes #22
 - [x] `config/full.yaml` (304 cells; `exclude` key drops B10k\*-only arms, oracle and sim10k at Bfull\*, one capped pplacer Bfull\* cell) staged as S1 `full-b10k.yaml` (215 cells, `profiles/slurm-pilot`) and S2 `full-bfull.yaml` (89 cells, `profiles/slurm`); S3 collect with `full.yaml` alone; `check_stage.py` gates (#52)

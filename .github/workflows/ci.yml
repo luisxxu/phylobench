@@ -29,6 +29,7 @@ jobs:
       - run: snakemake --lint
       - run: snakemake -n --configfile config/smoke.yaml
       - run: pytest
+      - run: snakemake plots -c 1
 
   arms:
     runs-on: ubuntu-latest
