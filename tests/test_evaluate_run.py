@@ -68,6 +68,19 @@ def evaluate(cell, status, jplace_text):
     )  # fmt: skip
 
 
+def test_pplacer_underflow_leaves_every_query_unplaced(cell):
+    doc = perfect_doc()
+    lwr = doc["fields"].index("like_weight_ratio")
+    for record in doc["placements"]:
+        for row in record["p"]:
+            row[lwr] = float("nan")
+    result = evaluate(cell, "ok", json.dumps(doc).replace("NaN", "-nan"))
+    assert result.returncode == 0, result.stderr
+    table = pd.read_csv(cell / "accuracy.tsv", sep="\t")
+    assert sorted(table["query"]) == sorted(QUERIES)
+    assert table["edge_dist"].isna().all()
+
+
 def test_ok_run_scores_every_query_exact(cell):
     result = evaluate(cell, "ok", json.dumps(perfect_doc()))
     assert result.returncode == 0, result.stderr

@@ -5,6 +5,7 @@ from pathlib import Path
 import pandas as pd
 
 from phylobench.concordance import score_concordance
+from phylobench.jplace import parse_jplace
 from phylobench.regions import read_fasta
 from phylobench.tables import CONCORDANCE_COLUMNS, concordance_rows
 
@@ -17,7 +18,7 @@ def read_jplace(jplace: Path) -> dict:
     text = jplace.read_text()
     if not text.strip():
         raise SystemExit(f"{jplace}: empty jplace from an ok placement run")
-    return json.loads(text)
+    return parse_jplace(text)
 
 
 def main():
