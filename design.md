@@ -85,6 +85,7 @@ Per user decision, the report lists each arm's own license and the license of th
 | Data | Role | Truth label |
 |---|---|---|
 | GG2 held-out clades + singletons (§4), 9 regions, 1,000 source sequences each (paired across regions) | **Accuracy** at B10k\* and Bfull\* | Attachment edge in GG2 tree restricted to backbone ∪ {q}; held-out-clade members share its stem edge. **Caveat:** GG2 16S were inserted by uDance (APPLES-2 + ML refinement) [V] → possible bias toward apples2 (and ML arms). An apples2 win is **not** read as a placement-quality win without the non-uDance cross-check (T3 simulator scaled to a 10k true-tree panel, in T16) or T17-lite. |
+| GG2 WoL-genome held-out set `gg2-wol` (T31): same §4 construction, queries only from `G\d{9}` leaves (3,000; 2,000 fallback), B10k\* (T28/T29) and Bfull\* (T30), never pooled with the set above | **Accuracy**, exploratory at B10k\*, confirmatory at Bfull\* | "G-leaf genome position in GG2". Whether uDance kept the WoL2 topology fixed is UNVERIFIED; the apples2 caveat above applies. |
 | EMP Deblur V4 150 bp ASVs (release1 [V]), 10k and 100k | **Runtime, memory, query-count scaling, concordance** | *Concordance with sepp-prod* (edge distance). Never "accuracy". |
 | (optional) T17-lite RNAsim 10k | Bias-free truth | True tree (§9.8) |
 
@@ -92,7 +93,7 @@ Per user decision, the report lists each arm's own license and the license of th
 
 Edge distance is counted in the backbone with zero-length edges contracted: a true position that is a vertex (query attaches at a multifurcation) is at distance 0 from every incident edge, and two edges sharing a contracted vertex are adjacent (distance 1). Unplaced queries are NaN rows; consumers never `skipna` silently (`phylobench.accuracy`).
 
-**Verdict ("as accurate as SEPP"):** per (region, backbone size), pooled across bins, paired per-query difference in edge distance (tool − sepp-prod); **pass** if the upper 95% bootstrap CI of the mean ≤ **0.25 edges**. Per-bin results are descriptive only (avoids the multiple-testing trap).
+**Verdict ("as accurate as SEPP"), decision rule amended 2026-11-06 (user), applies to the `gg2-wol` set (T30):** per region, the paired difference in the fraction of queries within 3 edges of the truth (challenger − sepp-prod), with a **cluster bootstrap over held-out groups** (a clade is one cluster, a singleton its own; B = 10,000, seed 0); an unplaced or DNF query is a miss, and a DNF reference makes the region undecidable. The challenger is **non-inferior** if the one-sided 95% lower bound of that difference is above −2 percentage points. The headline "as accurate as production SEPP" needs non-inferiority at both full-length and V4-150 (expected joint power about 65% at N = 3,000, stated up front). Secondary and descriptive: the mean edge-distance difference with its CI, where the original **0.25-edge mean gate is still reported but is undecidable** at these sample sizes; a G-only skeleton exact-edge difference; per-bin results. The T22 results on `gg2` were scored with the original 0.25 rule and stay as published.
 
 **Short-window caveat:** identical V4-150 fragments can fit many edges equally; edge distance then reflects unavoidable ambiguity — hence the *paired* comparison against SEPP.
 
@@ -109,6 +110,8 @@ Edge distance is counted in the backbone with zero-length edges contracted: a tr
 2. Remove **~500 singleton leaves** outside those clades. In a 331k backbone singletons usually keep a near-identical neighbor (operon copies, strains, sister species) — this fills **99–99.9 and ≥99.9 on 16S** without SARS-CoV-2. If ≥99.9 at Bfull\* has <100 queries, replace trailing singletons with leaves whose nearest remaining neighbor is ≥99.9%, keeping the query count at 1,000 (`docs/gg2.md`). V4-150 fragments push identity further up.
 3. Queries = 1,000 held-out sequences (~500 singletons + ~500 clade members, ≤25 per clade), same sources for every region.
 4. **Bfull\*** ≈ 320k leaves (exact duplicate aligned rows removed after hold-out — FastTree needs none); **B10k\*** = uniform subsample of Bfull\*. At B10k\* the same queries shift to lower bins (sparser neighborhoods) — expected, reported per size.
+
+**WoL variant (T31, `gg2-wol`):** the same construction with an `eligible` filter: queries, singletons and the ≥99.9 seeds come only from leaves labelled `G\d{9}`; clades are still held out whole (G and non-G members) and need 25–2,000 leaves with ≥5 G members; up to 25 G members per clade are queries. Seed 2026, N = 3,000 (2,000 if 6,000 ≤ G < 10,000, stop below). B10k\* is a uniform 10k subsample of that Bfull\*; it is its own dataset key, never pooled with `gg2`. The S0 probe and the pre-registered stop/go rules are in `docs/runbook-t31.md`.
 
 **Confounds reported:** per-bin lineage composition; per-bin query length (regions); bins with <100 queries flagged, not padded.
 
@@ -143,7 +146,7 @@ Edge distance is counted in the backbone with zero-length edges contracted: a tr
 Tests skip explicitly when cgroups are absent — never pass vacuously.
 
 - `results/runs.tsv`: `dataset, backbone, region, query_n, tool, arm, aln, phase, wall_s, cpu_s, peak_mem_mb, mem_source, gpu_peak_mb, status, threads, node, cpu_model, version, run_id, dnf_reason, env_lock_sha256`; `status` ∈ {`ok`, `DNF`} (`dnf_reason` = the harness status: `oom|timeout|error`)
-- `results/accuracy.tsv`: `run_id, query, sim, bin, edge_dist, exact, delta_err, label` (`label` = `accuracy` only; GG2 cells)
+- `results/accuracy.tsv`: `run_id, query, sim, bin, edge_dist, exact, delta_err, label` (`label` = `accuracy` only; GG2 and `gg2-wol` cells, told apart by the `dataset` prefix of `run_id`; the `gg2-wol` decision statistic is in §3 and `summaries.within_k_difference`, T28)
 - `results/concordance.tsv`: `run_id, reference_run_id, query, sim, bin, edge_dist, label` (`label` = `concordance` only; EMP cells vs `sepp-prod`)
 
 ---
@@ -187,6 +190,7 @@ Tests skip explicitly when cgroups are absent — never pass vacuously.
 6. **Deadline:** 3–5 weeks → 5-week plan; the **3-week floor cut order (§8) is approved**.
 7. **SARS-CoV-2:** deferred out of this cycle (T20); high-similarity bins are filled on 16S (§4).
 8. **RNAsim:** optional **T17-lite** (one 10k panel, accuracy only) in W4 if on schedule; first cut otherwise. APPLES-2 is not expected to be a strong contender; the T16 simulated cross-check still runs.
+9. **WoL genome held-out set and decision rule (user, 2026-11-06):** `gg2-wol` (T31, §4) adds G-leaf queries for the T28 to T30 follow-up. The "as accurate as SEPP" decision on it is the within-3-edges non-inferiority rule of §3 (δ = 2 percentage points, one-sided 95% lower bound, cluster bootstrap over held-out groups, unplaced/DNF = miss, headline needs full-length and V4-150); this changes §3 and §6 for that set only. The 0.25-edge mean gate (item 5) is still reported there as secondary and stated undecidable. N = 3,000 queries (2,000 fallback if 6,000 ≤ G < 10,000); extra T30 challengers chosen by the T28 screen are labelled "selected at B10k\* on the same queries" (no query split).
 
 ---
 
