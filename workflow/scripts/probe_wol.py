@@ -3,7 +3,7 @@ from pathlib import Path
 
 import treeswift
 
-from phylobench.gg2 import WOL_N_QUERIES, parse_lineages
+from phylobench.gg2 import WOL_N_QUERIES, parse_lineages, wol_n_queries
 from phylobench.regions import PRIMERS, read_fasta
 from phylobench.wol import (
     clade_capacity,
@@ -30,7 +30,7 @@ def main():
     parser.add_argument("--reference-dir", type=Path, required=True)
     parser.add_argument("--taxonomy", type=Path, required=True)
     parser.add_argument("--backbone-dirs", type=Path, nargs="*", default=[])
-    parser.add_argument("--n-queries", type=int, default=WOL_N_QUERIES)
+    parser.add_argument("--n-queries", type=int, default=None)
     parser.add_argument("--neighbour-sample", type=int, default=2000)
     args = parser.parse_args()
 
@@ -39,6 +39,10 @@ def main():
     genomes = genome_leaves(labels)
     lineages = parse_lineages(args.taxonomy.read_text())
     counts = label_counts(labels)
+    try:
+        n_queries = args.n_queries or wol_n_queries(len(genomes))
+    except ValueError:
+        n_queries = WOL_N_QUERIES  # G1 prints STOP below
     print("P1-P3", counts)
     for directory in args.backbone_dirs:
         kept = genome_leaves(leaf_labels(directory / "tree.nwk"))
@@ -53,11 +57,11 @@ def main():
     regions = {region: region_report(rows, region) for region in PRIMERS}
     for region, report in regions.items():
         print("P8", region, report)
-    capacity = dry_run_capacity(tree, lineages, genomes, args.n_queries)
+    capacity = dry_run_capacity(tree, lineages, genomes, n_queries)
     print("P9", capacity)
     hit, sampled = neighbour_leaves(seqs, genomes, args.neighbour_sample)
     print(f"P10 {hit} of {sampled} sampled G leaves have a >=99.9 neighbour")
-    for rule, verdict in verdicts(counts, capacity, regions, args.n_queries).items():
+    for rule, verdict in verdicts(counts, capacity, regions, n_queries).items():
         print(rule, verdict)
 
 

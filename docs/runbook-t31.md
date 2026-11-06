@@ -77,11 +77,13 @@ sinfo -p highmem -N -o "%N %T %m %c"
 
 Paste: the output.
 
+`srun -p highmem` lands on one arbitrary node, so ask each node by name (a node that is busy queues until it is free).
+
 ```bash
-srun -A knightlab -p highmem -n 1 -t 5 lscpu | grep "Model name"
+for n in $(sinfo -p highmem -N -h -o "%N" | sort -u); do echo "$n: $(srun -A knightlab -p highmem -w $n -n 1 -t 5 lscpu | grep 'Model name')"; done
 ```
 
-Paste: the output. G6: if every highmem node is a Xeon 6242, route by partition; otherwise tell me and the T30 jobs pin a node.
+Paste: the output (one line per node). G6: if every highmem node is a Xeon 6242, route by partition; otherwise tell me and the T30 jobs pin a node.
 
 Stop here and wait for my go/stop on G1 to G6. No build before that, and the PR does not merge before a go.
 
@@ -93,7 +95,7 @@ git fetch origin && git checkout --detach <T31_MERGE_SHA> && git rev-parse HEAD
 
 Paste: the SHA.
 
-Dry run to a file; the build is the only new job (`gg2_download` and `gg2_unzip` are already done).
+Dry run to a file (targets go before `--configfile`, which would otherwise swallow them); the build is the only new job (`gg2_download` and `gg2_unzip` are already done).
 
 ```bash
 snakemake data/gg2-wol/MANIFEST.tsv -n --profile profiles/slurm --configfile config/full.yaml > logs/t31-build-dryrun.txt 2>&1
@@ -144,7 +146,7 @@ Paste: the output (bin counts per backbone for full-length and V4-150; flagged b
 Per-backbone prep runs fresh for gg2-wol (the gg2 prep is for a different backbone). Bfull FastTree used 196 GB in T22, so the profile's `long` resources apply.
 
 ```bash
-snakemake -n --profile profiles/slurm --configfile config/full.yaml results/ref-prep/gg2-wol/B10k/me-tree.nwk results/ref-prep/gg2-wol/B10k/epa-ng.model results/gg2-wol/B10k/align/backbone.hmm results/ref-prep/gg2-wol/Bfull/me-tree.nwk results/ref-prep/gg2-wol/Bfull/epa-ng.model results/gg2-wol/Bfull/align/backbone.hmm > logs/t31-prep-dryrun.txt 2>&1
+snakemake results/ref-prep/gg2-wol/B10k/me-tree.nwk results/ref-prep/gg2-wol/B10k/epa-ng.model results/gg2-wol/B10k/align/backbone.hmm results/ref-prep/gg2-wol/Bfull/me-tree.nwk results/ref-prep/gg2-wol/Bfull/epa-ng.model results/gg2-wol/Bfull/align/backbone.hmm -n --profile profiles/slurm --configfile config/full.yaml > logs/t31-prep-dryrun.txt 2>&1
 ```
 
 Paste: nothing.
@@ -164,7 +166,7 @@ date +%Y-%m-%dT%H:%M:%S > logs/t31-prep.start
 Paste: nothing.
 
 ```bash
-snakemake --profile profiles/slurm --jobs 8 --keep-going --configfile config/full.yaml results/ref-prep/gg2-wol/B10k/me-tree.nwk results/ref-prep/gg2-wol/B10k/epa-ng.model results/gg2-wol/B10k/align/backbone.hmm results/ref-prep/gg2-wol/Bfull/me-tree.nwk results/ref-prep/gg2-wol/Bfull/epa-ng.model results/gg2-wol/Bfull/align/backbone.hmm 2>&1 | tee logs/t31-prep.log
+snakemake results/ref-prep/gg2-wol/B10k/me-tree.nwk results/ref-prep/gg2-wol/B10k/epa-ng.model results/gg2-wol/B10k/align/backbone.hmm results/ref-prep/gg2-wol/Bfull/me-tree.nwk results/ref-prep/gg2-wol/Bfull/epa-ng.model results/gg2-wol/Bfull/align/backbone.hmm --profile profiles/slurm --jobs 8 --keep-going --configfile config/full.yaml 2>&1 | tee logs/t31-prep.log
 ```
 
 Paste: the last 30 lines.
