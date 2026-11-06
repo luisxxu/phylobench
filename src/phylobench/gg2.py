@@ -4,6 +4,7 @@ Held-out clades and singletons come out of the shipped tree and alignment; Bfull
 what remains (exact duplicate rows removed), B10k* a uniform subsample of Bfull*.
 """
 
+import re
 from collections import Counter
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
@@ -36,6 +37,17 @@ SEED = 2022
 N_CANDIDATES = 2000
 TARGET = 100  # queries needed at >=99.9 before a bin stops being flagged
 B10K = 10_000
+
+# Genome-position held-out set (T31, docs/gg2.md): queries only from WoL genome leaves.
+WOL_LEAF = re.compile(r"^G\d{9}$")
+WOL_SEED = 2026
+WOL_MIN_ELIGIBLE = 5
+# Default clade counts; the S0 probe (docs/runbook-t31.md, P9) sets the final values.
+WOL_RANKS = {1: 6, 2: 9, 3: 12, 4: 18, 5: 18}
+WOL_N_QUERIES = 3000
+WOL_N_QUERIES_FALLBACK = 2000
+WOL_MIN_GENOMES = 10_000
+WOL_MIN_GENOMES_FALLBACK = 6_000
 
 MANIFEST_COLUMNS = (
     "kind", "backbone", "region", "bin", "path", "n", "sha256", "flagged"
@@ -133,9 +145,32 @@ def region_bins(
     return list(similarity_bin(table["matches"], table["n_columns"]))
 
 
+def wol_n_queries(n_genomes: int) -> int:
+    """Query count of the WoL set (G1); ValueError below the floor."""
+    if n_genomes >= WOL_MIN_GENOMES:
+        return WOL_N_QUERIES
+    if n_genomes >= WOL_MIN_GENOMES_FALLBACK:
+        return WOL_N_QUERIES_FALLBACK
+    raise ValueError(
+        f"STOP (G1): {n_genomes} G leaves, need >= {WOL_MIN_GENOMES_FALLBACK}"
+    )
+
+
+def wol_options(labels: Iterable[str]) -> dict:
+    """`choose_seeded_groups` options of the WoL set."""
+    eligible = frozenset(label for label in labels if WOL_LEAF.match(label))
+    return {
+        "eligible": eligible,
+        "min_eligible": WOL_MIN_ELIGIBLE,
+        "rank_counts": WOL_RANKS,
+        "n_queries": wol_n_queries(len(eligible)),
+        "seed": WOL_SEED,
+    }
+
+
 def _draw(
     tree, lineages, rank_counts, n_singletons, seed, *, max_leaves, min_leaves,
-    per_clade, preferred=(), n_preferred=0,
+    per_clade, preferred=(), n_preferred=0, eligible=None, min_eligible=0,
 ):  # fmt: skip
     rng = np.random.default_rng(seed)
     groups = choose_groups(
@@ -148,8 +183,10 @@ def _draw(
         min_leaves=min_leaves,
         preferred=preferred,
         n_preferred=n_preferred,
+        eligible=eligible,
+        min_eligible=min_eligible,
     )
-    return groups, sample_queries(groups, rng, per_clade)
+    return groups, sample_queries(groups, rng, per_clade, eligible)
 
 
 def choose_seeded_groups(
@@ -165,20 +202,30 @@ def choose_seeded_groups(
     seed: int = SEED,
     n_candidates: int = N_CANDIDATES,
     target: int = TARGET,
+    eligible: frozenset[str] | None = None,
+    min_eligible: int = 0,
 ) -> tuple[list[HeldOutGroup], list[str], set[str]]:
     """Held-out groups, the queries, and the leaves that were seeded.
 
     Singletons are drawn at random. If fewer than `target` of them have a >=99.9
     neighbour left in the backbone, the trailing singletons are replaced by
     candidates that do (design.md section 4 step 2).
+
+    With `eligible`, queries, singletons and seeds come only from it; clades are
+    still held out whole (`heldout.choose_groups`).
     """
     shape = {
         "max_leaves": max_leaves,
         "min_leaves": min_leaves,
         "per_clade": per_clade,
+        "eligible": eligible,
+        "min_eligible": min_eligible,
     }
     clades, _ = _draw(tree, lineages, rank_counts, 0, seed, **shape)
-    n_singletons = n_queries - sum(min(len(g.members), per_clade) for g in clades)
+    n_singletons = n_queries - sum(
+        min(per_clade, sum(eligible is None or m in eligible for m in g.members))
+        for g in clades
+    )
     if n_singletons < 0:
         raise ValueError("clade queries alone exceed n_queries")
 
@@ -190,7 +237,7 @@ def choose_seeded_groups(
     if sum(hits) >= target:
         return groups, queries, set()
 
-    names = list(remaining)
+    names = [n for n in remaining if eligible is None or n in eligible]
     picks = np.random.default_rng([seed, 1]).permutation(len(names))[:n_candidates]
     candidates = [names[i] for i in picks]
     chosen = set(candidates)

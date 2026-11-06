@@ -197,3 +197,22 @@ def test_plots_are_not_part_of_all(repo):
         for r in planned_blocks(repo, "--configfile", "config/smoke.yaml")
         if "plot" in r
     ]
+
+
+def test_gg2_wol_cells_plan_their_own_build_and_ref_prep(repo):
+    (repo / "wol.yaml").write_text(
+        "datasets: [gg2-wol]\nbackbones: [B10k]\nregions: [V4-150]\nalns: [hmmalign]\n"
+    )
+    planned = dry_run(repo, "wol.yaml")
+    assert "data/gg2-wol/MANIFEST.tsv" in planned["gg2_wol_build"]
+    assert "gg2_build" not in planned
+    assert planned["refprep_me_tree"] == [
+        "results/ref-prep/gg2-wol/B10k/me-tree.nwk",
+        "results/ref-prep/gg2-wol/B10k/me-tree.run.json",
+    ]
+    assert planned["hmmbuild"] == [
+        "results/gg2-wol/B10k/align/backbone.hmm",
+        "results/gg2-wol/B10k/align/hmmbuild.run.json",
+    ]
+    assert planned["evaluate"]
+    assert all("/gg2-wol/" in p for p in planned["evaluate"])

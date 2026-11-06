@@ -278,3 +278,62 @@ def test_clades_do_not_depend_on_preferred():
     seeded = pick(tree, lineages, preferred=wanted, n_preferred=3)
     clades = [g for g in baseline if g.group_type == "clade"]
     assert [g for g in seeded if g.group_type == "clade"] == clades
+
+
+def test_eligible_none_reproduces_the_unfiltered_draw():
+    tree, lineages = taxonomy_tree()
+    rng = np.random.default_rng(5)
+    groups = choose_groups(
+        tree, lineages, {0: 1, 1: 2, 2: 2}, 6, max_leaves=400, rng=rng, min_leaves=25
+    )
+    queries = sample_queries(groups, rng, per_clade=5)
+    assert [g.taxon for g in groups] == [
+        "O6", "F1.1", "F0.1", "G4.1.0", "G3.3.2",
+        "l982", "l836", "l1720", "l1906", "l1702", "l1721",
+    ]  # fmt: skip
+    assert queries[:5] == ["l2515", "l2488", "l2440", "l2313", "l2265"]
+    assert queries[-6:] == ["l982", "l836", "l1720", "l1906", "l1702", "l1721"]
+    assert len(queries) == 31
+
+
+def eligible_world():
+    tree, lineages = taxonomy_tree()
+    labels = [leaf.label for leaf in tree.traverse_leaves()]
+    return tree, lineages, frozenset(labels[::3])
+
+
+def test_eligible_restricts_singletons_and_queries_but_prunes_clades_whole():
+    tree, lineages, eligible = eligible_world()
+    rng = np.random.default_rng(1)
+    groups = choose_groups(
+        tree, lineages, {1: 1, 2: 2}, 20, max_leaves=400, rng=rng,
+        min_leaves=25, eligible=eligible, min_eligible=5,
+    )  # fmt: skip
+    clades = [g for g in groups if g.group_type == "clade"]
+    singles = [g for g in groups if g.group_type == "singleton"]
+    assert all(len(set(g.members) & eligible) >= 5 for g in clades)
+    assert any(set(g.members) - eligible for g in clades)
+    assert all(g.members[0] in eligible for g in singles)
+    queries = sample_queries(groups, rng, per_clade=4, eligible=eligible)
+    assert set(queries) <= eligible
+    for g in clades:
+        assert sum(m in set(queries) for m in g.members) == 4
+
+
+def test_min_eligible_drops_clades_with_too_few_eligible_members():
+    tree, lineages, eligible = eligible_world()
+    with pytest.raises(ValueError, match="no eligible clade"):
+        pick(tree, lineages, rank_counts={2: 1}, eligible=eligible, min_eligible=11)
+
+
+def test_preferred_seeds_that_are_not_eligible_are_skipped():
+    tree, lineages, eligible = eligible_world()
+    labels = [leaf.label for leaf in tree.traverse_leaves()]
+    outside = next(x for x in labels if x not in eligible)
+    inside = labels[300]
+    groups = pick(
+        tree, lineages, rank_counts={2: 0}, n_singletons=3, eligible=eligible,
+        preferred=[outside, inside], n_preferred=2,
+    )  # fmt: skip
+    assert [g.members[0] for g in groups][0] == inside
+    assert outside not in {g.members[0] for g in groups}

@@ -14,6 +14,10 @@ from tree_helpers import coalescent_tree
 from phylobench.accuracy import prepare_backbone, true_positions
 from phylobench.gg2 import (
     MANIFEST_COLUMNS,
+    WOL_LEAF,
+    WOL_MIN_ELIGIBLE,
+    WOL_RANKS,
+    WOL_SEED,
     bin_rows,
     build_backbones,
     check_backbone,
@@ -26,6 +30,7 @@ from phylobench.gg2 import (
     reference_tree,
     region_bins,
     seeds_needed,
+    wol_options,
 )
 from phylobench.heldout import choose_groups, prune_alignment, sample_queries
 from phylobench.regions import read_fasta, ungap
@@ -303,6 +308,54 @@ def test_choose_seeded_groups_replaces_tail_with_near_identical_leaves():
     assert [g for g in groups if g.group_type == "clade"] == [
         g for g in unseeded if g.group_type == "clade"
     ]
+
+
+@pytest.mark.parametrize(
+    ("label", "wol"),
+    [
+        ("G000000123", True),
+        ("G00000012", False),
+        ("G0000001234", False),
+        ("G000000123_2", False),
+        ("RS_GCF_000000123.1", False),
+        ("1234567", False),
+    ],
+)
+def test_wol_leaf_pattern(label, wol):
+    assert bool(WOL_LEAF.match(label)) is wol
+
+
+def test_wol_options_follow_the_g1_thresholds():
+    def labels(n):
+        return [f"G{i:09d}" for i in range(n)] + ["RS_GCF_1", "x"]
+
+    big = wol_options(labels(10_000))
+    assert big["n_queries"] == 3000
+    assert big["eligible"] == frozenset(labels(10_000)[:-2])
+    assert big["seed"] == WOL_SEED == 2026
+    assert big["rank_counts"] == WOL_RANKS
+    assert big["min_eligible"] == WOL_MIN_ELIGIBLE == 5
+    assert wol_options(labels(6000))["n_queries"] == 2000
+    with pytest.raises(ValueError, match="STOP"):
+        wol_options(labels(5999))
+
+
+def test_choose_seeded_groups_with_eligible_queries_only_eligible_leaves():
+    tree, seqs, lineages = small_world(n_leaves=300)
+    labels = [leaf.label for leaf in tree.traverse_leaves()]
+    eligible = frozenset(labels[::2])
+    groups, queries, seeds = choose_seeded_groups(
+        tree, seqs, lineages,
+        rank_counts={0: 1, 1: 1, 2: 2}, n_queries=40, max_leaves=60,
+        min_leaves=3, per_clade=5, seed=4, target=0,
+        eligible=eligible, min_eligible=5,
+    )  # fmt: skip
+    held = {m for g in groups for m in g.members}
+    assert len(queries) == 40 == len(set(queries))
+    assert set(queries) <= eligible & held
+    clades = [g for g in groups if g.group_type == "clade"]
+    assert all(len(set(g.members) & eligible) >= 5 for g in clades)
+    assert any(set(g.members) - eligible for g in clades)
 
 
 def make_qza(path, members, root="u-1"):

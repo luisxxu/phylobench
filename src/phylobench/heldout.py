@@ -80,12 +80,18 @@ def choose_groups(
     min_leaves: int = 25,
     preferred: Sequence[str] = (),
     n_preferred: int = 0,
+    eligible: frozenset[str] | None = None,
+    min_eligible: int = 0,
 ) -> list[HeldOutGroup]:
     """Disjoint monophyletic clades (highest rank first) then singletons.
 
     Up to `n_preferred` singletons come first from `preferred`, in order, skipping
     leaves that are not eligible; they use no randomness, so the clades and the
     remaining random singletons are drawn exactly as with no preference.
+
+    With `eligible` (leaf labels), singletons come only from it and a clade needs at
+    least `min_eligible` of its leaves in it; clades are still held out whole. This
+    only filters candidate lists, so `eligible=None` draws exactly as before.
 
     A group is eligible only if its stem parent is not the root and the parent's
     subtree holds no other held-out leaf, and no earlier stem parent lies above it.
@@ -96,6 +102,14 @@ def choose_groups(
     for node in tree.traverse_postorder():
         size[node] = (
             1 if node.is_leaf() else sum(size[child] for child in node.children)
+        )
+
+    n_eligible: dict[treeswift.Node, int] = {}
+    for node in tree.traverse_postorder():
+        n_eligible[node] = (
+            int(eligible is None or node.label in eligible)
+            if node.is_leaf()
+            else sum(n_eligible[child] for child in node.children)
         )
 
     has_heldout = {node: False for node in order}
@@ -126,6 +140,7 @@ def choose_groups(
                 (node, taxon)
                 for taxon, node in taxa.items()
                 if min_leaves <= size[node] <= max_leaves
+                and n_eligible[node] >= min_eligible
             ),
             key=lambda item: order[item[0]],
         )
@@ -138,7 +153,11 @@ def choose_groups(
             else:
                 raise ValueError(f"no eligible clade left at rank {rank}")
 
-    leaves = [node for node in order if node.is_leaf()]
+    leaves = [
+        node
+        for node in order
+        if node.is_leaf() and (eligible is None or node.label in eligible)
+    ]
     by_label = {leaf.label: leaf for leaf in leaves}
     taken = 0
     for label in preferred:
@@ -159,16 +178,20 @@ def choose_groups(
 
 
 def sample_queries(
-    groups: list[HeldOutGroup], rng: np.random.Generator, per_clade: int = 25
+    groups: list[HeldOutGroup],
+    rng: np.random.Generator,
+    per_clade: int = 25,
+    eligible: frozenset[str] | None = None,
 ) -> list[str]:
-    """Up to `per_clade` random members of each clade plus every singleton."""
+    """Up to `per_clade` random eligible members of each clade, every singleton."""
     queries: list[str] = []
     for group in groups:
-        if group.group_type == "singleton" or len(group.members) <= per_clade:
-            queries.extend(group.members)
+        members = [m for m in group.members if eligible is None or m in eligible]
+        if group.group_type == "singleton" or len(members) <= per_clade:
+            queries.extend(members)
         else:
-            keep = sorted(rng.choice(len(group.members), per_clade, replace=False))
-            queries.extend(group.members[i] for i in keep)
+            keep = sorted(rng.choice(len(members), per_clade, replace=False))
+            queries.extend(members[i] for i in keep)
     return queries
 
 
