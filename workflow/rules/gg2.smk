@@ -96,3 +96,40 @@ rule gg2_build:
             --out-dir {params.out_dir} --manifest {output.manifest} \
             --mem-mb {resources.mem_mb} &> {log}
         """
+
+
+rule gg2_wol_build:
+    input:
+        reference=rules.gg2_unzip.output.reference,
+        taxonomy=rules.gg2_unzip.output.taxonomy,
+        downloads=rules.gg2_download.output,
+    output:
+        manifest="data/gg2-wol/MANIFEST.tsv",
+        backbones=expand(
+            "data/gg2-wol/{backbone}/{name}",
+            backbone=["Bfull", "B10k"],
+            name=GG2_BACKBONE_FILES,
+        ),
+        queries="data/gg2-wol/queries.fasta",
+        aligned="data/gg2-wol/queries.aligned.fasta",
+        heldout="data/gg2-wol/heldout.tsv",
+    threads: 16
+    resources:
+        mem_mb=32000,
+    params:
+        python=sys.executable,
+        script=SCRIPTS / "build_gg2.py",
+        reference_dir=lambda w, input: Path(input.reference[0]).parent,
+        out_dir=lambda w, output: Path(output.manifest).parent,
+    log:
+        "logs/gg2-wol/build.log",
+    conda:
+        "../../envs/phylobench.yaml"
+    shell:
+        """
+        OMP_NUM_THREADS={threads} OPENBLAS_NUM_THREADS={threads} \
+            {params.python} {params.script} --wol --reference-dir {params.reference_dir} \
+            --taxonomy {input.taxonomy} --downloads {input.downloads} \
+            --out-dir {params.out_dir} --manifest {output.manifest} \
+            --mem-mb {resources.mem_mb} &> {log}
+        """

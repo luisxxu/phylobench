@@ -72,6 +72,17 @@ Bins are never pooled across backbones. These counts are advisory (window simila
 - A window is a position-based proxy: a query that starts or ends inside the window by a different amount than a real amplicon would is still cut at the same columns, so accuracy is comparable across arms, not to amplicon studies.
 - Not planned: the oracle alignment (it is defined from primer spans), and any EMP cell.
 
+## WoL genome held-out set (T31)
+
+`gg2-wol` is a second held-out set on the same shipped reference, for the T28 to T30 follow-up: queries come only from leaves labelled `^G\d{9}$` (WoL genome leaves, `gg2.WOL_LEAF`). Rules: `gg2_wol_build` in `workflow/rules/gg2.smk` (literal `data/gg2-wol/...` paths, own `MANIFEST.tsv`, reuses the `gg2_unzip` outputs); `build_gg2.py --wol`; pure logic in `gg2.py` (`wol_options`, `wol_n_queries`) and `heldout.py` (`eligible`, `min_eligible`). The dataset key is `gg2-wol`; backbones keep the names `Bfull` and `B10k`, and it is never pooled with `gg2` (T22 stays as published). The T23/T24 figures and report filter `dataset == "gg2"`, so `gg2-wol` is reported by the T28 and T30 close-outs.
+
+- Truth wording: **G-leaf genome position in GG2** (the leaf's place in the shipped tree). Whether uDance kept the WoL2 topology fixed when it built GG2 is UNVERIFIED; the apples2 caveat of design.md section 3 stays.
+- Draw (`choose_seeded_groups(..., eligible=G leaves, min_eligible=5)`, seed 2026): disjoint monophyletic clades of 25 to 2,000 leaves with at least 5 G members, held out whole (G and non-G members both removed), at most 25 G members per clade as queries; clade counts per rank are `WOL_RANKS` (phylum 6, class 9, order 12, family 18, genus 18), defaults that the S0 probe (P9) finalizes. Singletons and the >=99.9 seeds are G leaves only; the singleton count is N minus the clade queries, counted as `min(G members, 25)` per clade. Filtering only: no extra RNG draws, so `eligible=None` reproduces the T22 draw exactly (regression test in `tests/test_heldout.py`).
+- N = 3,000 queries; 2,000 if there are 6,000 to 9,999 G leaves; below 6,000 `wol_options` raises (G1 in `docs/runbook-t31.md`).
+- Bfull\* = shipped minus every held-out leaf, duplicate rows removed; B10k\* = seeded uniform 10,000-leaf subsample of that Bfull\* (seed 2026). Per-backbone ref-prep (FastTree me-tree, epa-ng model, hmmbuild) runs fresh for `gg2-wol`.
+- Outputs: `data/gg2-wol/{Bfull,B10k}/{tree.nwk,aligned-dna-sequences.fasta,raxml-info.txt,reference_tree.nwk}`, `queries.fasta`, `queries.aligned.fasta`, `heldout.tsv`, `MANIFEST.tsv`; same schemas as `data/gg2`. Not in `config/smoke.yaml`.
+- S0 probe: `workflow/scripts/probe_wol.py` (helpers in `src/phylobench/wol.py`) is read-only and prints P1 to P10 and the G1 to G5 verdicts; the runbook has the pre-registered stop/go and every cluster command.
+
 ## Licenses
 
 GG2 data license: BSD-3 [UNVERIFIED], flagged only (`LICENSES.md` is unchanged).

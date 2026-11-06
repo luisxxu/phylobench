@@ -10,6 +10,7 @@ from phylobench.gg2 import (
     B10K,
     HELDOUT_COLUMNS,
     MANIFEST_COLUMNS,
+    SEED,
     TARGET,
     bin_rows,
     build_backbones,
@@ -21,6 +22,7 @@ from phylobench.gg2 import (
     reference_tree,
     region_bins,
     similarity_memory_mb,
+    wol_options,
 )
 from phylobench.measure import sha256_file
 from phylobench.regions import REGIONS, read_fasta, ungap
@@ -46,6 +48,9 @@ def main():
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--mem-mb", type=int, required=True)
     parser.add_argument("--b10k", type=int, default=B10K)
+    parser.add_argument(
+        "--wol", action="store_true", help="queries only from WoL genome leaves (T31)"
+    )
     args = parser.parse_args()
 
     seqs = dict(read_fasta(args.reference_dir / "aligned-dna-sequences.fasta"))
@@ -57,11 +62,14 @@ def main():
     if needed_mb > args.mem_mb:
         sys.exit(f"need {needed_mb:.0f} MB for similarity, only {args.mem_mb} MB given")
 
-    groups, queries, seeds = choose_seeded_groups(tree, seqs, lineages)
+    options = wol_options(seqs) if args.wol else {}
+    groups, queries, seeds = choose_seeded_groups(tree, seqs, lineages, **options)
     held_out = {m for g in groups for m in g.members}
     log(f"held out {len(held_out)} leaves, {len(queries)} queries, {len(seeds)} seeded")
 
-    backbones = build_backbones(tree, seqs, held_out, args.b10k)
+    backbones = build_backbones(
+        tree, seqs, held_out, args.b10k, options.get("seed", SEED)
+    )
     log(f"removed {len(backbones.duplicates)} duplicate rows from Bfull")
     built = {
         "Bfull": (backbones.full_tree, backbones.full_seqs),
