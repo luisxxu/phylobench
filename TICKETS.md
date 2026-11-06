@@ -43,7 +43,8 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
   - [x] `gg2.WOL_LEAF`, WoL constants, `wol_options`, `choose_seeded_groups(eligible=...)`; `build_gg2.py --wol`; `gg2_wol_build` rule (literal `data/gg2-wol` paths, own MANIFEST); dry-run DAG tests (own build, own ref-prep and hmmbuild; not in `config/smoke.yaml`)
   - [x] `workflow/scripts/probe_wol.py` + `src/phylobench/wol.py` (P1 to P10, G1 to G5 verdicts), tested on `tests/fixtures/tiny`
   - [x] `docs/runbook-t31.md`, `docs/gg2.md` WoL section, `design.md` sections 3/4/6/9
-  - [ ] S0 probe run by the user and a go on G1 to G6; the gg2-wol build, ref-prep and checksums on the cluster (user runs every command)
+  - [x] S0 probe run by the user: GO on G1 to G6 (2026-11-06; 12,283 G leaves, N = 3,000, `WOL_RANKS` unchanged, highmem all Xeon 6242; `docs/runbook-t31.md`)
+  - [ ] The gg2-wol build, ref-prep and checksums on the cluster (user runs every command)
 - **Acceptance:** `pytest`, `ruff`, `snakemake --lint` and the smoke dry run pass; `eligible=None` regression test passes; a dry run of `data/gg2-wol/MANIFEST.tsv` plans `gg2_wol_build` and not `gg2_build`; the PR merges only after an S0 go.
 - **Dependencies:** T22, T24
 - **Agent notes:** Cost (T22-scaled, UNVERIFIED): build plus gg2-wol ref-prep and hmmbuild about 5 to 10 node-hours (Bfull FastTree used 196 GB in T22). Queries are G leaves: clades stay whole, so non-G clade members leave the backbone but are never queries.

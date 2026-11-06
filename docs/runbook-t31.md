@@ -87,6 +87,19 @@ Paste: the output (one line per node). G6: if every highmem node is a Xeon 6242,
 
 Stop here and wait for my go/stop on G1 to G6. No build before that, and the PR does not merge before a go.
 
+### S0 result (2026-11-06, `41b7ce6`): GO
+
+| Rule | Probe | Decision |
+|---|---|---|
+| G1 | 12,283 G leaves of 331,269 (current Bfull\* 11,743, B10k\* 344) | GO, N = 3,000 |
+| G2 | `REVIEW` listed only `RS_`/`GB_` record names whose contig accession contains `G` and nine digits (e.g. `..._NZ_JAGYPG#.1`); none is a `G` leaf with a copy suffix; P3: 0 G leaves with an `RS_`/`GB_` twin | GO, one leaf per genome |
+| G3 | P9 with the default `WOL_RANKS`: 63 clades, 805 clade queries, 2,195 singletons wanted of 10,506 G outside clades, draw ok | GO, `WOL_RANKS` unchanged (P6 has at least 49/103/221/318/278 clades per rank) |
+| G4 | V4-150 primer hits on 10,620 of 12,283 G rows | GO, about 2,594 V4-150 queries expected |
+| G5 | Every `c` window has thousands of rows | No `c` region dropped |
+| G6 | `b-cn-25`, `b-cn-26`: Intel Xeon Gold 6242 | Route by `--partition highmem` |
+
+Expected queries per primer region at N = 3,000 (primer-hit rate on all G rows): V4-150 2,594, V3-V4 2,453, V4-V5 2,551, V6-V8 2,319, V1-V2 2,019, V1-V3 1,962, V5-V6 1,906, V7-V9 99 (1492R sits at the 3' end, which genome-derived genes often lack; `V7-V9c` keeps about 2,614). Descriptive: G length median 1,497 (min 769, q10 1,140, q90 1,531); 226 of 2,000 sampled G leaves have a >=99.9 neighbour (seeding target 100); lineage depth 7 for 11,606 of 12,283.
+
 ## Build (after the PR merged and S0 said go)
 
 ```bash
