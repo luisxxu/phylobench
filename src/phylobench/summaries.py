@@ -125,8 +125,9 @@ def within_k_difference(
 
     `groups` maps query name to held-out group (a clade, or a singleton on its own) and
     is the bootstrap's resampling unit. An unplaced query, or a planned challenger cell
-    with no rows (DNF), is a miss; an unplaced or absent reference makes the region
-    undecidable. Non-inferior when the one-sided 95% lower bound is above the margin.
+    with no rows (DNF), is a miss, as is an unplaced reference query; a DNF reference
+    (no rows) makes the region undecidable. Non-inferior when the one-sided 95% lower
+    bound is above the margin.
     """
     cells = scored_cells(accuracy)
     keys = planned_cells if planned_cells is not None else list(cells)
@@ -148,7 +149,7 @@ def within_k_difference(
             "lower": np.nan,
             "verdict": "undecidable",
         }
-        if ref is not None and ref["edge_dist"].notna().all():
+        if ref is not None:
             row.update(_within_k_row(tool, ref, groups, k, n_boot, seed))
         rows.append(row)
     return pd.DataFrame(rows)

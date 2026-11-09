@@ -66,13 +66,13 @@ def test_planned_challenger_without_rows_is_all_miss():
     assert (row["arm"], row["diff"], row["n"]) == ("bscampp", -1.0, 4)
 
 
-def test_unplaced_reference_is_undecidable():
+def test_unplaced_reference_query_is_a_miss():
     row = within_k_difference(pair([0.0, NAN], [0.0, 0.0]), groups_of(2)).iloc[0]
-    assert row["verdict"] == "undecidable"
-    assert math.isnan(row["diff"])
+    assert row["diff"] == 0.5
+    assert row["verdict"] != "undecidable"
 
 
-def test_missing_reference_is_undecidable():
+def test_dnf_reference_is_undecidable():
     out = within_k_difference(
         cell("bscampp", [0.0, 0.0]),
         groups_of(2),

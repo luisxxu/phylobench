@@ -212,7 +212,7 @@ Paste: the number (stop and paste above 15).
 
 ## Collect and within-3 table
 
-`collect_tables` ran as part of `all`; the tables hold the 45 cells only. The within-3 table is the T28 decision statistic: per region, the paired difference in the fraction of queries within 3 edges of the truth (challenger minus `sepp-prod`), cluster bootstrap over held-out groups (B = 10,000, seed 0), one-sided 95% lower bound, `non-inferior` when the bound is above -0.02; `undecidable` when the `sepp-prod` cell is DNF or has unplaced queries.
+`collect_tables` ran as part of `all`; the tables hold the 45 cells only. The within-3 table is the T28 decision statistic: per region, the paired difference in the fraction of queries within 3 edges of the truth (challenger minus `sepp-prod`), cluster bootstrap over held-out groups (B = 10,000, seed 0), one-sided 95% lower bound, `non-inferior` when the bound is above -0.02; an unplaced query (either arm) is a miss; `undecidable` when the `sepp-prod` cell is DNF (no rows).
 
 ```bash
 python workflow/scripts/within_k_table.py config/t28.yaml | tee results/t28-within3.txt
