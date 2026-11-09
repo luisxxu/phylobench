@@ -40,7 +40,7 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 - **Tolerance (pre-registered, constant across regions):** a query is kept when its non-gap residues inside the window are >= 0.9 x window length (`COVERAGE_TOLERANCE`); the rest are excluded and counted in `exclusion_counts.tsv` as `window coverage below tolerance`.
 - **Deliverables:**
   - [x] `regions.column_window`, `regions.cut_column_window`, `COLUMN_REGIONS`; `extract_regions.py --aligned`; region wildcard and schema enum extended (`align.smk`, `config/schema.yaml`)
-  - [x] `config/t28.yaml` + `t28-b10k.yaml` (S1) + `t28-bfull.yaml` (S2): sepp-prod, sepp-pinned, bscampp (hmmalign), 8 `c` regions, gg2 only; 24 cells per backbone, 48 in all; T22 rows are reused, nothing is rerun
+  - [x] `config/t28.yaml` + `t28-b10k.yaml` (S1) + `t28-bfull.yaml` (S2): sepp-prod, sepp-pinned, bscampp (hmmalign), 8 `c` regions, gg2 only; 24 cells per backbone, 48 in all; T22 rows are reused, nothing is rerun (superseded by the T31 amendment: the overlays are removed)
   - [x] `docs/gg2.md` section, `docs/runbook-t28.md` (S0 exclusion-count check, S1, S2, collect, gates, checksum + copy)
   - [x] Unit tests: window, tolerance edges, exclusion counts, primerless-but-covering query kept, V4-150c length, originals unchanged; overlay cell counts and dry-run DAG
   - [ ] Cluster runs S0, S1, S2 (user runs every command)
@@ -50,11 +50,12 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
   - Co-primary: fraction of queries within 3 edges of the truth, bscampp non-inferior to sepp-prod by delta = 2 percentage points (paired per-query bootstrap, upper CI). Labelled **exploratory, chosen after T22**: k = 3 was picked after seeing T22 data, and the sources are reused.
   - Per-region verdicts with CIs; "undecidable" is an allowed outcome; no all-regions rule. Every result is exploratory while the 1,000 sources are reused.
 - **T31 amendment (2026-11-06):** T28's remaining work runs on `gg2-wol` at B10k\* only, exploratory; T22's set is not run (T22 numbers stay as published). Regions: full-length, V4-150, and every primer region with >= 1,000 queries after S0, else its `c` twin if that has >= 1,000 (primer wins); this freezes the T30 region list. Arms: sepp-prod, sepp-pinned, bscampp, pplacer-scampp, epa-ng-scampp (hmmalign). The reporting criteria below are replaced by the T30 rule (`design.md` section 3): within-3-edges non-inferiority with a cluster bootstrap over held-out groups, the 0.25 gate secondary and undecidable.
-  - [ ] gg2-wol configs (B10k\*) and the arm list above
-  - [ ] `summaries.within_k_difference` (paired fraction within k edges, cluster bootstrap over held-out groups, unplaced/DNF = miss), unit-tested
+  - [x] gg2-wol config (B10k\*, 9 regions, 5 arms, 45 cells; `config/t28.yaml` replaces the gg2 overlays) and `docs/runbook-t28.md` (S0 region rule with a STOP if `V7-V9c` < 1,000, S1, within-3 table)
+  - [x] `summaries.within_k_difference` (paired fraction within k edges, cluster bootstrap over held-out groups, unplaced/DNF = miss), unit-tested; `workflow/scripts/within_k_table.py` prints the close-out table
+  - [ ] Cluster runs S0 and S1 (user runs every command)
   - [ ] Region rule applied from the S0 numbers; frozen list recorded in the T28 close-out
 - **Dependencies:** T22, T24, T31
-- **Agent notes:** `c` regions apply to gg2 only (EMP has one region). The oracle alignment is not planned for `c` regions. Backbone-independent windows: region queries are dataset-level, so the window comes from the queries' own aligned rows, not a backbone's.
+- **Agent notes:** `c` regions apply to gg2 and gg2-wol (EMP has one region); `extract_regions` takes the dataset from the path, so no code differs. The oracle alignment is not planned for `c` regions. Backbone-independent windows: region queries are dataset-level, so the window comes from the queries' own aligned rows, not a backbone's.
 
 ### T29: Accuracy levers at B10k\* — closes #60
 - **Week:** post-T24

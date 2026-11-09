@@ -63,7 +63,7 @@ Bins are never pooled across backbones. These counts are advisory (window simila
 
 ## Column-window regions (T28)
 
-`V4-150c`, `V3-V4c`, `V1-V2c`, `V1-V3c`, `V4-V5c`, `V5-V6c`, `V6-V8c`, `V7-V9c` cut a query by alignment columns instead of primer sites: the **column-window proxy** (real amplicons start and stop at primers, so these are not amplicons). The primer-matched regions are unchanged and never pooled with these.
+`V4-150c`, `V3-V4c`, `V1-V2c`, `V1-V3c`, `V4-V5c`, `V5-V6c`, `V6-V8c`, `V7-V9c` cut a query by alignment columns instead of primer sites: the **column-window proxy** (real amplicons start and stop at primers, so these are not amplicons). The primer-matched regions are unchanged and never pooled with these. They apply to `gg2` and `gg2-wol` (the rule reads `data/<dataset>/queries.aligned.fasta`); T28 uses only `V7-V9c` on `gg2-wol`, where the primer-matched V7-V9 keeps about 139 of 3,000 queries.
 
 - Window: over the shipped aligned query rows that have both primer hits, the median start and median end column of the primer-delimited amplicon (`regions.column_window`; V4-150c is the first 150 nt after 515F expressed in columns). Windows come from the queries, not a backbone, because region query files are dataset-level.
 - Cut: the query's own shipped aligned row, columns `[start, end)`, gaps removed (`regions.cut_column_window`); `results/gg2/regions/<region>/queries.fasta` then goes through the same hmmalign, place and evaluate rules as any region.
