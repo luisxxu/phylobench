@@ -83,6 +83,15 @@ Bins are never pooled across backbones. These counts are advisory (window simila
 - Outputs: `data/gg2-wol/{Bfull,B10k}/{tree.nwk,aligned-dna-sequences.fasta,raxml-info.txt,reference_tree.nwk}`, `queries.fasta`, `queries.aligned.fasta`, `heldout.tsv`, `MANIFEST.tsv`; same schemas as `data/gg2`. Not in `config/smoke.yaml`.
 - S0 probe: `workflow/scripts/probe_wol.py` (helpers in `src/phylobench/wol.py`) is read-only and prints P1 to P10 and the G1 to G5 verdicts; the runbook has the pre-registered stop/go and every cluster command.
 
+### Build (2026-11-09, `db699d2`)
+
+- 3,000 queries, all `^G\d{9}$`: 2,195 singletons and 805 from 63 clades (phylum 6, class 9, order 12, family 18, genus 18); 0 seeded (the Bfull\* full-length >=99.9 bin already held 234 queries).
+- Primer-matched queries per region (both backbones): full-length 3,000, V4-150 2,703, V3-V4 2,542, V4-V5 2,622, V6-V8 2,354, V1-V2 2,119, V1-V3 2,058, V5-V6 1,913, V7-V9 139.
+- Full-length bins, Bfull\*: <75 20, 75-80 134, 80-85 169, 85-90 283, 90-95 482, 95-97 407, 97-99 631, 99-99.9 640, >=99.9 234. B10k\*: 67, 267, 322, 489, 864, 415, 382, 165, 29. V4-150 Bfull\*: 6, 54, 158, 158, 322, 160, 249, 184, 1,412. B10k\*: 41, 173, 313, 328, 596, 312, 406, 166, 368. Bins under 100 are flagged, not padded.
+- Ref-prep and hmmbuild for both backbones: 8 jobs, all `ok`, 17.7 min wall, 0.1 node-hours by `sacct`.
+- sha256: `MANIFEST.tsv` `cfd769508e8699376391fac4cfd2ac1621286c2dd32d0c964fe25107758f0dbf`, `heldout.tsv` `1709493399fd86eee875dc18ec4d0f76f8118465e038db77600d89a26bac7543`, `queries.fasta` `da8eb9b2ab2c9117e687454eb566478cdd378621acdfa9eb64fefa84eca512e3`, `Bfull/tree.nwk` `f04080d060b68e0369557f0dfcd1bb867bb4ff71ff5296cb64a5de0d47e03ce8`, `B10k/tree.nwk` `31f3c13af36139ec56d0ed0551423b7629eb3f134e0f782f416ab87b65ae9160`.
+- Archive: `/ddn_scratch/lxxu/phylobench-archive/t31-gg2-wol.tgz` (77 MB; `data/gg2-wol`, T31 logs), sha256 `c8251fe3e68c41a685c93ca60d289b0ee80184307cb2a7e40e5b26a0a477dc91`.
+
 ## Licenses
 
 GG2 data license: BSD-3 [UNVERIFIED], flagged only (`LICENSES.md` is unchanged).

@@ -33,22 +33,6 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 ### Post-T24 — Non-V4 regions and BSCAMPP follow-up
 
-### T31: WoL genome held-out set (`gg2-wol`) — closes #63
-- **Week:** post-T24
-- **Description:** A second held-out set on the same shipped GG2 reference whose queries are only WoL genome leaves (`^G\d{9}$`), for the T28 to T30 follow-up. Dataset key `gg2-wol` (`data/gg2-wol/{Bfull,B10k}`), never pooled with `gg2`; T22 stays as published; the T23/T24 figures and report filter `dataset == "gg2"`. Truth wording: "G-leaf genome position in GG2"; whether uDance kept the WoL2 topology fixed is UNVERIFIED; the apples2 caveat stays. Design: `design.md` sections 3, 4, 9; procedure: `docs/gg2.md`; cluster steps: `docs/runbook-t31.md`.
-- **Construction (pre-registered):** seed 2026; N = 3,000 queries (2,000 if 6,000 <= G < 10,000; STOP below 6,000); clade pool = taxa of 25 to 2,000 leaves with >= 5 G members, pruned whole, up to 25 G members per clade as queries; singletons and >=99.9 seeds G only; default clade counts phylum 6, class 9, order 12, family 18, genus 18 (S0 sets the final values); B10k\* = uniform 10,000-leaf subsample of gg2-wol Bfull\*. Per-backbone ref-prep and hmmbuild run fresh.
-- **S0 stop/go (fixed before any gg2-wol data):** G1 G >= 10,000 -> N 3,000; 6,000 to 9,999 -> N 2,000; below -> STOP. G2 one leaf per genome, else STOP. G3 STOP if P9 clade queries < 500 or G singletons outside clades < N minus clade queries. G4 STOP if V4-150 primer hits on G give < 2,000 queries at N. G5 a `c` region with < 30 primer-hit G rows is dropped. G6 highmem CPU models decide routing (`--partition` if all Xeon 6242, else `--nodelist`).
-- **Deliverables:**
-  - [x] `heldout.choose_groups` / `sample_queries`: `eligible`, `min_eligible` (filter only; `eligible=None` reproduces the T22 draw, regression test)
-  - [x] `gg2.WOL_LEAF`, WoL constants, `wol_options`, `choose_seeded_groups(eligible=...)`; `build_gg2.py --wol`; `gg2_wol_build` rule (literal `data/gg2-wol` paths, own MANIFEST); dry-run DAG tests (own build, own ref-prep and hmmbuild; not in `config/smoke.yaml`)
-  - [x] `workflow/scripts/probe_wol.py` + `src/phylobench/wol.py` (P1 to P10, G1 to G5 verdicts), tested on `tests/fixtures/tiny`
-  - [x] `docs/runbook-t31.md`, `docs/gg2.md` WoL section, `design.md` sections 3/4/6/9
-  - [x] S0 probe run by the user: GO on G1 to G6 (2026-11-06; 12,283 G leaves, N = 3,000, `WOL_RANKS` unchanged, highmem all Xeon 6242; `docs/runbook-t31.md`)
-  - [ ] The gg2-wol build, ref-prep and checksums on the cluster (user runs every command)
-- **Acceptance:** `pytest`, `ruff`, `snakemake --lint` and the smoke dry run pass; `eligible=None` regression test passes; a dry run of `data/gg2-wol/MANIFEST.tsv` plans `gg2_wol_build` and not `gg2_build`; the PR merges only after an S0 go.
-- **Dependencies:** T22, T24
-- **Agent notes:** Cost (T22-scaled, UNVERIFIED): build plus gg2-wol ref-prep and hmmbuild about 5 to 10 node-hours (Bfull FastTree used 196 GB in T22). Queries are G leaves: clades stay whole, so non-G clade members leave the backbone but are never queries.
-
 ### T28: Column-window regions (non-V4 support) — closes #59
 - **Week:** post-T24
 - **Description:** In T22 the six non-V4 regions keep only 46 to 921 of 1,000 queries (V1-V2 153, V1-V3 144, V7-V9 46, against 879 to 921 for V3-V4, V4-150, V4-V5, V5-V6, V6-V8): 711 of the 1,000 sources are MJ0* UMI amplicons without the 27F/1492R primer sites. Primer-trimming of those reads is a hypothesis, UNVERIFIED until the S0 check of `exclusion_counts.tsv` on the cluster. T28 adds a column-window variant of each amplicon region (`V4-150c`, `V3-V4c`, `V1-V2c`, `V1-V3c`, `V4-V5c`, `V5-V6c`, `V6-V8c`, `V7-V9c`) that cuts each query by alignment columns from its shipped aligned row, so a query without primers but covering the window is kept. Labelled the **column-window proxy**: real amplicons start and stop at primers. The primer-matched regions and every T22 output stay untouched and are never pooled with the `c` regions.
@@ -109,6 +93,22 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 ## Done
 
 <!-- Move tickets here once merged. Keep the T{N} prefix. -->
+
+### T31: WoL genome held-out set (`gg2-wol`) — closes #63
+- **Week:** post-T24
+- **Description:** A second held-out set on the same shipped GG2 reference whose queries are only WoL genome leaves (`^G\d{9}$`), for the T28 to T30 follow-up. Dataset key `gg2-wol` (`data/gg2-wol/{Bfull,B10k}`), never pooled with `gg2`; T22 stays as published; the T23/T24 figures and report filter `dataset == "gg2"`. Truth wording: "G-leaf genome position in GG2"; whether uDance kept the WoL2 topology fixed is UNVERIFIED; the apples2 caveat stays. Design: `design.md` sections 3, 4, 9; procedure: `docs/gg2.md`; cluster steps: `docs/runbook-t31.md`.
+- **Construction (pre-registered):** seed 2026; N = 3,000 queries (2,000 if 6,000 <= G < 10,000; STOP below 6,000); clade pool = taxa of 25 to 2,000 leaves with >= 5 G members, pruned whole, up to 25 G members per clade as queries; singletons and >=99.9 seeds G only; default clade counts phylum 6, class 9, order 12, family 18, genus 18 (S0 sets the final values); B10k\* = uniform 10,000-leaf subsample of gg2-wol Bfull\*. Per-backbone ref-prep and hmmbuild run fresh.
+- **S0 stop/go (fixed before any gg2-wol data):** G1 G >= 10,000 -> N 3,000; 6,000 to 9,999 -> N 2,000; below -> STOP. G2 one leaf per genome, else STOP. G3 STOP if P9 clade queries < 500 or G singletons outside clades < N minus clade queries. G4 STOP if V4-150 primer hits on G give < 2,000 queries at N. G5 a `c` region with < 30 primer-hit G rows is dropped. G6 highmem CPU models decide routing (`--partition` if all Xeon 6242, else `--nodelist`).
+- **Deliverables:**
+  - [x] `heldout.choose_groups` / `sample_queries`: `eligible`, `min_eligible` (filter only; `eligible=None` reproduces the T22 draw, regression test)
+  - [x] `gg2.WOL_LEAF`, WoL constants, `wol_options`, `choose_seeded_groups(eligible=...)`; `build_gg2.py --wol`; `gg2_wol_build` rule (literal `data/gg2-wol` paths, own MANIFEST); dry-run DAG tests (own build, own ref-prep and hmmbuild; not in `config/smoke.yaml`)
+  - [x] `workflow/scripts/probe_wol.py` + `src/phylobench/wol.py` (P1 to P10, G1 to G5 verdicts), tested on `tests/fixtures/tiny`
+  - [x] `docs/runbook-t31.md`, `docs/gg2.md` WoL section, `design.md` sections 3/4/6/9
+  - [x] S0 probe run by the user: GO on G1 to G6 (2026-11-06; 12,283 G leaves, N = 3,000, `WOL_RANKS` unchanged, highmem all Xeon 6242; `docs/runbook-t31.md`)
+  - [x] The gg2-wol build, ref-prep and checksums on the cluster (2026-11-09; 3,000 queries, 0 non-G, 8 prep jobs ok, 0.1 node-hours; checksums and archive in `docs/gg2.md`)
+- **Acceptance:** `pytest`, `ruff`, `snakemake --lint` and the smoke dry run pass; `eligible=None` regression test passes; a dry run of `data/gg2-wol/MANIFEST.tsv` plans `gg2_wol_build` and not `gg2_build`; the PR merges only after an S0 go.
+- **Dependencies:** T22, T24
+- **Agent notes:** Cost (T22-scaled, UNVERIFIED): build plus gg2-wol ref-prep and hmmbuild about 5 to 10 node-hours (Bfull FastTree used 196 GB in T22). Queries are G leaves: clades stay whole, so non-G clade members leave the backbone but are never queries.
 
 ### T24: Report and recommendation — closes #24
 - [x] `results.md`: methods, verdict per (region, backbone) with effect sizes and CIs, per-bin descriptive tables (gg2 full-length and V4-150), cost tables (gg2, EMP 10k/100k), EMP concordance (labelled concordance), flagged licenses table from `LICENSES.md`; every claim cites a generated table
