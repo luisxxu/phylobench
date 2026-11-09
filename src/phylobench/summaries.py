@@ -12,6 +12,8 @@ SMALL_BIN_N = 100
 N_BOOT = 10_000
 PLACE_PHASES = ("place", "align+place", "align+place+convert")
 BOOT_CHUNK = 1_000
+WITHIN_K = 3
+NON_INFERIORITY_MARGIN = 0.02
 UNPAIRED = {"n_pairs": 0, "n_tool_unplaced": 0, "n_ref_unplaced": 0}
 NO_STATS = {"mean": np.nan, "ci_lo": np.nan, "ci_hi": np.nan}
 
@@ -108,6 +110,84 @@ def verdict(accuracy: pd.DataFrame, margin: float = MARGIN) -> pd.DataFrame:
             }
         )
     return pd.DataFrame(rows)
+
+
+def within_k_difference(
+    accuracy: pd.DataFrame,
+    groups: pd.Series,
+    *,
+    k: int = WITHIN_K,
+    n_boot: int = N_BOOT,
+    seed: int = 0,
+    planned_cells: list[tuple] | None = None,
+) -> pd.DataFrame:
+    """Each hmmalign or raw arm minus sepp-prod in the fraction of queries within k.
+
+    `groups` maps query name to held-out group (a clade, or a singleton on its own) and
+    is the bootstrap's resampling unit. An unplaced query, or a planned challenger cell
+    with no rows (DNF), is a miss; an unplaced or absent reference makes the region
+    undecidable. Non-inferior when the one-sided 95% lower bound is above the margin.
+    """
+    cells = scored_cells(accuracy)
+    keys = planned_cells if planned_cells is not None else list(cells)
+    rows = []
+    for dataset, backbone, region, aln, arm in keys:
+        if arm == REFERENCE_ARM or aln == "oracle":
+            continue
+        ref = cells.get((dataset, backbone, region, "raw", REFERENCE_ARM))
+        tool = cells.get((dataset, backbone, region, aln, arm))
+        row = {
+            "dataset": dataset,
+            "backbone": backbone,
+            "region": region,
+            "aln": aln,
+            "arm": arm,
+            "n": len(ref) if ref is not None else 0,
+            "n_clusters": 0,
+            "diff": np.nan,
+            "lower": np.nan,
+            "verdict": "undecidable",
+        }
+        if ref is not None and ref["edge_dist"].notna().all():
+            row.update(_within_k_row(tool, ref, groups, k, n_boot, seed))
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def _within_k_row(tool, ref, groups, k, n_boot, seed) -> dict:
+    queries = ref["query"].tolist()
+    if tool is not None and set(tool["query"]) != set(queries):
+        raise ValueError("tool and reference score different query sets")
+    if not set(queries) <= set(groups.index):
+        raise ValueError("every scored query needs a held-out group")
+    ref_hit = (ref["edge_dist"] <= k).to_numpy()
+    tool_hit = (
+        np.zeros(len(queries), bool)
+        if tool is None
+        else (tool.set_index("query")["edge_dist"].reindex(queries) <= k).to_numpy()
+    )
+    cluster = pd.factorize(groups.reindex(queries))[0]
+    n_clusters = cluster.max() + 1
+    size = np.bincount(cluster, minlength=n_clusters)
+    gain = np.bincount(cluster, tool_hit.astype(int) - ref_hit, minlength=n_clusters)
+    rng = np.random.default_rng(seed)
+    diffs = np.concatenate(
+        [
+            gain[idx].sum(axis=1) / size[idx].sum(axis=1)
+            for idx in (
+                rng.integers(0, n_clusters, (min(BOOT_CHUNK, n_boot - i), n_clusters))
+                for i in range(0, n_boot, BOOT_CHUNK)
+            )
+        ]
+    )
+    lower = np.percentile(diffs, 5)
+    return {
+        "n": len(queries),
+        "n_clusters": int(n_clusters),
+        "diff": gain.sum() / len(queries),
+        "lower": lower,
+        "verdict": "non-inferior" if lower > -NON_INFERIORITY_MARGIN else "not-shown",
+    }
 
 
 def cell_distribution(accuracy: pd.DataFrame) -> pd.DataFrame:
