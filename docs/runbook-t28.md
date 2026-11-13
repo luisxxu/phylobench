@@ -111,10 +111,16 @@ Paste: the output. If a T22 archive file already existed before this step, it is
 
 ## S0: extract regions and apply the region rule (no placement jobs)
 
-Cuts the 9 expected regions plus the primer-matched `V7-V9` (for its count) from `data/gg2-wol/queries*.fasta`. 11 short local jobs, seconds each. The `c` extraction reads the shipped aligned rows `data/gg2-wol/queries.aligned.fasta`.
+Cuts the 9 expected regions plus the primer-matched `V7-V9` (for its count) from `data/gg2-wol/queries*.fasta`. Short jobs, seconds each. Targets go before `--configfile` (which takes several files and would swallow them), and the run uses the profile: a run without `--use-conda` records a different software environment, so the next profiled run plans `gg2_wol_build` again (seen on 2026-11-10; the rebuild was byte-identical to the T31 checksums). The `c` extraction reads the shipped aligned rows `data/gg2-wol/queries.aligned.fasta`.
 
 ```bash
-snakemake -c 2 --configfile config/t28.yaml results/gg2-wol/regions/full-length/queries.fasta results/gg2-wol/regions/V4-150/queries.fasta results/gg2-wol/regions/V3-V4/queries.fasta results/gg2-wol/regions/V1-V2/queries.fasta results/gg2-wol/regions/V1-V3/queries.fasta results/gg2-wol/regions/V4-V5/queries.fasta results/gg2-wol/regions/V5-V6/queries.fasta results/gg2-wol/regions/V6-V8/queries.fasta results/gg2-wol/regions/V7-V9/queries.fasta results/gg2-wol/regions/V7-V9c/queries.fasta 2>&1 | tail -5
+snakemake results/gg2-wol/regions/full-length/queries.fasta results/gg2-wol/regions/V4-150/queries.fasta results/gg2-wol/regions/V3-V4/queries.fasta results/gg2-wol/regions/V1-V2/queries.fasta results/gg2-wol/regions/V1-V3/queries.fasta results/gg2-wol/regions/V4-V5/queries.fasta results/gg2-wol/regions/V5-V6/queries.fasta results/gg2-wol/regions/V6-V8/queries.fasta results/gg2-wol/regions/V7-V9/queries.fasta results/gg2-wol/regions/V7-V9c/queries.fasta -n --profile profiles/slurm-pilot --configfile config/t28.yaml > logs/t28-s0-dryrun.txt 2>&1; grep -A8 "^Job stats" logs/t28-s0-dryrun.txt
+```
+
+Paste: the output. Expect only `extract_regions` (10 jobs, or fewer if some exist). If `gg2_wol_build` or any `refprep_*` appears, stop and paste: the data or its provenance changed since T31.
+
+```bash
+snakemake results/gg2-wol/regions/full-length/queries.fasta results/gg2-wol/regions/V4-150/queries.fasta results/gg2-wol/regions/V3-V4/queries.fasta results/gg2-wol/regions/V1-V2/queries.fasta results/gg2-wol/regions/V1-V3/queries.fasta results/gg2-wol/regions/V4-V5/queries.fasta results/gg2-wol/regions/V5-V6/queries.fasta results/gg2-wol/regions/V6-V8/queries.fasta results/gg2-wol/regions/V7-V9/queries.fasta results/gg2-wol/regions/V7-V9c/queries.fasta --profile profiles/slurm-pilot --configfile config/t28.yaml 2>&1 | tail -5
 ```
 
 Paste: the output.
@@ -297,6 +303,32 @@ shasum -a 256 -c SHA256SUMS
 ```
 
 Paste: the output.
+
+### Result (2026-11-12, `9ad3bc2`)
+
+S0: every region's extracted plus excluded counts sum to 3,000. Extracted: full-length 3,000, V4-150 2,703, V3-V4 2,542, V1-V2 2,119, V1-V3 2,058, V4-V5 2,622, V5-V6 1,913, V6-V8 2,354, V7-V9 139, `V7-V9c` 2,626 (window columns 1167 to 1552, length 376; 374 below the 0.9 coverage tolerance). Frozen list = `config/t28.yaml` (T30 uses it).
+
+Incident: the first S0 run used `-c 2` without the profile and rebuilt `data/gg2-wol` on the login node (software-environment trigger). All 11 data files matched the T31 sha256s; the stale provenance was cleared with `--cleanup-metadata` on the build and region outputs and the existing ref-prep outputs re-stamped with `--touch`; nothing was recomputed. The S0 block above is the corrected command.
+
+S1: 156 of 156 jobs, 0 `Error in rule`, `check_stage.py` all PASS (no DNFs), 4.5 node-hours (estimate 3 to 8), 10.2 h wall. `sepp-prod` full-length peak 98,257 MB (96 GiB, cgroup, AMD EPYC 7302); x 2.9 = 278 GiB, under the T30 1,400 GB stop.
+
+Within-3 table (`results/t28-within3.txt`; diff = challenger minus `sepp-prod` fraction within 3 edges, lower = one-sided 95% bound, cluster bootstrap B = 10,000; NI = non-inferior, lower > -0.02):
+
+| Region (n, clusters) | bscampp | epa-ng-scampp | pplacer-scampp | sepp-pinned |
+|---|---|---|---|---|
+| full-length (3,000, 2,258) | -0.030 (-0.052) not shown | -0.023 (-0.044) not shown | -0.023 (-0.044) not shown | 0.000 (0.000) NI |
+| V4-150 (2,703, 2,084) | +0.004 (-0.011) NI | +0.005 (-0.010) NI | +0.005 (-0.009) NI | +0.000 (-0.001) NI |
+| V3-V4 (2,542, 1,972) | -0.001 (-0.015) NI | -0.001 (-0.015) NI | -0.003 (-0.016) NI | 0.000 (0.000) NI |
+| V1-V2 (2,119, 1,690) | -0.004 (-0.022) not shown | +0.004 (-0.014) NI | +0.003 (-0.013) NI | 0.000 (0.000) NI |
+| V1-V3 (2,058, 1,639) | +0.003 (-0.013) NI | +0.005 (-0.011) NI | +0.008 (-0.007) NI | 0.000 (0.000) NI |
+| V4-V5 (2,622, 2,017) | +0.001 (-0.017) NI | -0.000 (-0.018) NI | -0.001 (-0.018) NI | +0.000 (0.000) NI |
+| V5-V6 (1,913, 1,556) | +0.015 (-0.003) NI | +0.016 (-0.002) NI | +0.015 (-0.002) NI | 0.000 (0.000) NI |
+| V6-V8 (2,354, 1,818) | -0.004 (-0.017) NI | -0.004 (-0.018) NI | 0.000 (-0.014) NI | 0.000 (0.000) NI |
+| V7-V9c (2,626, 2,016) | +0.002 (-0.015) NI | +0.004 (-0.013) NI | -0.002 (-0.018) NI | -0.000 (-0.001) NI |
+
+Exploratory (B10k\*). Every challenger is non-inferior on every amplicon region except bscampp at V1-V2 (bound 0.19 pp past the margin); all three fall about 2 to 3 pp short at full-length, so none meets the full-length and V4-150 headline at B10k\*. T30 extra challengers (full-length lower bound > -0.02): none qualify, so T30 runs the core arms only.
+
+Archive: `/ddn_scratch/lxxu/phylobench-archive/t28-final/` (git `9ad3bc2`): `runs.tsv` `ee5635e57f88246601c83e7ab9710015ca832a74eb404f16d8a9ceedb1cb5d3a`, `accuracy.tsv` `d581e907008001ce125f93675f367f4cef303e48235cbe294e03852d775d7417`, `concordance.tsv` `609aeb592eebda1f063586d6faa33a1e7441a5b4573fb83b2546ea15a8ef49df`, `t28-within3.txt` `1967f34fede1f90fa0ded30c007170d458eeb7c1357b5da433e8f6f9c2c5d3f1`, `regions.tgz` `6efb4c54908afada574d7ae5df20d8a966246c8833242038784687965c13931c`. T22 tables kept as `*-t22-final.tsv` (2026-11-10).
 
 ## Two-failure rule
 
