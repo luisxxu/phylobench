@@ -33,30 +33,6 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 ### Post-T24 — Non-V4 regions and BSCAMPP follow-up
 
-### T28: Column-window regions (non-V4 support) — closes #59
-- **Week:** post-T24
-- **Description:** In T22 the six non-V4 regions keep only 46 to 921 of 1,000 queries (V1-V2 153, V1-V3 144, V7-V9 46, against 879 to 921 for V3-V4, V4-150, V4-V5, V5-V6, V6-V8): 711 of the 1,000 sources are MJ0* UMI amplicons without the 27F/1492R primer sites. Primer-trimming of those reads is a hypothesis, UNVERIFIED until the S0 check of `exclusion_counts.tsv` on the cluster. T28 adds a column-window variant of each amplicon region (`V4-150c`, `V3-V4c`, `V1-V2c`, `V1-V3c`, `V4-V5c`, `V5-V6c`, `V6-V8c`, `V7-V9c`) that cuts each query by alignment columns from its shipped aligned row, so a query without primers but covering the window is kept. Labelled the **column-window proxy**: real amplicons start and stop at primers. The primer-matched regions and every T22 output stay untouched and are never pooled with the `c` regions.
-- **Window rule (pre-registered):** per region, over the queries' shipped aligned rows that have both primer hits (`regions.amplicon_span`, so V4-150c is the same 150 nt after 515F), window = [median start column, median end column) (`median_low`, integer columns) of the primer-delimited amplicon projected onto columns; window length = median residue count inside the window over those rows.
-- **Tolerance (pre-registered, constant across regions):** a query is kept when its non-gap residues inside the window are >= 0.9 x window length (`COVERAGE_TOLERANCE`); the rest are excluded and counted in `exclusion_counts.tsv` as `window coverage below tolerance`.
-- **Deliverables:**
-  - [x] `regions.column_window`, `regions.cut_column_window`, `COLUMN_REGIONS`; `extract_regions.py --aligned`; region wildcard and schema enum extended (`align.smk`, `config/schema.yaml`)
-  - [x] `config/t28.yaml` + `t28-b10k.yaml` (S1) + `t28-bfull.yaml` (S2): sepp-prod, sepp-pinned, bscampp (hmmalign), 8 `c` regions, gg2 only; 24 cells per backbone, 48 in all; T22 rows are reused, nothing is rerun (superseded by the T31 amendment: the overlays are removed)
-  - [x] `docs/gg2.md` section, `docs/runbook-t28.md` (S0 exclusion-count check, S1, S2, collect, gates, checksum + copy)
-  - [x] Unit tests: window, tolerance edges, exclusion counts, primerless-but-covering query kept, V4-150c length, originals unchanged; overlay cell counts and dry-run DAG
-  - [ ] Cluster runs S0, S1, S2 (user runs every command)
-- **Acceptance:** `pytest`, `ruff`, `snakemake --lint` and the smoke dry run pass; each T28 dry run plans only `c` cells; `check_stage.py` passes per stage; exclusion counts per `c` region are reported next to the primer-matched ones.
-- **Pre-registered reporting criteria (defaults, user may change before S1):**
-  - The 0.25-edge mean gate (design section 6) is reported per region and backbone and is stated up front as undecidable at Bfull\* (about 11k to 141k paired queries would be needed for a +-0.25 half-width, against under 1,000 per region).
-  - Co-primary: fraction of queries within 3 edges of the truth, bscampp non-inferior to sepp-prod by delta = 2 percentage points (paired per-query bootstrap, upper CI). Labelled **exploratory, chosen after T22**: k = 3 was picked after seeing T22 data, and the sources are reused.
-  - Per-region verdicts with CIs; "undecidable" is an allowed outcome; no all-regions rule. Every result is exploratory while the 1,000 sources are reused.
-- **T31 amendment (2026-11-06):** T28's remaining work runs on `gg2-wol` at B10k\* only, exploratory; T22's set is not run (T22 numbers stay as published). Regions: full-length, V4-150, and every primer region with >= 1,000 queries after S0, else its `c` twin if that has >= 1,000 (primer wins); this freezes the T30 region list. Arms: sepp-prod, sepp-pinned, bscampp, pplacer-scampp, epa-ng-scampp (hmmalign). The reporting criteria below are replaced by the T30 rule (`design.md` section 3): within-3-edges non-inferiority with a cluster bootstrap over held-out groups, the 0.25 gate secondary and undecidable.
-  - [x] gg2-wol config (B10k\*, 9 regions, 5 arms, 45 cells; `config/t28.yaml` replaces the gg2 overlays) and `docs/runbook-t28.md` (S0 region rule with a STOP if `V7-V9c` < 1,000, S1, within-3 table)
-  - [x] `summaries.within_k_difference` (paired fraction within k edges, cluster bootstrap over held-out groups, unplaced/DNF = miss), unit-tested; `workflow/scripts/within_k_table.py` prints the close-out table
-  - [ ] Cluster runs S0 and S1 (user runs every command)
-  - [ ] Region rule applied from the S0 numbers; frozen list recorded in the T28 close-out
-- **Dependencies:** T22, T24, T31
-- **Agent notes:** `c` regions apply to gg2 and gg2-wol (EMP has one region); `extract_regions` takes the dataset from the path, so no code differs. The oracle alignment is not planned for `c` regions. Backbone-independent windows: region queries are dataset-level, so the window comes from the queries' own aligned rows, not a backbone's.
-
 ### T29: Accuracy levers at B10k\* — closes #60
 - **Week:** post-T24
 - **Description:** (a) UPP alignment (bioconda sepp 4.5.6, already pinned in `envs/sepp.yaml`) as aln `upp`, bscampp only (other arms excluded), measured `align` phase, masked to backbone columns (UPP may insert columns); flags and fixed-backbone support verified from the installed package in an S0 probe first; (b) `bscampp-b5000` (`-b 5000 -V 5`) with hmmalign only; b5000 x upp only if both show an effect; optional -V 10 probe. `evaluate.smk` is parameterized by aln (it hard-codes hmmalign). No WITCH (bundled binaries), no oracle at Bfull\*. An alignment lever, not production parity.
@@ -67,7 +43,7 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 ### T30: Bfull\* confirmation on `gg2-wol` (conditional on T28/T29) — closes #61
 - **Week:** post-T24
-- **Description:** Bfull\* confirmation on the T31 `gg2-wol` set (a fresh draw relative to T22, so confirmatory), with the criteria below fixed in the T31 PR, before any gg2-wol data exists. Core arms (fixed now): sepp-prod, sepp-pinned, bscampp. Up to 2 extra challengers if their B10k\* full-length within-3 lower bound is above -2 pp, labelled "selected at B10k\* on the same queries" (not confirmatory; no query split). All place/align jobs run on one `highmem` CPU model, `cpu_model` recorded, cost compared only within it (T22: SEPP rows ran on Xeon 6242, challengers on EPYC 7302). Stop and ask if T28 S1 sepp-prod full-length peak x 2.9 exceeds 1,400 GB (T22: 102 GB at B10k\*, 277 GB at Bfull\* with 1,000 queries).
+- **Description:** Bfull\* confirmation on the T31 `gg2-wol` set (a fresh draw relative to T22, so confirmatory), with the criteria below fixed in the T31 PR, before any gg2-wol data exists. Core arms (fixed now): sepp-prod, sepp-pinned, bscampp. Up to 2 extra challengers if their B10k\* full-length within-3 lower bound is above -2 pp, labelled "selected at B10k\* on the same queries" (not confirmatory; no query split). T28 result (2026-11-12): none qualify (best -4.4 pp); T28 S1 sepp-prod full-length peak 96 GiB x 2.9 = 278 GiB, under the stop. All place/align jobs run on one `highmem` CPU model, `cpu_model` recorded, cost compared only within it (T22: SEPP rows ran on Xeon 6242, challengers on EPYC 7302). Stop and ask if T28 S1 sepp-prod full-length peak x 2.9 exceeds 1,400 GB (T22: 102 GB at B10k\*, 277 GB at Bfull\* with 1,000 queries).
 - **Pre-registered criteria (user decision 2026-11-06, `design.md` sections 3 and 9):**
   - Primary, per region: paired difference in the fraction of queries within 3 edges (challenger minus sepp-prod); cluster bootstrap over held-out groups (a clade is one cluster, a singleton its own), B = 10,000, seed 0; unplaced/DNF = miss; a DNF reference makes the region undecidable. **Non-inferior** iff the one-sided 95% lower bound is above -2 percentage points (delta = 2 pp).
   - Headline "as accurate as production SEPP" iff non-inferior at both full-length and V4-150 (expected joint power about 65% at N = 3,000, stated up front).
@@ -94,6 +70,31 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 ## Done
 
 <!-- Move tickets here once merged. Keep the T{N} prefix. -->
+
+### T28: Column-window regions (non-V4 support) — closes #59
+- **Week:** post-T24
+- **Description:** In T22 the six non-V4 regions keep only 46 to 921 of 1,000 queries (V1-V2 153, V1-V3 144, V7-V9 46, against 879 to 921 for V3-V4, V4-150, V4-V5, V5-V6, V6-V8): 711 of the 1,000 sources are MJ0* UMI amplicons without the 27F/1492R primer sites. Primer-trimming of those reads is a hypothesis, UNVERIFIED until the S0 check of `exclusion_counts.tsv` on the cluster. T28 adds a column-window variant of each amplicon region (`V4-150c`, `V3-V4c`, `V1-V2c`, `V1-V3c`, `V4-V5c`, `V5-V6c`, `V6-V8c`, `V7-V9c`) that cuts each query by alignment columns from its shipped aligned row, so a query without primers but covering the window is kept. Labelled the **column-window proxy**: real amplicons start and stop at primers. The primer-matched regions and every T22 output stay untouched and are never pooled with the `c` regions.
+- **Window rule (pre-registered):** per region, over the queries' shipped aligned rows that have both primer hits (`regions.amplicon_span`, so V4-150c is the same 150 nt after 515F), window = [median start column, median end column) (`median_low`, integer columns) of the primer-delimited amplicon projected onto columns; window length = median residue count inside the window over those rows.
+- **Tolerance (pre-registered, constant across regions):** a query is kept when its non-gap residues inside the window are >= 0.9 x window length (`COVERAGE_TOLERANCE`); the rest are excluded and counted in `exclusion_counts.tsv` as `window coverage below tolerance`.
+- **Deliverables:**
+  - [x] `regions.column_window`, `regions.cut_column_window`, `COLUMN_REGIONS`; `extract_regions.py --aligned`; region wildcard and schema enum extended (`align.smk`, `config/schema.yaml`)
+  - [x] `config/t28.yaml` + `t28-b10k.yaml` (S1) + `t28-bfull.yaml` (S2): sepp-prod, sepp-pinned, bscampp (hmmalign), 8 `c` regions, gg2 only; 24 cells per backbone, 48 in all; T22 rows are reused, nothing is rerun (superseded by the T31 amendment: the overlays are removed)
+  - [x] `docs/gg2.md` section, `docs/runbook-t28.md` (S0 exclusion-count check, S1, S2, collect, gates, checksum + copy)
+  - [x] Unit tests: window, tolerance edges, exclusion counts, primerless-but-covering query kept, V4-150c length, originals unchanged; overlay cell counts and dry-run DAG
+  - [x] ~~Cluster runs S0, S1, S2~~ superseded by the T31 amendment
+- **Acceptance:** `pytest`, `ruff`, `snakemake --lint` and the smoke dry run pass; each T28 dry run plans only `c` cells; `check_stage.py` passes per stage; exclusion counts per `c` region are reported next to the primer-matched ones.
+- **Pre-registered reporting criteria (defaults, user may change before S1):**
+  - The 0.25-edge mean gate (design section 6) is reported per region and backbone and is stated up front as undecidable at Bfull\* (about 11k to 141k paired queries would be needed for a +-0.25 half-width, against under 1,000 per region).
+  - Co-primary: fraction of queries within 3 edges of the truth, bscampp non-inferior to sepp-prod by delta = 2 percentage points (paired per-query bootstrap, upper CI). Labelled **exploratory, chosen after T22**: k = 3 was picked after seeing T22 data, and the sources are reused.
+  - Per-region verdicts with CIs; "undecidable" is an allowed outcome; no all-regions rule. Every result is exploratory while the 1,000 sources are reused.
+- **T31 amendment (2026-11-06):** T28's remaining work runs on `gg2-wol` at B10k\* only, exploratory; T22's set is not run (T22 numbers stay as published). Regions: full-length, V4-150, and every primer region with >= 1,000 queries after S0, else its `c` twin if that has >= 1,000 (primer wins); this freezes the T30 region list. Arms: sepp-prod, sepp-pinned, bscampp, pplacer-scampp, epa-ng-scampp (hmmalign). The reporting criteria below are replaced by the T30 rule (`design.md` section 3): within-3-edges non-inferiority with a cluster bootstrap over held-out groups, the 0.25 gate secondary and undecidable.
+  - [x] gg2-wol config (B10k\*, 9 regions, 5 arms, 45 cells; `config/t28.yaml` replaces the gg2 overlays) and `docs/runbook-t28.md` (S0 region rule with a STOP if `V7-V9c` < 1,000, S1, within-3 table)
+  - [x] `summaries.within_k_difference` (paired fraction within k edges, cluster bootstrap over held-out groups, unplaced/DNF = miss), unit-tested; `workflow/scripts/within_k_table.py` prints the close-out table
+  - [x] Cluster runs S0 and S1 (2026-11-12; 156 jobs, `check_stage.py` PASS, 4.5 node-hours; archive `t28-final/`)
+  - [x] Region rule applied from the S0 numbers: full-length, V4-150, V3-V4, V1-V2, V1-V3, V4-V5, V5-V6, V6-V8, `V7-V9c` (V7-V9 139, `V7-V9c` 2,626); frozen for T30
+  - [x] Result (exploratory, `docs/runbook-t28.md`): all challengers non-inferior on V4-150 and the other amplicon regions (except bscampp V1-V2, lower bound -0.022); all not shown at full-length (bscampp -0.030, epa-ng-scampp and pplacer-scampp -0.023); no T30 extra challenger qualifies
+- **Dependencies:** T22, T24, T31
+- **Agent notes:** `c` regions apply to gg2 and gg2-wol (EMP has one region); `extract_regions` takes the dataset from the path, so no code differs. The oracle alignment is not planned for `c` regions. Backbone-independent windows: region queries are dataset-level, so the window comes from the queries' own aligned rows, not a backbone's.
 
 ### T31: WoL genome held-out set (`gg2-wol`) — closes #63
 - **Week:** post-T24
