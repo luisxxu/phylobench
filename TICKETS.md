@@ -38,8 +38,20 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 - **Description:** (a) UPP alignment (bioconda sepp 4.5.6, already pinned in `envs/sepp.yaml`) as aln `upp`, bscampp only (other arms excluded), measured `align` phase, masked to backbone columns (UPP may insert columns); flags and fixed-backbone support verified from the installed package in an S0 probe first; (b) `bscampp-b5000` (`-b 5000 -V 5`) with hmmalign only; b5000 x upp only if both show an effect; optional -V 10 probe. `evaluate.smk` is parameterized by aln (it hard-codes hmmalign). No WITCH (bundled binaries), no oracle at Bfull\*. An alignment lever, not production parity.
 - **Deliverables / Acceptance:** to be scoped in plan review (UPP rule, masking unit test, e2e cost in `summaries`/`tables`, `docs/tools/upp.md`, `LICENSES.md` UPP GPL-3, CI smoke only if UPP runs on the tiny fixture in under a minute).
 - **T31 amendment (2026-11-06):** runs on `gg2-wol` at B10k\* only, over T28's frozen region list: UPP align for bscampp and `bscampp-b5000`, same non-inferiority statistic as T30.
+- **Plan review (2026-11-13, user-approved):** `docs/runbook-t29.md`. S1 = 36 cells (18 reused from T28: `raw/sepp-prod`, `hmmalign/bscampp`; 18 new: `upp/bscampp`, `hmmalign/bscampp-b5000`); gated S2 adds `upp/bscampp-b5000` (+9). A lever is shown iff at full-length its paired within-3 difference against `hmmalign/bscampp` has a one-sided 95% lower bound above 0 (`within_k_table.py --reference hmmalign/bscampp --margin 0`); S2 runs iff both are shown. Exploratory: the same queries revealed the T28 bscampp deficit. `evaluate` is already `{aln}`-parameterized (only `tables.run_specs` and `summaries.end_to_end` hard-coded hmmalign). S0 pinned UPP at `-A 100` (`-A 10` timed out).
+- **Deliverables / Acceptance (checklist):**
+  - [x] S0 (U1 to U7) recorded in `docs/tools/upp.md`
+  - [ ] S0b (Bfull\* UPP sizing, B1 to B4) recorded in `docs/runbook-t29.md`
+  - [x] T30 amendment text (below)
+  - [x] `upp.smk`, `regions.upp_query_rows` + tests, schema `upp`
+  - [x] `bscampp-b5000` arm and rule; historical configs exclude it
+  - [x] `run_specs`, `end_to_end`, `within_k_difference(reference, margin)`, `within_k_table.py --reference/--margin`
+  - [x] `config/t29.yaml` (36), `config/t29-combo.yaml` (+9), DAG tests
+  - [x] `docs/tools/upp.md`, `docs/tools/bscampp.md`, `LICENSES.md`, `design.md`
+  - [ ] CI smoke green, including the `upp/bscampp` exact-count check
+  - [ ] Cluster S1 (S2 iff gated), reuse checks, tables, archive `t29-final` (user runs every command)
 - **Dependencies:** T28 (regions), T22, T31
-- **Agent notes:** B10k\* only until a probe sizes UPP at 320k leaves.
+- **Agent notes:** B10k\* only; T29 sizes UPP at Bfull\* only through the S0b probe.
 
 ### T30: Bfull\* confirmation on `gg2-wol` (conditional on T28/T29) — closes #61
 - **Week:** post-T24
@@ -49,8 +61,10 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
   - Headline "as accurate as production SEPP" iff non-inferior at both full-length and V4-150 (expected joint power about 65% at N = 3,000, stated up front).
   - Secondary: mean edge-distance difference with its CI; the 0.25-edge gate is reported and stated undecidable; G-only skeleton exact-edge difference (backbone-node to skeleton-node map precomputed once per backbone, then `edge_distance`; pure, tested; `results/skeleton.tsv`); per-bin results are descriptive. No "truth-sensitive" flag.
   - Truth wording "G-leaf genome position in GG2"; uDance WoL2-topology fixedness UNVERIFIED; the apples2 caveat stays.
+- **Bfull\* cost amendment (user, 2026-11-13; written before any T29 result):** harness wall time and peak memory at Bfull\* on `gg2-wol` for every T28 arm and T29 lever; every cost-phase job (align, place, convert) runs on `highmem` (Intel Xeon Gold 6242) and cost is compared only within it. Core arms as above, frozen 9 regions. COST cells, full-length and V4-150, accuracy descriptive and never a verdict whatever T29 finds: hmmalign `pplacer-scampp`, `epa-ng-scampp`, `bscampp-b5000`, `apples2`, `dipper-m`; upp `bscampp` iff the T29 S0b probe is GO; upp `bscampp-b5000` iff also T29 S2 ran. Not at Bfull\*: `dipper-m-gpu` (GPU, T22 row stands), `pplacer` (T22 capped row stands), `epa-ng`, `dipper-r` (B10k\*-only). An unsized S0b is reported as the upp Bfull\* evidence. The "up to 2 extra challengers" rule above is read as the T28 screen.
+- **Pairing (user, 2026-11-13):** `hmmalign/bscampp` (core) and `hmmalign/bscampp-b5000` (COST) run on Xeon 6242 `highmem` in the same stage as their `upp/bscampp` and `upp/bscampp-b5000` twins, so the UPP cost and accuracy trade-off is read on one CPU model. The T30 cost table prints each upp cell beside its hmmalign twin (align: `hmmbuild` + `hmmalign` vs UPP; place; e2e; peak memory) with the within-3 difference upp minus hmmalign.
 - **Deliverables / Acceptance:** to be scoped after T28/T29 (config overlay, skeleton metric, `check_stage.py`, close-out table); all items stay unchecked until then.
-  - [ ] gg2-wol Bfull\* overlay, core arms, CPU-model pinning
+  - [ ] gg2-wol Bfull\* overlay, core arms + COST cells (amendment 2026-11-13), CPU-model pinning
   - [ ] Skeleton metric and the decision table
   - [ ] Cluster run (user runs every command)
 - **Dependencies:** T28, T29, T31

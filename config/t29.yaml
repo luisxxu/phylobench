@@ -1,0 +1,10 @@
+# T29 on gg2-wol at B10k* only (docs/runbook-t29.md): two accuracy levers against bscampp,
+# at T28's frozen 9 regions. 36 cells = 18 reused from T28 (sepp-prod, bscampp/hmmalign)
+# + upp/bscampp + hmmalign/bscampp-b5000. The combo (config/t29-combo.yaml) is gated.
+datasets: [gg2-wol]
+backbones: [B10k]
+regions: [full-length, V4-150, V3-V4, V1-V2, V1-V3, V4-V5, V5-V6, V6-V8, V7-V9c]
+alns: [hmmalign, upp]
+exclude:
+  - {arm: [pplacer, epa-ng, apples2, dipper-r, dipper-m, dipper-m-gpu, sepp-pinned, pplacer-scampp, epa-ng-scampp]}
+  - {arm: [bscampp-b5000], aln: [upp]}

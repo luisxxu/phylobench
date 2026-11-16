@@ -12,6 +12,8 @@ Licenses are flagged only. This is not legal analysis and is not used for any sc
 | `pplacer-scampp` | bscampp 1.0.8 | MIT (flag classifier says GPL) | pplacer (GPL-3), taxit from taxtastic (GPL-3), bundled `tools/hamming_distance/*` (MIT) | GPL-3 engines | https://github.com/ewedell/BSCAMPP/tree/v1.0.8 |
 | `epa-ng-scampp` | bscampp 1.0.8 | MIT | EPA-ng 0.3.8 (AGPL-3), bundled `tools/hamming_distance/*` (MIT) | AGPL-3 engine | https://github.com/ewedell/BSCAMPP/tree/v1.0.8 |
 | `bscampp` | bscampp 1.0.8 | MIT | EPA-ng 0.3.8 (AGPL-3), bundled `tools/hamming_distance/*` (MIT) | AGPL-3 engine | https://github.com/ewedell/BSCAMPP/tree/v1.0.8 |
+| `bscampp-b5000` | bscampp 1.0.8 | MIT | EPA-ng 0.3.8 (AGPL-3), bundled `tools/hamming_distance/*` (MIT) | AGPL-3 engine | https://github.com/ewedell/BSCAMPP/tree/v1.0.8 |
+| UPP (aln `upp`, T29) | SEPP 4.5.6 `run_upp.py` | GPL-3 | HMMER 3.4 (BSD-3), UPP/SEPP Python (GPL-3); `upp/bscampp` cells also run EPA-ng 0.3.8 (AGPL-3) | GPL-3 | https://github.com/smirarab/sepp/tree/v4.5.6 |
 | `epa-ng` (control) | 0.3.8 | AGPL-3 | itself | AGPL-3 | https://github.com/pierrebarbera/epa-ng/tree/v0.3.8 |
 | `apples2` | 2.0.11 | GPL-3 | itself, TreeCluster 1.0.5 (GPL-3); bundled FastTree is not run when `-D` is passed; ME branch lengths from pinned FastTree 2.2.0 (`FastTreeMP`) in the `ref-prep` phase | GPL-3 | https://github.com/balabanmetin/apples/tree/v2.0.11 |
 | `dipper-m` | 0.1.5 | MIT | itself | none flagged | https://github.com/TurakhiaLab/DIPPER/tree/v0.1.5 |

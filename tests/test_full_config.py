@@ -80,7 +80,7 @@ def test_sim10k_runs_two_regions_hmmalign_all_arms_at_b10k():
         ("B10k", "V4-150"),
     }
     assert {c.aln for c in sim} == {"hmmalign", "raw"}
-    assert {c.arm for c in sim} == set(ARMS)
+    assert {c.arm for c in sim} == set(ARMS) - {"bscampp-b5000"}
 
 
 @pytest.mark.parametrize("stage", [None, *STAGES])

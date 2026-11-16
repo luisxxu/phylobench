@@ -172,3 +172,28 @@ def cut_column_window(aligned_rows, window):
         else:
             exclusions[name] = COVERAGE_EXCLUSION
     return kept, exclusions
+
+
+def upp_query_rows(masked, backbone, queries):
+    """Validate UPP's masked alignment against the backbone; return its query rows.
+
+    UPP alters the backbone only by uppercasing it, so every backbone row must come back
+    unchanged. Queries UPP dropped are omitted (the caller scores them as misses).
+    """
+    width = len(next(iter(backbone.values())))
+    for name, row in masked.items():
+        if len(row) != width:
+            raise ValueError(
+                f"{name}: masked width {len(row)} != backbone width {width}"
+            )
+    for name, row in backbone.items():
+        if masked.get(name) != row.upper():
+            raise ValueError(f"{name}: backbone row changed by UPP")
+    unknown = set(masked) - set(backbone) - set(queries)
+    if unknown:
+        raise ValueError(f"unknown names in UPP output: {sorted(unknown)[:5]}")
+    rows = [(name, masked[name]) for name in queries if name in masked]
+    for name, row in rows:
+        if row.translate(_DELETE_INSERTS) != row:
+            raise ValueError(f"{name}: lowercase or '.' in masked query row")
+    return rows

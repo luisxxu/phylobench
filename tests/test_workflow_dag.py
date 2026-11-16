@@ -100,7 +100,7 @@ def test_smoke_never_touches_emp(repo):
 def test_emp_config_plans_concordance_not_evaluate(repo):
     planned = dry_run(repo, "config/emp.yaml")
     assert "evaluate" not in planned
-    arms = len(list((ROOT / "config" / "arms").glob("*.yaml")))
+    arms = len(list((ROOT / "config" / "arms").glob("*.yaml"))) - 1  # not b5000
     assert len(planned["concordance"]) == 2 * 2 * 2 * arms  # run.json + tsv per cell
     assert all("/emp-" in p for p in planned["concordance"])
     assert "data/emp/MANIFEST.tsv" in planned["emp_manifest"]

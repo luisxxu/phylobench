@@ -3,3 +3,6 @@ datasets: [gg2, emp-10k]
 backbones: [B10k]
 regions: [full-length, V4-150]
 alns: [hmmalign]
+# bscampp-b5000 is a T29 lever, not a screened arm.
+exclude:
+  - {arm: [bscampp-b5000]}

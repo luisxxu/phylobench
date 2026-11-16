@@ -118,3 +118,62 @@ def test_never_pools_backbones_or_datasets():
 def test_query_without_a_group_is_an_error():
     with pytest.raises(ValueError, match="group"):
         within_k_difference(pair([0.0] * 3, [0.0] * 3), groups_of(2))
+
+
+UPP_CELL = ("gg2-wol", "B10k", "full-length", "upp", "bscampp")
+
+
+def lever_frames(upp, hmm):
+    frames = [
+        cell("sepp-prod", [0.0] * len(hmm)),
+        cell("bscampp", hmm),
+        cell("bscampp", upp).assign(run_id="gg2-wol/B10k/full-length/upp/bscampp"),
+    ]
+    return pd.concat(frames, ignore_index=True)
+
+
+def test_reference_pairs_a_lever_with_its_hmmalign_twin():
+    hmm = [9.0] * 10 + [0.0] * 10
+    out = within_k_difference(
+        lever_frames([0.0] * 20, hmm),
+        groups_of(20),
+        reference=("hmmalign", "bscampp"),
+        planned_cells=[REF_CELL, TOOL_CELL, UPP_CELL],
+    )
+    assert out[["aln", "arm"]].values.tolist() == [["upp", "bscampp"]]
+    assert out.iloc[0]["diff"] == pytest.approx(0.5)
+
+
+def test_reference_skips_sepp_prod_and_the_reference_cell():
+    ed = [0.0] * 4
+    out = within_k_difference(
+        lever_frames(ed, ed),
+        groups_of(4),
+        reference=("hmmalign", "bscampp"),
+        planned_cells=[REF_CELL, TOOL_CELL, UPP_CELL],
+    )
+    assert list(out["arm"]) == ["bscampp"] and list(out["aln"]) == ["upp"]
+
+
+def test_missing_lever_reference_is_undecidable():
+    out = within_k_difference(
+        cell("sepp-prod", [0.0] * 4),
+        groups_of(4),
+        reference=("hmmalign", "bscampp"),
+        planned_cells=[REF_CELL, UPP_CELL],
+    )
+    assert out["verdict"].tolist() == ["undecidable"]
+
+
+def test_margin_zero_needs_the_lower_bound_above_zero():
+    ed = [0.0, 1.0, 5.0, 2.0] * 5
+    tied = within_k_difference(pair(ed, ed), groups_of(20), margin=0.0).iloc[0]
+    assert tied["lower"] == 0 and tied["verdict"] == "not-shown"
+    better = within_k_difference(
+        pair([9.0] * 100, [0.0] * 100), groups_of(100), margin=0.0
+    ).iloc[0]
+    assert better["lower"] > 0 and better["verdict"] == "non-inferior"
+    worse = within_k_difference(
+        pair([0.0] * 100, [0.0] * 90 + [9.0] * 10), groups_of(100), margin=0.0
+    ).iloc[0]
+    assert worse["lower"] < 0 and worse["verdict"] == "not-shown"

@@ -120,8 +120,13 @@ def within_k_difference(
     n_boot: int = N_BOOT,
     seed: int = 0,
     planned_cells: list[tuple] | None = None,
+    reference: tuple[str, str] = ("raw", REFERENCE_ARM),
+    margin: float = NON_INFERIORITY_MARGIN,
 ) -> pd.DataFrame:
-    """Each hmmalign or raw arm minus sepp-prod in the fraction of queries within k.
+    """Each hmmalign or raw arm minus the reference in the fraction of queries within k.
+
+    The reference is an (aln, arm) cell of the same region, sepp-prod by default;
+    sepp-prod and the reference cell itself are never rows.
 
     `groups` maps query name to held-out group (a clade, or a singleton on its own) and
     is the bootstrap's resampling unit. An unplaced query, or a planned challenger cell
@@ -133,9 +138,9 @@ def within_k_difference(
     keys = planned_cells if planned_cells is not None else list(cells)
     rows = []
     for dataset, backbone, region, aln, arm in keys:
-        if arm == REFERENCE_ARM or aln == "oracle":
+        if arm == REFERENCE_ARM or aln == "oracle" or (aln, arm) == reference:
             continue
-        ref = cells.get((dataset, backbone, region, "raw", REFERENCE_ARM))
+        ref = cells.get((dataset, backbone, region, *reference))
         tool = cells.get((dataset, backbone, region, aln, arm))
         row = {
             "dataset": dataset,
@@ -150,12 +155,12 @@ def within_k_difference(
             "verdict": "undecidable",
         }
         if ref is not None:
-            row.update(_within_k_row(tool, ref, groups, k, n_boot, seed))
+            row.update(_within_k_row(tool, ref, groups, k, n_boot, seed, margin))
         rows.append(row)
     return pd.DataFrame(rows)
 
 
-def _within_k_row(tool, ref, groups, k, n_boot, seed) -> dict:
+def _within_k_row(tool, ref, groups, k, n_boot, seed, margin) -> dict:
     queries = ref["query"].tolist()
     if tool is not None and set(tool["query"]) != set(queries):
         raise ValueError("tool and reference score different query sets")
@@ -187,7 +192,7 @@ def _within_k_row(tool, ref, groups, k, n_boot, seed) -> dict:
         "n_clusters": int(n_clusters),
         "diff": gain.sum() / len(queries),
         "lower": lower,
-        "verdict": "non-inferior" if lower > -NON_INFERIORITY_MARGIN else "not-shown",
+        "verdict": "non-inferior" if lower > -margin else "not-shown",
     }
 
 
@@ -245,7 +250,7 @@ def end_to_end(runs: pd.DataFrame) -> pd.DataFrame:
     out = out.merge(align, how="left", on=align_keys).merge(
         convert, how="left", on=CELL_KEYS
     )
-    needs_align = (out["phase"] == "place") & (out["aln"] == "hmmalign")
+    needs_align = (out["phase"] == "place") & out["aln"].isin(("hmmalign", "upp"))
     out["align_s"] = out["align_s"].where(needs_align, 0.0)
     out["align_status"] = out["align_status"].where(needs_align, "ok")
     out["convert_s"] = out["convert_s"].fillna(0.0)

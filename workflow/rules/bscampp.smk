@@ -42,6 +42,47 @@ rule bscampp_place:
         """
 
 
+rule bscampp_b5000_place:
+    input:
+        tree="data/{dataset}/{backbone}/tree.nwk",
+        model="results/ref-prep/{dataset}/{backbone}/epa-ng.model",
+        ref="data/{dataset}/{backbone}/aligned-dna-sequences.fasta",
+        queries="results/{dataset}/{backbone}/{region}/{aln}.aligned.fasta",
+        env_lock=BSCAMPP_ENV_LOCK,
+    output:
+        jplace="results/{dataset}/{backbone}/{region}/{aln}/bscampp-b5000/placements.jplace",
+        run_json="results/{dataset}/{backbone}/{region}/{aln}/bscampp-b5000/place.run.json",
+    params:
+        measure=MEASURE,
+        version="bscampp 1.0.8 (epa-ng 0.3.8)",
+        outdir=lambda wildcards, output: str(Path(output.jplace).parent),
+    threads: config["threads"]
+    log:
+        "results/{dataset}/{backbone}/{region}/{aln}/bscampp-b5000/place.log",
+    conda:
+        "../../envs/bscampp.yaml"
+    shell:
+        """
+        rm -rf {params.outdir}/tmp0
+        OMP_NUM_THREADS={threads} {params.measure} --out {output.run_json} --threads {threads} \
+            --tool-version '{params.version}' --env-lock {input.env_lock} -- \
+            run_bscampp.py --placement-method epa-ng -i {input.model} \
+            -t {input.tree} -a {input.ref} -q {input.queries} \
+            -d {params.outdir} -o placements.jplace --threads {threads} \
+            --cpus-per-job 2 -b 5000 -V 5 &> {log}
+        if [ -f {output.run_json} ] && ! grep -q '"status": "ok"' {output.run_json}; then
+            [ -e {output.jplace} ] || : > {output.jplace}
+        fi
+        if grep -q '"status": "ok"' {output.run_json}; then
+            grep -qF "main.config: $CONDA_PREFIX/share/bscampp/main.config" {log}
+            grep -qF "Configs.epang_path: $CONDA_PREFIX/bin/epa-ng" {log}
+        fi
+        if grep -Eq 'Cannot find home.path|Cannot find main.config|Initializing the config file' {log}; then
+            exit 1
+        fi
+        """
+
+
 rule epa_ng_scampp_place:
     input:
         tree="data/{dataset}/{backbone}/tree.nwk",

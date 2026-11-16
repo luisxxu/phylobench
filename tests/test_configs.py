@@ -73,16 +73,28 @@ def test_pilot_configs_validate(name):
     validate(pilot_config(name), str(SCHEMA))
 
 
-def test_pilot_plans_every_arm_in_33_cells():
+def test_pilot_plans_every_arm_but_the_t29_lever_in_33_cells():
     config = pilot_config("pilot.yaml")
     cells = plan_cells(config, config["arms"])
     assert len(cells) == 33
-    assert {c.arm for c in cells} == {path.stem for path in ARM_FILES}
+    assert {c.arm for c in cells} == {path.stem for path in ARM_FILES} - {
+        "bscampp-b5000"
+    }
 
 
 def test_pilot_cv_plans_one_cell_per_arm():
     config = pilot_config("pilot-cv.yaml")
-    assert len(plan_cells(config, config["arms"])) == len(ARM_FILES) == 11
+    assert len(plan_cells(config, config["arms"])) == len(ARM_FILES) - 1 == 11
+
+
+def test_upp_is_a_schema_aln():
+    config = load(ROOT / "config" / "t29.yaml")
+    config["arms"] = {}
+    validate(config, str(SCHEMA))
+    assert (
+        "upp"
+        in yaml.safe_load(SCHEMA.read_text())["properties"]["alns"]["items"]["enum"]
+    )
 
 
 def test_timeout_defaults_to_71_hours():
