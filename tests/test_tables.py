@@ -447,3 +447,39 @@ def test_row_count_failures():
     assert row_count_failures("r", 2, 3, "accuracy") == [
         "r: 2 accuracy rows, expected 3"
     ]
+
+
+def align_specs(config, arms):
+    return {
+        (s.region, s.aln): s
+        for s in run_specs(config, arms)
+        if s.phase == "align" and s.region
+    }
+
+
+def test_upp_align_spec_only_for_regions_with_a_planned_upp_cell():
+    config = {
+        **CONFIG,
+        "alns": ["hmmalign", "upp"],
+        "exclude": [{"region": ["V4-150"], "aln": ["upp"]}],
+    }
+    specs = align_specs(config, ARMS)
+    assert set(specs) == {
+        ("full-length", "hmmalign"),
+        ("full-length", "upp"),
+        ("V4-150", "hmmalign"),
+    }
+    upp = specs[("full-length", "upp")]
+    assert upp.run_json == "results/tiny/B100/full-length/align/upp.run.json"
+    assert upp.run_id == "tiny/B100/full-length/upp"
+    assert (upp.tool, upp.arm) == ("sepp", "")
+    keys = [(s.run_id, s.phase) for s in run_specs(config, ARMS)]
+    assert len(keys) == len(set(keys))
+
+
+def test_no_upp_spec_without_upp_cells_and_hmmalign_spec_unchanged():
+    specs = align_specs(CONFIG, ARMS)
+    assert {aln for _, aln in specs} == {"hmmalign"}
+    hmmalign = specs[("V4-150", "hmmalign")]
+    assert hmmalign.run_id == "tiny/B100/V4-150/hmmalign"
+    assert hmmalign.tool == "hmmer"

@@ -4,7 +4,12 @@ from pathlib import Path
 import pandas as pd
 import yaml
 
-from phylobench.summaries import WITHIN_K, within_k_difference
+from phylobench.summaries import (
+    NON_INFERIORITY_MARGIN,
+    REFERENCE_ARM,
+    WITHIN_K,
+    within_k_difference,
+)
 from phylobench.tables import load_arms, plan_cells
 
 ROOT = Path(__file__).parents[2]
@@ -19,6 +24,10 @@ def main():
     parser.add_argument("--heldout", type=Path, default="data/gg2-wol/heldout.tsv")
     parser.add_argument("--dataset", default="gg2-wol")
     parser.add_argument("-k", type=int, default=WITHIN_K)
+    parser.add_argument(
+        "--reference", default=f"raw/{REFERENCE_ARM}", metavar="ALN/ARM"
+    )
+    parser.add_argument("--margin", type=float, default=NON_INFERIORITY_MARGIN)
     args = parser.parse_args()
 
     config = {}
@@ -37,7 +46,14 @@ def main():
     heldout = pd.read_csv(args.heldout, sep="\t")
     groups = heldout[heldout["query"] == 1].set_index("leaf")["group"]
 
-    table = within_k_difference(accuracy, groups, k=args.k, planned_cells=planned)
+    table = within_k_difference(
+        accuracy,
+        groups,
+        k=args.k,
+        planned_cells=planned,
+        reference=tuple(args.reference.split("/")),
+        margin=args.margin,
+    )
     print(table.to_string(index=False, float_format=lambda x: f"{x:.4f}"))
 
 

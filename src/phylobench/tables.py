@@ -57,6 +57,7 @@ CONCORDANCE_COLUMNS = (
 CONCORDANCE_RUN = "concordance.run.json"
 FORCED_DNF = "forced-dnf"
 RAW = "raw"
+UPP = "upp"
 FULL_LENGTH = "full-length"
 TIMING_KEYS = ["dataset", "backbone", "region", "aln", "arm"]
 
@@ -154,6 +155,7 @@ def run_specs(config: dict, arms: dict[str, dict]) -> list[RunSpec]:
         )
     specs = []
     cells = plan_cells(config, arms)
+    upp_regions = {(c.dataset, c.backbone, c.region) for c in cells if c.aln == UPP}
     for dataset, backbone in product(config["datasets"], config["backbones"]):
         base = f"results/{dataset}/{backbone}"
         shared = f"{dataset}/{backbone}"
@@ -204,6 +206,20 @@ def run_specs(config: dict, arms: dict[str, dict]) -> list[RunSpec]:
                     "",
                 )
             )
+            if (dataset, backbone, region) in upp_regions:
+                specs.append(
+                    RunSpec(
+                        f"{base}/{region}/align/upp.run.json",
+                        f"{shared}/{region}/upp",
+                        "align",
+                        "sepp",
+                        dataset,
+                        backbone,
+                        region,
+                        UPP,
+                        "",
+                    )
+                )
     for cell in cells:
         arm = arms[cell.arm]
         for phase, filename in arm["phases"].items():

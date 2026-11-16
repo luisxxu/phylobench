@@ -1,0 +1,4 @@
+# S2 overlay (docs/runbook-t29.md), only if both levers are shown: adds upp/bscampp-b5000
+# (9 cells). Replaces `exclude` of config/t29.yaml, so the first entry is repeated.
+exclude:
+  - {arm: [pplacer, epa-ng, apples2, dipper-r, dipper-m, dipper-m-gpu, sepp-pinned, pplacer-scampp, epa-ng-scampp]}

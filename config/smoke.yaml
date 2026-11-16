@@ -1,8 +1,11 @@
 datasets: [tiny]
 backbones: [B100]
 regions: [full-length, V4-150, V3-V4, V1-V2, V1-V3, V4-V5, V5-V6, V6-V8, V7-V9]
-alns: [hmmalign, oracle]
+alns: [hmmalign, oracle, upp]
 threads: 2
 forced_dnf:
   region: full-length
   aln: hmmalign
+exclude:
+  # UPP is a bscampp-only lever (T29).
+  - {aln: [upp], arm: [pplacer, pplacer-scampp, epa-ng, epa-ng-scampp, apples2, dipper-m, dipper-r, dipper-m-gpu, bscampp-b5000]}

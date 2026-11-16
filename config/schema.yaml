@@ -28,7 +28,7 @@ properties:
   alns:
     type: array
     items:
-      enum: [hmmalign, oracle]
+      enum: [hmmalign, oracle, upp]
     uniqueItems: true
     default: []
   arm:

@@ -319,3 +319,36 @@ def test_end_to_end_keeps_backbones_apart():
     )
     out = end_to_end(runs).set_index("backbone")
     assert out.loc["B10k", "e2e_s"] == 15.0 and out.loc["Bfull", "e2e_s"] == 60.0
+
+
+def test_end_to_end_upp_is_its_region_align_plus_place_and_convert():
+    runs = runs_of(
+        run_row("align", 5.0),
+        run_row("align", 300.0, aln="upp"),
+        run_row("place", 10.0, arm="bscampp", aln="upp"),
+        run_row("convert", 1.0, arm="bscampp", aln="upp"),
+    )
+    row = end_to_end(runs).iloc[0]
+    assert row.aln == "upp" and row.place_s == 10.0 and row.e2e_s == 311.0
+    assert row.e2e_status == "ok"
+
+
+def test_end_to_end_upp_and_hmmalign_cells_each_use_their_own_align():
+    runs = runs_of(
+        run_row("align", 5.0),
+        run_row("align", 300.0, aln="upp"),
+        run_row("place", 10.0, arm="bscampp"),
+        run_row("place", 10.0, arm="bscampp", aln="upp"),
+    )
+    out = end_to_end(runs).set_index("aln")
+    assert out.loc["hmmalign", "e2e_s"] == 15.0
+    assert out.loc["upp", "e2e_s"] == 310.0
+
+
+def test_end_to_end_failed_upp_align_marks_e2e_dnf():
+    runs = runs_of(
+        run_row("align", 84000.0, aln="upp", status="DNF"),
+        run_row("place", 10.0, arm="bscampp", aln="upp"),
+    )
+    row = end_to_end(runs).iloc[0]
+    assert row.e2e_status == "DNF" and row.place_status == "ok"

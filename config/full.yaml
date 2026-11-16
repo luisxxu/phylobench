@@ -17,3 +17,4 @@ exclude:
   - {dataset: [sim10k], backbone: [Bfull]}
   - {dataset: [sim10k], region: [V3-V4, V1-V2, V1-V3, V4-V5, V5-V6, V6-V8, V7-V9]}
   - {dataset: [sim10k], aln: [oracle]}
+  - {arm: [bscampp-b5000]}

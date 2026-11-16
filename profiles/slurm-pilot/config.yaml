@@ -26,6 +26,7 @@ set-resources:
     mem_mb: 196608
     slurm_extra: "'--no-requeue'"
   hmmalign: *prep_resources
+  upp_align: *prep_resources
   refprep_me_tree: *prep_resources
   guppy_tog: *prep_resources
   sepp_prod: &tool_resources
@@ -38,6 +39,7 @@ set-resources:
   pplacer_scampp_place: *tool_resources
   epa_ng_scampp_place: *tool_resources
   bscampp_place: *tool_resources
+  bscampp_b5000_place: *tool_resources
   epa_ng_place: *tool_resources
   apples2_place: *tool_resources
   dipper_m_place: *tool_resources

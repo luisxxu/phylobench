@@ -1,6 +1,6 @@
-# bscampp family (`place`, arms `pplacer-scampp`, `epa-ng-scampp`, `bscampp`)
+# bscampp family (`place`, arms `pplacer-scampp`, `epa-ng-scampp`, `bscampp`, `bscampp-b5000`)
 
-Three arms from one pinned `bscampp` install (`envs/bscampp.yaml`, lock `envs/bscampp.linux-64.pin.txt`, wheel and config written by `envs/bscampp.post-deploy.sh`). Rules: `workflow/rules/bscampp.smk` (`pplacer_scampp_place`, `epa_ng_scampp_place`, `bscampp_place`); arm files `config/arms/{pplacer-scampp,epa-ng-scampp,bscampp}.yaml`. Same cell layout as `docs/tools/pplacer.md`; the `convert` phase (`guppy tog`) follows (`docs/tools/guppy.md`).
+Four arms from one pinned `bscampp` install (`envs/bscampp.yaml`, lock `envs/bscampp.linux-64.pin.txt`, wheel and config written by `envs/bscampp.post-deploy.sh`). Rules: `workflow/rules/bscampp.smk` (`pplacer_scampp_place`, `epa_ng_scampp_place`, `bscampp_place`, `bscampp_b5000_place`); arm files `config/arms/{pplacer-scampp,epa-ng-scampp,bscampp,bscampp-b5000}.yaml`. Same cell layout as `docs/tools/pplacer.md`; the `convert` phase (`guppy tog`) follows (`docs/tools/guppy.md`).
 
 ## Command lines
 
@@ -11,6 +11,9 @@ Three arms from one pinned `bscampp` install (`envs/bscampp.yaml`, lock `envs/bs
 run_bscampp.py --placement-method epa-ng -i results/ref-prep/{dataset}/{backbone}/epa-ng.model \
     -t {tree} -a {ref} -q {queries} -d {cell} -o placements.jplace \
     --threads {threads} --cpus-per-job 2 -b 2000 -V 5
+
+# bscampp-b5000 (T29 lever, gg2-wol B10k* only; cell dir .../bscampp-b5000)
+run_bscampp.py ... --threads {threads} --cpus-per-job 2 -b 5000 -V 5
 
 # epa-ng-scampp      --tool-version 'bscampp 1.0.8 (epa-ng 0.3.8)'
 run_scampp.py --placement-method epa-ng -i results/ref-prep/{dataset}/{backbone}/epa-ng.model \
@@ -29,7 +32,7 @@ run_scampp.py --placement-method pplacer -i data/{dataset}/{backbone}/raxml-info
 
 - bscampp 1.0.8, installed by wheel hash in `envs/bscampp.post-deploy.sh`. The wheel is not part of the conda lock, so `env_lock_sha256` does not cover it.
 - pplacer 1.1.alpha23 and epa-ng 0.3.8, the same lock lines as `envs/pplacer.linux-64.pin.txt` and `envs/epa-ng.linux-64.pin.txt`.
-- The `tool` column is the package name (`bscampp`); the arm name distinguishes the three.
+- The `tool` column is the package name (`bscampp`); the arm name distinguishes the four.
 
 ## Threads
 
@@ -37,7 +40,7 @@ run_scampp.py --placement-method pplacer -i data/{dataset}/{backbone}/raxml-info
 
 ## License
 
-The wrapper is MIT. Engines actually executed: `pplacer-scampp` runs pplacer (GPL-3) and taxit (GPL-3); `epa-ng-scampp` and `bscampp` run EPA-ng (AGPL-3). All three run the bundled homology helper (`tools/hamming_distance/*`, MIT). See `LICENSES.md`.
+The wrapper is MIT. Engines actually executed: `pplacer-scampp` runs pplacer (GPL-3) and taxit (GPL-3); `epa-ng-scampp` and `bscampp` run EPA-ng (AGPL-3). `bscampp-b5000` is `bscampp` with subtree size 5000 (the T29 subtree lever). All run the bundled homology helper (`tools/hamming_distance/*`, MIT). See `LICENSES.md`.
 
 ## Config mechanism
 
@@ -54,4 +57,5 @@ The wrapper is MIT. Engines actually executed: `pplacer-scampp` runs pplacer (GP
 - Queries with no homology to the backbone are dropped by bscampp.
 - The fixture backbone has 100 leaves, below the subtree size, so the subtree is the whole tree.
 - An engine OOM inside a pool worker surfaces as `status=error`, not an OOM kill of the harness child.
-- Aligned arm: places the `hmmalign` or `oracle` aligned queries.
+- Aligned arm: places the `hmmalign` or `oracle` aligned queries; `bscampp` (and the gated `bscampp-b5000`) also place the `upp` aligned queries in T29 (`docs/tools/upp.md`).
+- `bscampp-b5000` is excluded from every config before T29 (`exclude`), so their plans are unchanged; `config/smoke.yaml` keeps it.

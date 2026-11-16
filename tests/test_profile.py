@@ -7,7 +7,8 @@ from emp_helpers import ROOT
 from test_workflow_dag import planned_blocks, repo  # noqa: F401
 
 PROFILE = ROOT / "profiles" / "slurm" / "config.yaml"
-PREP_RULES = {"hmmbuild", "hmmalign", "refprep_me_tree", "guppy_tog"}
+PREP_RULES = {"hmmbuild", "hmmalign", "refprep_me_tree", "guppy_tog", "upp_align"}
+UPP_TIMEOUT_S = 84000
 HIGHMEM_RULES = {
     "sepp_prod",
     "sepp_pinned_place",
@@ -17,6 +18,7 @@ LONG_PLACE_RULES = {
     "pplacer_scampp_place",
     "epa_ng_scampp_place",
     "bscampp_place",
+    "bscampp_b5000_place",
     "epa_ng_place",
     "apples2_place",
     "dipper_m_place",
@@ -91,3 +93,9 @@ def test_pilot_profile_only_moves_long_and_highmem_rules_to_short():
         assert (res["slurm_partition"], res["runtime"]) == ("short", 1440), rule
         profile["set-resources"][rule] = res
     assert pilot == profile
+
+
+def test_upp_runtime_outlasts_its_harness_timeout_in_both_profiles():
+    for name in ("slurm", "slurm-pilot"):
+        profile = yaml.safe_load((ROOT / "profiles" / name / "config.yaml").read_text())
+        assert profile["set-resources"]["upp_align"]["runtime"] * 60 > UPP_TIMEOUT_S
