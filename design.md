@@ -147,7 +147,7 @@ Edge distance is counted in the backbone with zero-length edges contracted: a tr
 
 Tests skip explicitly when cgroups are absent — never pass vacuously.
 
-- `results/runs.tsv`: `dataset, backbone, region, query_n, tool, arm, aln, phase, wall_s, cpu_s, peak_mem_mb, mem_source, gpu_peak_mb, status, threads, node, cpu_model, version, run_id, dnf_reason, env_lock_sha256`; `status` ∈ {`ok`, `DNF`} (`dnf_reason` = the harness status: `oom|timeout|error`) `aln` is `hmmalign`, `oracle`, `upp` (T29) or `raw` (unaligned arms).
+- `results/runs.tsv`: `dataset, backbone, region, query_n, tool, arm, aln, phase, wall_s, cpu_s, peak_mem_mb, mem_source, gpu_peak_mb, status, threads, node, cpu_model, version, run_id, dnf_reason, env_lock_sha256`; `status` ∈ {`ok`, `DNF`} (`dnf_reason` = the harness status: `oom|timeout|error`). `aln` is `hmmalign`, `oracle`, `upp` (T29) or `raw` (unaligned arms).
 - `results/accuracy.tsv`: `run_id, query, sim, bin, edge_dist, exact, delta_err, label` (`label` = `accuracy` only; GG2 and `gg2-wol` cells, told apart by the `dataset` prefix of `run_id`; the `gg2-wol` decision statistic is in §3 and `summaries.within_k_difference`, T28)
 - `results/concordance.tsv`: `run_id, reference_run_id, query, sim, bin, edge_dist, label` (`label` = `concordance` only; EMP cells vs `sepp-prod`)
 
