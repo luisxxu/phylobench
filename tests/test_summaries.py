@@ -6,7 +6,9 @@ import pytest
 from phylobench.summaries import (
     BIN_ORDER,
     bin_summary,
+    decision_table,
     end_to_end,
+    headline,
     oracle_gap,
     paired_difference,
     split_run_id,
@@ -352,3 +354,85 @@ def test_end_to_end_failed_upp_align_marks_e2e_dnf():
     )
     row = end_to_end(runs).iloc[0]
     assert row.e2e_status == "DNF" and row.place_status == "ok"
+
+
+CORE = {("raw", "sepp-pinned"), ("hmmalign", "bscampp")}
+
+
+def within_row(region, aln, arm, verdict, diff=-0.01, lower=-0.03):
+    return {
+        "dataset": "gg2-wol",
+        "backbone": "Bfull",
+        "region": region,
+        "aln": aln,
+        "arm": arm,
+        "n": 100,
+        "n_clusters": 90,
+        "diff": diff,
+        "lower": lower,
+        "verdict": verdict,
+    }
+
+
+def extra_row(row):
+    keys = {k: row[k] for k in ("dataset", "backbone", "region", "aln", "arm")}
+    return keys, {"n": 100, "mean": 0.5, "ci_lo": 0.2, "ci_hi": 0.9}
+
+
+def decision_of(*within_rows):
+    within = pd.DataFrame(within_rows)
+    mean_diff = pd.DataFrame([{**k, **v} for k, v in map(extra_row, within_rows)])
+    skeleton = within.assign(diff=-0.02, lower=-0.05, verdict="not-shown")
+    return decision_table(within, mean_diff, skeleton, CORE)
+
+
+def test_decision_table_roles_and_cost_rows_are_descriptive():
+    out = decision_of(
+        within_row("full-length", "hmmalign", "bscampp", "non-inferior"),
+        within_row("full-length", "hmmalign", "apples2", "not-shown"),
+    ).set_index("arm")
+    assert out.loc["bscampp", "role"] == "core"
+    assert out.loc["bscampp", "verdict"] == "non-inferior"
+    assert out.loc["apples2", "role"] == "COST (descriptive)"
+    assert out.loc["apples2", "verdict"] == "descriptive"
+    assert (out["gate_025"] == "undecidable").all()
+    assert out.loc["bscampp", "mean_diff"] == 0.5
+    assert out.loc["bscampp", "ci_hi"] == 0.9
+    assert out.loc["bscampp", "skel_diff"] == -0.02
+    assert out.loc["bscampp", "skel_lower"] == -0.05
+    assert "skel_verdict" not in out.columns
+
+
+def headline_of(*verdicts):
+    regions = ("full-length", "V4-150")
+    rows = [
+        within_row(region, "raw", "sepp-pinned", v)
+        for region, v in zip(regions, verdicts, strict=True)
+    ]
+    rows.append(within_row("full-length", "hmmalign", "apples2", "not-shown"))
+    return headline(decision_of(*rows))
+
+
+def test_headline_needs_both_regions_non_inferior():
+    out = headline_of("non-inferior", "non-inferior")
+    assert list(out["arm"]) == ["sepp-pinned"]
+    assert out.iloc[0]["headline"] == "as accurate as production SEPP"
+
+
+@pytest.mark.parametrize(
+    ("verdicts", "expected"),
+    [
+        (("non-inferior", "not-shown"), "not shown"),
+        (("undecidable", "not-shown"), "not shown"),
+        (("undecidable", "non-inferior"), "undecidable"),
+    ],
+)
+def test_headline_not_shown_beats_undecidable(verdicts, expected):
+    assert headline_of(*verdicts).iloc[0]["headline"] == expected
+
+
+def test_headline_with_a_missing_region_is_undecidable():
+    out = headline(
+        decision_of(within_row("full-length", "raw", "sepp-pinned", "non-inferior"))
+    )
+    assert out.iloc[0]["headline"] == "undecidable"

@@ -99,3 +99,62 @@ def test_upp_runtime_outlasts_its_harness_timeout_in_both_profiles():
     for name in ("slurm", "slurm-pilot"):
         profile = yaml.safe_load((ROOT / "profiles" / name / "config.yaml").read_text())
         assert profile["set-resources"]["upp_align"]["runtime"] * 60 > UPP_TIMEOUT_S
+
+
+HIGHMEM_PROFILE = ROOT / "profiles" / "slurm-highmem" / "config.yaml"
+LONG_PREP_RULES = {"hmmbuild", "upp_align", "refprep_me_tree"}
+HIGHMEM_SHARED_RULES = {"hmmalign", "guppy_tog"}
+
+
+def highmem_profile():
+    return yaml.safe_load(HIGHMEM_PROFILE.read_text())
+
+
+def test_highmem_resources_by_rule(repo):  # noqa: F811
+    blocks = planned_blocks(
+        repo, "-c", "2", "--profile", "profiles/slurm-highmem", "--executor", "local",
+        "--configfile", "config/smoke.yaml",
+    )  # fmt: skip
+    for rule in HIGHMEM_SHARED_RULES | PLACE_RULES:
+        assert blocks[rule], rule
+        for job in blocks[rule]:
+            res = resources(job)
+            assert res["slurm_partition"] == "highmem", rule
+            assert res["tasks"] == "1", rule
+            assert res["runtime"] == "4320", rule
+            assert ("--exclusive" in res["slurm_extra"]) == (rule in PLACE_RULES), rule
+    for rule in LONG_PREP_RULES:
+        for job in blocks[rule]:
+            assert resources(job)["slurm_partition"] == "long", rule
+    for job in blocks[GPU_RULE]:
+        assert resources(job)["slurm_partition"] == "gpu"
+    for rule in POST_RULES & blocks.keys():
+        assert all(int(resources(job)["mem_mb"]) == 128000 for job in blocks[rule])
+
+
+def test_highmem_profile_differs_from_slurm_only_in_highmem_and_tasks():
+    profile = yaml.safe_load(PROFILE.read_text())
+    highmem = highmem_profile()
+    for rule in HIGHMEM_SHARED_RULES | PLACE_RULES:
+        res = highmem["set-resources"][rule]
+        assert (res["slurm_partition"], res["tasks"]) == ("highmem", 1), rule
+        profile["set-resources"][rule] = res
+    assert highmem == profile
+
+
+def test_no_profile_asks_for_more_than_one_task():
+    for path in (ROOT / "profiles").glob("*/config.yaml"):
+        profile = yaml.safe_load(path.read_text())
+        assert "mpi" not in profile, path
+        for rule, res in profile["set-resources"].items():
+            assert res.get("tasks", 1) == 1, (path, rule)
+            assert not re.search(r"-n\b|--ntasks", res.get("slurm_extra", "")), (
+                path,
+                rule,
+            )
+
+
+def test_slurm_plugin_and_jobstep_versions_are_pinned():
+    env = (ROOT / "envs" / "phylobench.yaml").read_text()
+    assert "snakemake-executor-plugin-slurm=2.8.0" in env
+    assert "snakemake-executor-plugin-slurm-jobstep=0.6.1" in env

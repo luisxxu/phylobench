@@ -42,11 +42,18 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
   - Secondary: mean edge-distance difference with its CI; the 0.25-edge gate is reported and stated undecidable; G-only skeleton exact-edge difference (backbone-node to skeleton-node map precomputed once per backbone, then `edge_distance`; pure, tested; `results/skeleton.tsv`); per-bin results are descriptive. No "truth-sensitive" flag.
   - Truth wording "G-leaf genome position in GG2"; uDance WoL2-topology fixedness UNVERIFIED; the apples2 caveat stays.
 - **Bfull\* cost amendment (user, 2026-11-13; written before any T29 result):** harness wall time and peak memory at Bfull\* on `gg2-wol` for every T28 arm and T29 lever; every cost-phase job (align, place, convert) runs on `highmem` (Intel Xeon Gold 6242) and cost is compared only within it. Core arms as above, frozen 9 regions. COST cells, full-length and V4-150, accuracy descriptive and never a verdict whatever T29 finds: hmmalign `pplacer-scampp`, `epa-ng-scampp`, `bscampp-b5000`, `apples2`, `dipper-m`; upp `bscampp` iff the T29 S0b probe is GO; upp `bscampp-b5000` iff also T29 S2 ran. Not at Bfull\*: `dipper-m-gpu` (GPU, T22 row stands), `pplacer` (T22 capped row stands), `epa-ng`, `dipper-r` (B10k\*-only). An unsized S0b is reported as the upp Bfull\* evidence. The "up to 2 extra challengers" rule above is read as the T28 screen.
-- **Pairing (user, 2026-11-13):** `hmmalign/bscampp` (core) and `hmmalign/bscampp-b5000` (COST) run on Xeon 6242 `highmem` in the same stage as their `upp/bscampp` and `upp/bscampp-b5000` twins, so the UPP cost and accuracy trade-off is read on one CPU model. The T30 cost table prints each upp cell beside its hmmalign twin (align: `hmmbuild` + `hmmalign` vs UPP; place; e2e; peak memory) with the within-3 difference upp minus hmmalign.
-- **Deliverables / Acceptance:** to be scoped after T28/T29 (config overlay, skeleton metric, `check_stage.py`, close-out table); all items stay unchecked until then.
-  - [ ] gg2-wol Bfull\* overlay, core arms + COST cells (amendment 2026-11-13), CPU-model pinning
-  - [ ] Skeleton metric and the decision table
-  - [ ] Cluster run (user runs every command)
+- **Pairing (user, 2026-11-13):** `hmmalign/bscampp` (core) and `hmmalign/bscampp-b5000` (COST) run on Xeon 6242 `highmem` in the same stage as their `upp/bscampp` and `upp/bscampp-b5000` twins, so the UPP cost and accuracy trade-off is read on one CPU model. The T30 cost table prints each upp cell beside its hmmalign twin (align: `hmmbuild` + `hmmalign` vs UPP; place; e2e; peak memory) with the within-3 difference upp minus hmmalign. (upp part superseded: see T29 outcome)
+- **T29 outcome (recorded before any gg2-wol Bfull\* data):** S0b was unsized (B2: timeout at 8,402 s for 300 queries, Xeon 6242 on `b-cn-25`, peak 31,102 MB; `docs/runbook-t29.md`) and S2 did not run, so there is no `aln=upp` cell. The S0b row is reported as the upp Bfull\* evidence in the T30 cost table. The Pairing upp twins drop out; `bscampp` (core) and `bscampp-b5000` (COST) still run on Xeon 6242 in the same stage. Cells: 27 core + 10 COST = 37.
+- **Plan review (user-approved 2026-11-20):** runbook `docs/runbook-t30.md`; profile `slurm-highmem` (`hmmalign` and `guppy_tog` shared, place rules exclusive, all on `highmem` `b-cn-25`/`b-cn-26` Xeon Gold 6242, `tasks: 1`; the post-run `sacct` NTasks check is the guard); 80 node-hour stop (estimate 25 to 35, UNVERIFIED); a post-run `cpu_model` STOP; skeleton definition in `design.md` section 3. Impl PR `Refs #61`, then the cluster run on the merge SHA, then a close-out PR `Closes #61`.
+- **Deliverables / Acceptance (checklist):**
+  - [x] T29 outcome recorded (above)
+  - [x] `config/t30.yaml` (37 cells) + `tests/test_t30_config.py`
+  - [x] `profiles/slurm-highmem` + `tests/test_profile.py`
+  - [x] `phylobench.skeleton` + `skeleton_table.py` + tests
+  - [x] `summaries.decision_table` / `headline` + `decision_table.py` + tests
+  - [x] `docs/runbook-t30.md`, `design.md` section 3 skeleton sentence, `docs/cluster.md` highmem and NTasks facts
+  - [ ] Cluster run (user runs every command): `check_stage.py` PASS, NTasks == 1 on every srun step, `cpu_model` all Xeon Gold 6242, archive `t30-final`
+  - [ ] Result
 - **Dependencies:** T28, T29, T31
 
 ---

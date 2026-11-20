@@ -61,3 +61,9 @@ A job step can read its own task cgroup's `memory.peak`, so `mem_source=cgroup` 
 ## Resolved in T21
 
 The three open questions (card, thread fit, `--force-binary`/`-T`) are resolved in [`docs/pilot.md`](pilot.md) and implemented in [`profiles/slurm/config.yaml`](../profiles/slurm/config.yaml): GPU arm on `b-gpu-21` (RTX 3090) with `--exclusive`, `--force-binary` on, no `-T`.
+
+## 5. highmem nodes and the task count (T30)
+
+- `highmem` is two nodes, `b-cn-25` and `b-cn-26`: Intel Xeon Gold 6242, 64 CPUs, 1,546,528 MB. At most two `--exclusive` jobs run at once.
+- On an `--exclusive` 64-CPU node, `srun -c 16` without `-n 1` starts 64 / 16 = 4 tasks (T29 S0b: `sacct` step `2316728.0`, NTasks 4, AllocCPUS 64), so four copies of one tool ran side by side. Hand-typed `srun` always carries `-n 1`.
+- The pinned SLURM plugin 2.8.0 appends `--ntasks={tasks or 1}` to each `sbatch`, and jobstep 0.6.1 runs `srun -n1 --cpu-bind=q --cpus-per-task={threads}`. [`profiles/slurm-highmem`](../profiles/slurm-highmem/config.yaml) sets `tasks: 1` explicitly anyway. The offline dry run proves only the config; the guard is `sacct` NTasks (`docs/runbook-t30.md`).

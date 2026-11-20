@@ -15,6 +15,9 @@ BOOT_CHUNK = 1_000
 WITHIN_K = 3
 NON_INFERIORITY_MARGIN = 0.02
 UNPAIRED = {"n_pairs": 0, "n_tool_unplaced": 0, "n_ref_unplaced": 0}
+HEADLINE_REGIONS = ("full-length", "V4-150")
+COST_ROLE = "COST (descriptive)"
+GATE_025 = "undecidable"
 NO_STATS = {"mean": np.nan, "ci_lo": np.nan, "ci_hi": np.nan}
 
 
@@ -194,6 +197,78 @@ def _within_k_row(tool, ref, groups, k, n_boot, seed, margin) -> dict:
         "lower": lower,
         "verdict": "non-inferior" if lower > -margin else "not-shown",
     }
+
+
+def decision_table(
+    within: pd.DataFrame,
+    mean_diff: pd.DataFrame,
+    skeleton: pd.DataFrame,
+    core: set[tuple[str, str]],
+) -> pd.DataFrame:
+    """One row per challenger cell: the primary within-k verdict and the secondaries.
+
+    COST rows (not in `core`) carry no verdict. The skeleton columns are descriptive
+    and never decide.
+    """
+    mean = mean_diff[[*CELL_KEYS, "mean", "ci_lo", "ci_hi"]].rename(
+        columns={"mean": "mean_diff"}
+    )
+    skel = skeleton[[*CELL_KEYS, "diff", "lower"]].rename(
+        columns={"diff": "skel_diff", "lower": "skel_lower"}
+    )
+    out = within.merge(mean, how="left", on=CELL_KEYS).merge(
+        skel, how="left", on=CELL_KEYS
+    )
+    is_core = [(a, r) in core for a, r in zip(out["aln"], out["arm"], strict=True)]
+    out["role"] = np.where(is_core, "core", COST_ROLE)
+    out["verdict"] = np.where(is_core, out["verdict"], "descriptive")
+    out["gate_025"] = GATE_025
+    columns = [
+        *CELL_KEYS,
+        "role",
+        "n",
+        "diff",
+        "lower",
+        "verdict",
+        "mean_diff",
+        "ci_lo",
+        "ci_hi",
+        "gate_025",
+        "skel_diff",
+        "skel_lower",
+    ]
+    return out[columns]
+
+
+def headline(
+    decision: pd.DataFrame, regions: tuple[str, ...] = HEADLINE_REGIONS
+) -> pd.DataFrame:
+    """Per core challenger: "as accurate as production SEPP" iff non-inferior in every
+    headline region; "not shown" if any region is not-shown; else "undecidable"."""
+    core = decision[decision["role"] == "core"]
+    rows = []
+    for (dataset, backbone, aln, arm), group in core.groupby(
+        ["dataset", "backbone", "aln", "arm"]
+    ):
+        by_region = group.set_index("region")["verdict"]
+        states = [by_region.get(region, "undecidable") for region in regions]
+        if all(s == "non-inferior" for s in states):
+            text = "as accurate as production SEPP"
+        elif "not-shown" in states:
+            text = "not shown"
+        else:
+            text = "undecidable"
+        rows.append(
+            {
+                "dataset": dataset,
+                "backbone": backbone,
+                "aln": aln,
+                "arm": arm,
+                **{f"verdict_{r}": s for r, s in zip(regions, states, strict=True)},
+                "headline": text,
+            }
+        )
+    return pd.DataFrame(rows)
 
 
 def cell_distribution(accuracy: pd.DataFrame) -> pd.DataFrame:
