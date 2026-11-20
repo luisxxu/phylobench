@@ -1,0 +1,11 @@
+# T30 on gg2-wol at Bfull* only (docs/runbook-t30.md). 37 cells: core (27) = raw/sepp-prod,
+# raw/sepp-pinned and hmmalign/bscampp x T28's frozen 9 regions; COST (10, descriptive) =
+# hmmalign/{pplacer-scampp, epa-ng-scampp, bscampp-b5000, apples2, dipper-m} x
+# {full-length, V4-150}. No aln=upp cell (T29 S0b unsized, S2 not run).
+datasets: [gg2-wol]
+backbones: [Bfull]
+regions: [full-length, V4-150, V3-V4, V1-V2, V1-V3, V4-V5, V5-V6, V6-V8, V7-V9c]
+alns: [hmmalign]
+exclude:
+  - {arm: [pplacer, epa-ng, dipper-r, dipper-m-gpu]}
+  - {arm: [pplacer-scampp, epa-ng-scampp, bscampp-b5000, apples2, dipper-m], region: [V3-V4, V1-V2, V1-V3, V4-V5, V5-V6, V6-V8, V7-V9c]}
