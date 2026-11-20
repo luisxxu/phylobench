@@ -49,7 +49,7 @@ Note: the reused T28 cells ran on AMD EPYC 7302 while new cells may land on othe
 
 ## S0b: UPP at Bfull\* (sizing; on its own; not on T29's critical path)
 
-Holds one `highmem` node, exclusive, for up to 3 h; the row is Xeon Gold 6242 cost data for T30. The harness timeout is 8,400 s, one tenth of `upp_align`'s 84,000 s cap (the 300-query run times 10 approximates 3,000 queries). Needs `results/t29-s0/check_upp.py` and `results/t29-s0/b10k/q300.fasta` from S0.
+Holds one `highmem` node, exclusive, for up to 3 h. `-n 1` is required: on an `--exclusive` 64-CPU node, `-c 16` without it starts 4 copies (see the result below); the row is Xeon Gold 6242 cost data for T30. The harness timeout is 8,400 s, one tenth of `upp_align`'s 84,000 s cap (the 300-query run times 10 approximates 3,000 queries). Needs `results/t29-s0/check_upp.py` and `results/t29-s0/b10k/q300.fasta` from S0.
 
 ```bash
 tmux new -s t29b
@@ -76,13 +76,13 @@ UPP_ENV=<the MATCH path>; rm -rf results/t29-s0/bfull/out results/t29-s0/bfull/t
 Paste: the printed path (expect it to start with `/ddn_scratch/lxxu/phylobench`).
 
 ```bash
-srun -A knightlab -p highmem --exclusive -c 16 --mem=1500000 -t 03:00:00 python -m phylobench.measure --out results/t29-s0/bfull/upp.run.json --threads 16 --timeout 8400 -- env PATH="$UPP_ENV/bin:$PATH" run_upp.py -s results/t29-s0/b10k/q300.fasta -a data/gg2-wol/Bfull/aligned-dna-sequences.fasta -t data/gg2-wol/Bfull/tree.nwk -A 100 -m dna -x 16 -o upp -d "$PWD/results/t29-s0/bfull/out" -p "$PWD/results/t29-s0/bfull/tmp" > logs/t29-s0-bfull.txt 2>&1; cat results/t29-s0/bfull/upp.run.json
+srun -A knightlab -p highmem --exclusive -n 1 -c 16 --mem=0 -t 03:00:00 python -m phylobench.measure --out results/t29-s0/bfull/upp.run.json --threads 16 --timeout 8400 -- env PATH="$UPP_ENV/bin:$PATH" run_upp.py -s results/t29-s0/b10k/q300.fasta -a data/gg2-wol/Bfull/aligned-dna-sequences.fasta -t data/gg2-wol/Bfull/tree.nwk -A 100 -m dna -x 16 -o upp -d "$PWD/results/t29-s0/bfull/out" -p "$PWD/results/t29-s0/bfull/tmp" > logs/t29-s0-bfull.txt 2>&1; cat results/t29-s0/bfull/upp.run.json
 ```
 
 Paste: the output.
 
 ```bash
-srun -A knightlab -p short -c 2 --mem=64G -t 03:00:00 python results/t29-s0/check_upp.py results/t29-s0/bfull/out data/gg2-wol/Bfull/aligned-dna-sequences.fasta results/t29-s0/b10k/q300.fasta
+srun -A knightlab -p short -n 1 -c 2 --mem=64G -t 03:00:00 python results/t29-s0/check_upp.py results/t29-s0/bfull/out data/gg2-wol/Bfull/aligned-dna-sequences.fasta results/t29-s0/b10k/q300.fasta
 ```
 
 Paste: the output.
@@ -96,7 +96,9 @@ Decision (pre-registered):
 
 ### S0b result
 
-Pending. The user pastes the `run.json` and checker output above; record status, `wall_s`, `peak_mem_mb`, `cpu_model` and the decision (B1 to B4) here, in `docs/tools/upp.md` and in `TICKETS.md` T29.
+**B2 UNSIZED (time)** (2026-11-18). One task (`-n 1`), b-cn-25, Intel Xeon Gold 6242: status `timeout` at 8,402 s, peak 31,102 MB. UPP was killed before it wrote `upp_alignment.fasta`, so the checker had no input (not a B4 STOP). T(300 queries) > 2.33 h at Bfull\*; T30 plans no upp cell and reports this row as the upp Bfull\* evidence.
+
+Incident, void run: the first attempt used `--exclusive -c 16` without `-n 1`. On the exclusive 64-CPU node srun started 4 tasks (`sacct` step `2316728.0`: NTasks 4, AllocCPUS 64), so 4 UPP copies ran side by side (the log has 4 `All options` lines and 4 temp directories; timeout at 8,402 s, 30 GB). Discarded. The S0 B10k\* and tiny probes ran on shared `short` nodes as one task (step `2316714.0`: NTasks 1) and stand. The block above now has `-n 1`.
 
 ## Preflight (S1)
 
@@ -364,11 +366,41 @@ scp -r lxxu@barnacle.ucsd.edu:/ddn_scratch/lxxu/phylobench-archive/t29-final res
 
 Paste: the output.
 
-## Result template (filled after the run)
+## Result (2026-11-19, at `ebc5966`)
 
-- Exploratory: both levers were tested on the same queries that revealed the T28 bscampp full-length deficit.
-- Per lever at full-length: difference vs `hmmalign/bscampp`, lower bound, shown or not shown; and against `sepp-prod` (primary table). Other regions descriptive.
-- UPP drop counts (queries missing from `upp.aligned.fasta`, scored as misses) per region.
-- Cost: UPP e2e vs `hmmalign` e2e plus the `hmmbuild` row, with the `cpu_model` of each; peak memory.
-- S2: ran or not, and why.
-- S0b: B1 to B4 outcome and what it means for T30's upp COST cells.
+S1: 75 of 75 jobs, 0 `Error in rule`, `check_stage.py` all PASS (no DNFs), 2.8 node-hours (stop 30), 13.7 h wall (mostly queue). Reuse check: 18 reused run_ids, 43,874 rows identical to `t28-final`. Archive `t29-final/` (tables, `t29-*.txt`, `logs.tgz`, `SHA256SUMS`, `GIT_SHA`), checksums verified on the laptop. Every cell ran on AMD EPYC 7302.
+
+Exploratory: both levers were tested on the same queries that revealed the T28 bscampp full-length deficit.
+
+**Lever table** (`results/t29-levers.txt`; lever minus `hmmalign/bscampp`, fraction within 3 edges; lower = one-sided 95% bound, cluster bootstrap B = 10,000; shown iff lower > 0):
+
+| Region (n) | `hmmalign/bscampp-b5000` | `upp/bscampp` |
+|---|---|---|
+| **full-length (3,000)** | **+0.016 (+0.0068) shown** | +0.0047 (-0.0007) not shown |
+| V4-150 (2,703) | +0.018 (+0.0052) | +0.0015 (-0.0061) |
+| V3-V4 (2,542) | -0.0098 (-0.022) | +0.0020 (-0.0034) |
+| V1-V2 (2,119) | +0.015 (+0.0070) | +0.014 (+0.0032) |
+| V1-V3 (2,058) | -0.0063 (-0.016) | +0.0092 (0.0000) |
+| V4-V5 (2,622) | -0.0050 (-0.019) | +0.0015 (-0.0030) |
+| V5-V6 (1,913) | +0.0021 (-0.0067) | -0.0068 (-0.025) |
+| V6-V8 (2,354) | +0.0051 (-0.0013) | +0.0064 (-0.0017) |
+| V7-V9c (2,626) | -0.015 (-0.026) | +0.0065 (+0.0007) |
+
+Only full-length decides; other regions are descriptive. **S2 gate: 1 of 2 levers shown, so S2 did not run.** "Not shown" for UPP means not shown, not "no effect"; its full-length gain is under about 1 pp.
+
+**Primary table** (`results/t29-within3.txt`; minus `raw/sepp-prod`, non-inferior iff lower > -0.02). Full-length: `hmmalign/bscampp` -0.030 (-0.052), equal to T28; `hmmalign/bscampp-b5000` -0.014 (-0.036); `upp/bscampp` -0.025 (-0.046); none non-inferior. Every amplicon region is non-inferior for all three except `hmmalign/bscampp` V1-V2 (-0.022) and `hmmalign/bscampp-b5000` V3-V4 (-0.028), V4-V5 (-0.022), V7-V9c (-0.030).
+
+**Cost** (`results/t29-cost.txt`, EPYC 7302, 16 threads; e2e = align + place + convert, `hmmbuild` 3.4 s excluded):
+
+| Full-length cell | e2e (s) | place (s) | peak (MB) |
+|---|---|---|---|
+| `hmmalign/bscampp` | 115 | 52 | 20,664 |
+| `hmmalign/bscampp-b5000` | 138 | 75 | 54,476 |
+| `upp/bscampp` | 3,248 | 62 | 20,399 |
+| `raw/sepp-prod` | 741 | (one phase) | 98,257 |
+
+UPP align: 3,186 s and 4,694 MB at full-length, 312 to 835 s and 1.8 to 2.4 GB per amplicon region, against `hmmalign` 5 to 62 s. `upp/bscampp` costs 4.4x `sepp-prod` end to end at full-length for a gain that is not shown.
+
+For context, `sepp-prod`'s own log at full-length (T28 run, 735 s cumulative): HMM ensemble build, search and align 20:27:24 to 20:30:27 (about 183 s, 25%), pplacer to 20:39:12 (about 525 s, 71%), merge 27 s. SEPP's time is mostly placement, consistent with the subtree-size lever mattering more than the alignment lever.
+
+What it means for T30: nothing changes. Both levers stay COST cells; no lever is an extra challenger; with S0b unsized and S2 not run, T30 has no upp cell.

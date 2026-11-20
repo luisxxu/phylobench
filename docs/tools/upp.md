@@ -43,13 +43,17 @@ Output goes to `{cell}/upp.log`. On `ok` the rule moves `upp_alignment_masked.fa
 | Tiny fixture, `-A 10`, 2 threads | ok, 13.5 s, 3.2 GB; checker all True (width 1500, 1 insertion column, 10/10 queries) |
 | B10k\*, 300 queries, `-A 10`, 16 threads | timeout at 2,400 s |
 | B10k\*, 300 queries, `-A 100`, 16 threads, EPYC 7302 | ok, 381.8 s, 4,617 MB (cgroup); backbone width 1598, 10,000 rows; full width 1660; masked width 1598; 62 insertion columns; full minus insertion columns equals masked; backbone rows identical after `upper()`; 300/300 queries; 0 lowercase in masked queries; masked query characters `- A C G T` |
-| Bfull\*, 300 queries, `-A 100`, `highmem` (S0b) | see `docs/runbook-t29.md` |
+| Bfull\*, 300 queries, `-A 100`, `highmem` Xeon Gold 6242 (S0b) | timeout at 8,402 s, 31,102 MB: B2 unsized, no upp cell in T30 (`docs/runbook-t29.md`) |
 
 The backbone input has IUPAC codes (`A B C G K M R S T W Y -`); UPP uppercases but does not change them.
 
+## T29 S1 (B10k\*, EPYC 7302)
+
+UPP align at full-length: 3,186 s and 4,694 MB for 3,000 queries (`hmmalign` 62 s); amplicon regions 312 to 835 s. `upp/bscampp` full-length e2e 3,248 s against 115 s for `hmmalign/bscampp`, for a within-3 gain of +0.0047 (lower bound -0.0007, not shown). Details: `docs/runbook-t29.md`.
+
 ## Smoke
 
-UPP joins the CI smoke for the `bscampp` leg (tiny fixture, 13.5 s). Its exact-placement count (`smoke_min_exact: 8`) is first checked in the first CI run of the T29 PR; if only that check fails, UPP leaves `config/smoke.yaml` and the threshold stays.
+UPP runs in the CI smoke for the `bscampp` leg (tiny fixture, 13.5 s) and passed the exact-placement check (`smoke_min_exact: 8`) in the T29 PR.
 
 ## Quirks
 

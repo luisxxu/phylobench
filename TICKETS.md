@@ -33,26 +33,6 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 
 ### Post-T24 — Non-V4 regions and BSCAMPP follow-up
 
-### T29: Accuracy levers at B10k\* — closes #60
-- **Week:** post-T24
-- **Description:** (a) UPP alignment (bioconda sepp 4.5.6, already pinned in `envs/sepp.yaml`) as aln `upp`, bscampp only (other arms excluded), measured `align` phase, masked to backbone columns (UPP may insert columns); flags and fixed-backbone support verified from the installed package in an S0 probe first; (b) `bscampp-b5000` (`-b 5000 -V 5`) with hmmalign only; b5000 x upp only if both show an effect; optional -V 10 probe. `evaluate.smk` is parameterized by aln (it hard-codes hmmalign). No WITCH (bundled binaries), no oracle at Bfull\*. An alignment lever, not production parity.
-- **Deliverables / Acceptance:** to be scoped in plan review (UPP rule, masking unit test, e2e cost in `summaries`/`tables`, `docs/tools/upp.md`, `LICENSES.md` UPP GPL-3, CI smoke only if UPP runs on the tiny fixture in under a minute).
-- **T31 amendment (2026-11-06):** runs on `gg2-wol` at B10k\* only, over T28's frozen region list: UPP align for bscampp and `bscampp-b5000`, same non-inferiority statistic as T30.
-- **Plan review (2026-11-13, user-approved):** `docs/runbook-t29.md`. S1 = 36 cells (18 reused from T28: `raw/sepp-prod`, `hmmalign/bscampp`; 18 new: `upp/bscampp`, `hmmalign/bscampp-b5000`); gated S2 adds `upp/bscampp-b5000` (+9). A lever is shown iff at full-length its paired within-3 difference against `hmmalign/bscampp` has a one-sided 95% lower bound above 0 (`within_k_table.py --reference hmmalign/bscampp --margin 0`); S2 runs iff both are shown. Exploratory: the same queries revealed the T28 bscampp deficit. `evaluate` is already `{aln}`-parameterized (only `tables.run_specs` and `summaries.end_to_end` hard-coded hmmalign). S0 pinned UPP at `-A 100` (`-A 10` timed out).
-- **Deliverables / Acceptance (checklist):**
-  - [x] S0 (U1 to U7) recorded in `docs/tools/upp.md`
-  - [ ] S0b (Bfull\* UPP sizing, B1 to B4) recorded in `docs/runbook-t29.md`
-  - [x] T30 amendment text (below)
-  - [x] `upp.smk`, `regions.upp_query_rows` + tests, schema `upp`
-  - [x] `bscampp-b5000` arm and rule; historical configs exclude it
-  - [x] `run_specs`, `end_to_end`, `within_k_difference(reference, margin)`, `within_k_table.py --reference/--margin`
-  - [x] `config/t29.yaml` (36), `config/t29-combo.yaml` (+9), DAG tests
-  - [x] `docs/tools/upp.md`, `docs/tools/bscampp.md`, `LICENSES.md`, `design.md`
-  - [ ] CI smoke green, including the `upp/bscampp` exact-count check
-  - [ ] Cluster S1 (S2 iff gated), reuse checks, tables, archive `t29-final` (user runs every command)
-- **Dependencies:** T28 (regions), T22, T31
-- **Agent notes:** B10k\* only; T29 sizes UPP at Bfull\* only through the S0b probe.
-
 ### T30: Bfull\* confirmation on `gg2-wol` (conditional on T28/T29) — closes #61
 - **Week:** post-T24
 - **Description:** Bfull\* confirmation on the T31 `gg2-wol` set (a fresh draw relative to T22, so confirmatory), with the criteria below fixed in the T31 PR, before any gg2-wol data exists. Core arms (fixed now): sepp-prod, sepp-pinned, bscampp. Up to 2 extra challengers if their B10k\* full-length within-3 lower bound is above -2 pp, labelled "selected at B10k\* on the same queries" (not confirmatory; no query split). T28 result (2026-11-12): none qualify (best -4.4 pp); T28 S1 sepp-prod full-length peak 96 GiB x 2.9 = 278 GiB, under the stop. All place/align jobs run on one `highmem` CPU model, `cpu_model` recorded, cost compared only within it (T22: SEPP rows ran on Xeon 6242, challengers on EPYC 7302). Stop and ask if T28 S1 sepp-prod full-length peak x 2.9 exceeds 1,400 GB (T22: 102 GB at B10k\*, 277 GB at Bfull\* with 1,000 queries).
@@ -84,6 +64,27 @@ Each ticket has: **Week**, **Description**, **Deliverables**, **Acceptance** (wh
 ## Done
 
 <!-- Move tickets here once merged. Keep the T{N} prefix. -->
+
+### T29: Accuracy levers at B10k\* — closes #60
+- **Week:** post-T24
+- **Description:** (a) UPP alignment (bioconda sepp 4.5.6, already pinned in `envs/sepp.yaml`) as aln `upp`, bscampp only (other arms excluded), measured `align` phase, masked to backbone columns (UPP may insert columns); flags and fixed-backbone support verified from the installed package in an S0 probe first; (b) `bscampp-b5000` (`-b 5000 -V 5`) with hmmalign only; b5000 x upp only if both show an effect; optional -V 10 probe. `evaluate.smk` is parameterized by aln (it hard-codes hmmalign). No WITCH (bundled binaries), no oracle at Bfull\*. An alignment lever, not production parity.
+- **Deliverables / Acceptance:** to be scoped in plan review (UPP rule, masking unit test, e2e cost in `summaries`/`tables`, `docs/tools/upp.md`, `LICENSES.md` UPP GPL-3, CI smoke only if UPP runs on the tiny fixture in under a minute).
+- **T31 amendment (2026-11-06):** runs on `gg2-wol` at B10k\* only, over T28's frozen region list: UPP align for bscampp and `bscampp-b5000`, same non-inferiority statistic as T30.
+- **Plan review (2026-11-13, user-approved):** `docs/runbook-t29.md`. S1 = 36 cells (18 reused from T28: `raw/sepp-prod`, `hmmalign/bscampp`; 18 new: `upp/bscampp`, `hmmalign/bscampp-b5000`); gated S2 adds `upp/bscampp-b5000` (+9). A lever is shown iff at full-length its paired within-3 difference against `hmmalign/bscampp` has a one-sided 95% lower bound above 0 (`within_k_table.py --reference hmmalign/bscampp --margin 0`); S2 runs iff both are shown. Exploratory: the same queries revealed the T28 bscampp deficit. `evaluate` is already `{aln}`-parameterized (only `tables.run_specs` and `summaries.end_to_end` hard-coded hmmalign). S0 pinned UPP at `-A 100` (`-A 10` timed out).
+- **Deliverables / Acceptance (checklist):**
+  - [x] S0 (U1 to U7) recorded in `docs/tools/upp.md`
+  - [x] S0b (Bfull\* UPP sizing, B1 to B4) recorded in `docs/runbook-t29.md`: B2 unsized (timeout at 8,402 s, Xeon 6242); the first attempt was void (4 tasks without `-n 1`), runbook fixed
+  - [x] T30 amendment text (below)
+  - [x] `upp.smk`, `regions.upp_query_rows` + tests, schema `upp`
+  - [x] `bscampp-b5000` arm and rule; historical configs exclude it
+  - [x] `run_specs`, `end_to_end`, `within_k_difference(reference, margin)`, `within_k_table.py --reference/--margin`
+  - [x] `config/t29.yaml` (36), `config/t29-combo.yaml` (+9), DAG tests
+  - [x] `docs/tools/upp.md`, `docs/tools/bscampp.md`, `LICENSES.md`, `design.md`
+  - [x] CI smoke green, including the `upp/bscampp` exact-count check
+  - [x] Cluster S1 (2026-11-19; 75 jobs, `check_stage.py` PASS, 2.8 node-hours; 18 reused cells identical; archive `t29-final`); S2 not run (gate 1 of 2)
+  - [x] Result (exploratory, `docs/runbook-t29.md`): at full-length `bscampp-b5000` shown (+0.016, lower +0.0068), `upp` not shown (+0.0047, lower -0.0007); none non-inferior to sepp-prod (b5000 -0.014, upp -0.025, bscampp -0.030); `upp/bscampp` e2e 3,248 s vs 741 s sepp-prod; T30 unchanged, no upp cell
+- **Dependencies:** T28 (regions), T22, T31
+- **Agent notes:** B10k\* only; T29 sizes UPP at Bfull\* only through the S0b probe.
 
 ### T28: Column-window regions (non-V4 support) — closes #59
 - **Week:** post-T24
