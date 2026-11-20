@@ -59,3 +59,4 @@ The wrapper is MIT. Engines actually executed: `pplacer-scampp` runs pplacer (GP
 - An engine OOM inside a pool worker surfaces as `status=error`, not an OOM kill of the harness child.
 - Aligned arm: places the `hmmalign` or `oracle` aligned queries; `bscampp` (and the gated `bscampp-b5000`) also place the `upp` aligned queries in T29 (`docs/tools/upp.md`).
 - `bscampp-b5000` is excluded from every config before T29 (`exclude`), so their plans are unchanged; `config/smoke.yaml` keeps it.
+- T29 result (B10k\*, full-length, EPYC 7302): `bscampp-b5000` minus `bscampp` within-3 +0.016 (lower bound +0.0068, shown); against `sepp-prod` -0.014 (-0.036, not non-inferior). Place 75 s vs 52 s, peak 54,476 MB vs 20,664 MB. `docs/runbook-t29.md`.
